@@ -1,5 +1,5 @@
 {
-    "name": "fleet-lit-tauri",
+    "name": "fleet-chat",
     "private": true,
     "type": "module",
     "scripts": {

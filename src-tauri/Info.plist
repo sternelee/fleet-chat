@@ -8,7 +8,7 @@
             <dict>
                 <key>CFBundleURLName</key>
                 <!-- Obviously needs to be replaced with your app's bundle identifier -->
-                <string>com.ripandis.fleet-lit-tauri</string>
+                <string>com.ripandis.fleet-chat</string>
                 <key>CFBundleURLSchemes</key>
                 <array>
                     <!-- Register deep link: fleet-lit:// -->
