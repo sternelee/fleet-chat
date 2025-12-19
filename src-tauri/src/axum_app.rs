@@ -1,14 +1,17 @@
 use crate::a2ui_agent::{A2UIAgent, A2UIResponse};
 use axum::{
     extract::{Path, State},
-    http,
+    http::{self},
+    response::{sse::Event, IntoResponse, Response, Sse},
     routing::{delete, get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
+use tokio_stream::wrappers::ReceiverStream;
 use uuid::Uuid;
 
 // A2UI Schema Types
@@ -972,6 +975,7 @@ pub fn create_axum_app() -> Router {
         .route("/agent/sessions", get(list_agent_sessions))
         // A2UI Agent API endpoints
         .route("/a2ui/agent/chat", post(a2ui_agent_chat))
+        .route("/a2ui/agent/chat/stream", post(a2ui_agent_chat_stream))
         .route("/a2ui/agent/session/{id}", get(get_a2ui_session))
         .route("/a2ui/agent/sessions", get(list_a2ui_sessions))
         .with_state(state)
@@ -1015,6 +1019,110 @@ async fn a2ui_agent_chat(
         Ok(response) => Ok(Json(response)),
         Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
     }
+}
+
+// Streaming A2UI Chat via Server-Sent Events (SSE)
+async fn a2ui_agent_chat_stream(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Response, http::StatusCode> {
+    let agent = state
+        .a2ui_agent
+        .as_ref()
+        .ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?
+        .clone();
+
+    // Create a SendMessageRequest from the JSON value
+    let session_id = request
+        .get("session_id")
+        .and_then(|v| v.as_str())
+        .ok_or(http::StatusCode::BAD_REQUEST)?
+        .to_string();
+
+    let content = request
+        .get("content")
+        .and_then(|v| v.as_str())
+        .ok_or(http::StatusCode::BAD_REQUEST)?
+        .to_string();
+
+    let tool_context = request.get("tool_context").and_then(|v| v.as_object()).map(|obj| {
+        obj.iter()
+            .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+            .collect()
+    });
+
+    let send_request = crate::a2ui_agent::SendMessageRequest {
+        session_id,
+        content,
+        use_ui: request.get("use_ui").and_then(|v| v.as_bool()),
+        tool_context,
+    };
+
+    // Simple SSE implementation that sends all A2UI messages
+    let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, std::convert::Infallible>>(32);
+
+    // Spawn a task to handle the agent response and send messages
+    tokio::spawn(async move {
+        // Send initial processing event
+        let processing_data = json!({
+            "type": "processing",
+            "message": "Generating response...",
+            "timestamp": chrono::Utc::now().to_rfc3339()
+        });
+        if tx
+            .send(Ok(Event::default().data(processing_data.to_string()).event("update")))
+            .await
+            .is_err()
+        {
+            return;
+        }
+
+        // Get response from agent
+        match agent.send_message(send_request).await {
+            Ok(response) => {
+                let message_count = response.a2ui_messages.len();
+                // Send each A2UI message as a separate event
+                for (i, a2ui_message) in response.a2ui_messages.into_iter().enumerate() {
+                    let message_data = json!({
+                        "message_index": i,
+                        "a2ui_message": a2ui_message
+                    });
+
+                    if tx
+                        .send(Ok(Event::default()
+                            .data(message_data.to_string())
+                            .event("a2ui_message")))
+                        .await
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+
+                // Send completion event
+                let completion_data = json!({
+                    "type": "completed",
+                    "message_count": message_count,
+                    "timestamp": chrono::Utc::now().to_rfc3339()
+                });
+                let _ = tx.send(Ok(Event::default().data(completion_data.to_string()).event("complete")));
+            }
+            Err(_) => {
+                // Send error event
+                let error_data = json!({
+                    "type": "error",
+                    "message": "Failed to generate response",
+                    "timestamp": chrono::Utc::now().to_rfc3339()
+                });
+                let _ = tx.send(Ok(Event::default().data(error_data.to_string()).event("error")));
+            }
+        }
+    });
+
+    // Convert the channel receiver to a stream
+    let stream = tokio_stream::wrappers::ReceiverStream::new(rx);
+
+    Ok(Sse::new(stream).into_response())
 }
 
 async fn get_a2ui_session(
