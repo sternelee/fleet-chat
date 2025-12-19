@@ -24,7 +24,9 @@
         "tauri": "tauri"
     },
     "dependencies": {
+        "@a2ui/lit": "link:/Users/sternelee/www/github/A2UI/renderers/lit",
         "@lit-labs/router": "^0.1.4",
+        "@lit-labs/signals": "^0.1.3",
         "@nanostores/lit": "^0.2.3",
         "@nanostores/persistent": "^1.2.0",
         "@tauri-apps/api": "^2.9.1",
