@@ -49,6 +49,12 @@ tower-service = "0.3.3"
 futures = "0.3"
 tokio = { version = "1.47", features = ["sync", "rt", "macros"] }
 tokio-stream = "0.1"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# AI/LLM dependencies
+reqwest = { version = "0.12", features = ["json"] }
+jsonschema = { version = "0.18" }
 
 # Used to call the macOS native API
 [target."cfg(target_os = \"macos\")".dependencies]

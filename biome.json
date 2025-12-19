@@ -1,8 +1,6 @@
 {
-    "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-    "organizeImports": {
-        "enabled": true
-    },
+    "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
+    "assist": { "actions": { "source": { "organizeImports": "on" } } },
     "vcs": {
         "enabled": true,
         "clientKind": "git",
@@ -74,10 +72,6 @@
                 "noArrayIndexKey": "warn",
                 "noAssignInExpressions": "off",
                 "noCommentText": "off",
-                "noConsoleLog": {
-                    "level": "off",
-                    "fix": "none"
-                },
                 "noDebugger": "off",
                 "noExplicitAny": "off",
                 "noConsole": {
@@ -98,7 +92,7 @@
         "indentStyle": "space",
         "indentWidth": 4,
         "lineWidth": 100,
-        "ignore": []
+        "includes": ["**"]
     },
     "css": {
         "parser": {
@@ -130,7 +124,18 @@
     },
     "files": {
         "ignoreUnknown": true,
-        "include": ["**/*.js", "**/*.ts", "**/*.css", "**/*.json", "**/*.jsonc"],
-        "ignore": [".github", ".tauri", "build", "dist", "**/*.rs", "target"]
+        "includes": [
+            "**/*.js",
+            "**/*.ts",
+            "**/*.css",
+            "**/*.json",
+            "**/*.jsonc",
+            "!**/.github",
+            "!**/.tauri",
+            "!**/build",
+            "!**/dist",
+            "!**/*.rs",
+            "!**/target"
+        ]
     }
 }

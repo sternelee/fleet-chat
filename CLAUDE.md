@@ -25,7 +25,11 @@ pnpm build:ui     # Build frontend only
 pnpm check        # Run Biome checks and auto-fix issues
 pnpm lint         # Run Biome linter with auto-fix
 pnpm format       # Format all code (JavaScript/TypeScript and Rust)
+pnpm format:rs    # Format Rust code only
+pnpm format:js    # Format JavaScript/TypeScript code only
 pnpm typecheck    # Run TypeScript type checking
+cd src-tauri && cargo check    # Check Rust compilation
+cd src-tauri && cargo fmt      # Format Rust code
 ```
 
 ### Maintenance
@@ -50,8 +54,14 @@ pnpm tauri <command>  # Run any Tauri CLI command
 - **Build Tool**: Vite with Lightning CSS optimization
 
 ### Backend Architecture (Rust/Tauri)
-- **Framework**: Tauri v2 for cross-platform desktop capabilities
+- **Framework**: Tauri v2 for cross-platform desktop capabilities with integrated Axum web server
 - **Language**: Rust for native performance and system integration
+- **Web Server**: Axum HTTP server providing RESTful APIs and A2UI backend services
+- **AI Integration**: 
+  - Gemini AI agent for intelligent UI generation (gemini_agent.rs)
+  - A2UI (Agent-to-UI) backend service following Google ADK architecture (a2ui_agent.rs)
+  - JSON schema validation for UI responses
+  - Session management and conversation state tracking
 - **Plugins**: Multiple Tauri plugins (dialog, http, log, notification, etc.)
 
 ### Panel System
@@ -76,9 +86,12 @@ The application features a flexible, state-persistent panel system:
 ## Key Configuration Files
 
 - `tauri.conf.json` - Tauri app configuration (build commands, window settings, plugins)
+- `src-tauri/Cargo.toml` - Rust dependencies and build configuration for Tauri backend
 - `vite.config.ts` - Frontend build configuration with Lightning CSS
 - `biome.json` - Linter and formatter configuration (replaces ESLint/Prettier)
 - `src/routes.ts` - Application routing configuration
+- `src-tauri/src/a2ui_schema.json` - JSON schema for A2UI message validation
+- `src-tauri/src/templates/` - Pre-built A2UI UI templates (contact_list, contact_card, action_confirmation, etc.)
 
 ## Development Notes
 
@@ -104,11 +117,46 @@ The application features a flexible, state-persistent panel system:
 - Brownfield security pattern for flexible frontend development
 - CSP disabled for development (can be enabled for production)
 
+### A2UI Backend Development
+- A2UI (Agent-to-UI) framework integrated in `src-tauri/src/a2ui_agent.rs`
+- Follows Google ADK (Agent Development Kit) architecture patterns
+- Gemini AI integration for intelligent UI generation via `gemini_agent.rs`
+- RESTful API endpoints served via Axum in `axum_app.rs`
+- JSON schema validation ensures A2UI message compliance
+- Session management with conversation context tracking
+- Built-in tool calling system for agent capabilities
+- Pre-built UI templates for common response patterns
+
+### Key Backend Dependencies
+- `axum` - Web framework for HTTP server
+- `reqwest` - HTTP client for Gemini API calls
+- `jsonschema` - JSON schema validation
+- `uuid` - Session ID generation
+- `chrono` - Timestamp handling for session management
+
+## Backend Module Structure
+
+### Core Rust Modules (`src-tauri/src/`)
+- **lib.rs** - Main Tauri application entry point and plugin setup
+- **axum_app.rs** - Axum web server with A2UI RESTful API endpoints
+- **a2ui_agent.rs** - A2UI backend service implementing Google ADK patterns
+- **gemini_agent.rs** - Gemini AI client for intelligent UI generation
+- **tauri_axum.rs** - Bridge between Tauri and Axum for local HTTP requests
+- **window.rs** - macOS-specific window styling and customization
+
+### Key A2UI Components
+- **A2UIAgent** - Core agent with session management and tool calling
+- **A2UIResponse** - Structured responses with JSON schema validation
+- **Tool execution** - Built-in tools for contact search, data retrieval
+- **Prompt engineering** - Context-aware UI generation with examples
+- **Response validation** - Multi-pass validation with retry mechanisms
+
 ## Testing
 
 Currently, no test framework is configured. When adding tests:
 - Consider adding Web Test Runner for Lit component testing
-- For Rust backend, use built-in Rust testing framework
+- For Rust backend, use built-in Rust testing framework (`cargo test`)
+- Test A2UI endpoints with tools like `curl` or Postman against localhost:3000
 
 ## Platform-Specific Notes
 

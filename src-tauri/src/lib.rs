@@ -1,4 +1,6 @@
+mod a2ui_agent;
 mod axum_app;
+mod gemini_agent;
 mod tauri_axum;
 mod window;
 use axum::Router;

@@ -1,0 +1,116 @@
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": [],
+        "properties": {
+            "beginRendering": {
+                "type": "object",
+                "required": ["surfaceId"],
+                "properties": {
+                    "surfaceId": {
+                        "type": "string"
+                    },
+                    "root": {
+                        "type": "string"
+                    },
+                    "styles": {
+                        "type": "object",
+                        "properties": {
+                            "primaryColor": {
+                                "type": "string"
+                            },
+                            "font": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "additionalProperties": false
+            },
+            "surfaceUpdate": {
+                "type": "object",
+                "required": ["surfaceId", "components"],
+                "properties": {
+                    "surfaceId": {
+                        "type": "string"
+                    },
+                    "components": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["id", "component"],
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "weight": {
+                                    "type": "number"
+                                },
+                                "component": {
+                                    "type": "object"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    }
+                },
+                "additionalProperties": false
+            },
+            "dataModelUpdate": {
+                "type": "object",
+                "required": ["surfaceId", "contents"],
+                "properties": {
+                    "surfaceId": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "contents": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["key"],
+                            "properties": {
+                                "key": {
+                                    "type": "string"
+                                },
+                                "valueMap": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object"
+                                    }
+                                },
+                                "valueString": {
+                                    "type": "string"
+                                },
+                                "valueNumber": {
+                                    "type": "number"
+                                },
+                                "valueBoolean": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    }
+                },
+                "additionalProperties": false
+            },
+            "deleteSurface": {
+                "type": "object",
+                "required": ["surfaceId"],
+                "properties": {
+                    "surfaceId": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "oneOf": [{ "required": ["beginRendering"] }, { "required": ["surfaceUpdate"] }, { "required": ["dataModelUpdate"] }, { "required": ["deleteSurface"] }],
+        "additionalProperties": false
+    }
+}
+
