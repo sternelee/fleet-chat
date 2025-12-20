@@ -1,4 +1,4 @@
-mod a2ui_agent;
+mod a2ui;
 mod axum_app;
 mod gemini_agent;
 mod tauri_axum;

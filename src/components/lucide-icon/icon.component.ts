@@ -1,8 +1,8 @@
-import { LitElement, html } from 'lit'
+import { html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js'
 import * as icons from 'lucide'
-import { type SVGProps, createElement } from 'lucide'
+import { createElement, type SVGProps } from 'lucide'
 import { iconStyles } from './icon.styles'
 import type { LucideIconName } from './icon.types'
 

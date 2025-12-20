@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { LitElement, css, html } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import tauriLogo from '~/assets/images/tauri.svg'
 import typescriptLogo from '~/assets/images/typescript.svg'

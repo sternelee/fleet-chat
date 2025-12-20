@@ -1,7 +1,7 @@
 import { StoreController } from '@nanostores/lit'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { type Platform, platform } from '@tauri-apps/plugin-os'
-import { LitElement, html } from 'lit'
+import { html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { uiStore } from '#/stores/ui.store'

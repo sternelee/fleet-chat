@@ -1,47 +1,42 @@
-import { SignalWatcher } from "@lit-labs/signals";
-import {
-  LitElement,
-  html,
-  css,
-  nothing,
-} from "lit";
-import { customElement, state } from "lit/decorators.js";
-import { A2UIClient } from "./client.js";
-import { repeat } from "lit/directives/repeat.js";
-import "./a2ui-renderer.js";
+import { SignalWatcher } from '@lit-labs/signals'
+import { css, html, LitElement, nothing } from 'lit'
+import { customElement, state } from 'lit/decorators.js'
+import { repeat } from 'lit/directives/repeat.js'
+import { A2UIClient } from './client.js'
+import './a2ui-renderer.js'
 
 // Mock A2UI types for now
 interface ServerToClientMessage {
-  type: string;
-  data?: any;
+  type: string
+  data?: any
 }
 
 interface A2UIClientEventMessage {
   userAction: {
-    surfaceId: string;
-    name: string;
-    sourceComponentId: string;
-    timestamp: string;
-    context: Record<string, any>;
-  };
+    surfaceId: string
+    name: string
+    sourceComponentId: string
+    timestamp: string
+    context: Record<string, any>
+  }
 }
 
-@customElement("a2ui-chat")
+@customElement('a2ui-chat')
 export class A2UIChat extends SignalWatcher(LitElement) {
   @state()
-  private requesting = false;
+  private requesting = false
 
   @state()
-  private error: string | null = null;
+  private error: string | null = null
 
   @state()
-  private lastMessages: ServerToClientMessage[] = [];
+  private lastMessages: ServerToClientMessage[] = []
 
   @state()
-  private a2uiMessages: any[] = [];
+  private a2uiMessages: any[] = []
 
   @state()
-  private inputText = "";
+  private inputText = ''
 
   static styles = css`
     :host {
@@ -244,9 +239,9 @@ export class A2UIChat extends SignalWatcher(LitElement) {
       -webkit-font-feature-settings: 'liga';
       -webkit-font-smoothing: antialiased;
     }
-  `;
+  `
 
-  #a2uiClient = new A2UIClient();
+  #a2uiClient = new A2UIClient()
 
   render() {
     return html`
@@ -261,17 +256,17 @@ export class A2UIChat extends SignalWatcher(LitElement) {
         ${this.#maybeRenderA2UI()}
         ${this.#maybeRenderData()}
       </div>
-    `;
+    `
   }
 
   #maybeRenderError() {
-    if (!this.error) return nothing;
+    if (!this.error) return nothing
 
-    return html`<div class="error">${this.error}</div>`;
+    return html`<div class="error">${this.error}</div>`
   }
 
   #maybeRenderForm() {
-    if (this.requesting && this.lastMessages.length === 0) return nothing;
+    if (this.requesting && this.lastMessages.length === 0) return nothing
 
     return html`
       <div class="input-area">
@@ -281,18 +276,18 @@ export class A2UIChat extends SignalWatcher(LitElement) {
             placeholder="Type your message here..."
             .value=${this.inputText}
             @input=${(e: Event) => {
-        const target = e.target as HTMLTextAreaElement;
-        this.inputText = target.value;
-        // Auto-resize textarea
-        target.style.height = 'auto';
-        target.style.height = Math.min(target.scrollHeight, 120) + 'px';
-      }}
+              const target = e.target as HTMLTextAreaElement
+              this.inputText = target.value
+              // Auto-resize textarea
+              target.style.height = 'auto'
+              target.style.height = Math.min(target.scrollHeight, 120) + 'px'
+            }}
             @keydown=${(e: KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.#handleSubmit();
-        }
-      }}
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                this.#handleSubmit()
+              }
+            }}
             ?disabled=${this.requesting}
             rows="1"
           ></textarea>
@@ -306,11 +301,11 @@ export class A2UIChat extends SignalWatcher(LitElement) {
           </button>
         </div>
       </div>
-    `;
+    `
   }
 
   #maybeRenderA2UI() {
-    if (this.a2uiMessages.length === 0) return nothing;
+    if (this.a2uiMessages.length === 0) return nothing
 
     return html`
       <div class="a2ui-area">
@@ -319,27 +314,27 @@ export class A2UIChat extends SignalWatcher(LitElement) {
           @a2ui-action=${this.#handleA2UIAction}
         ></a2ui-renderer>
       </div>
-    `;
+    `
   }
 
   #handleA2UIAction(event: CustomEvent) {
-    console.log('A2UI Action received:', event.detail);
-    
+    console.log('A2UI Action received:', event.detail)
+
     // Handle A2UI actions by sending them back to the agent
-    const action = event.detail;
+    const action = event.detail
     const message: A2UIClientEventMessage = {
       userAction: {
-        surfaceId: "a2ui-surface",
+        surfaceId: 'a2ui-surface',
         name: action.name,
-        sourceComponentId: "a2ui-component",
+        sourceComponentId: 'a2ui-component',
         timestamp: new Date().toISOString(),
         context: {
           actionContext: action.context,
         },
       },
-    };
+    }
 
-    this.#sendAndProcessMessage(message);
+    this.#sendAndProcessMessage(message)
   }
 
   #maybeRenderData() {
@@ -349,89 +344,87 @@ export class A2UIChat extends SignalWatcher(LitElement) {
           <span class="material-symbols-outlined">progress_activity</span>
           <span>Thinking...</span>
         </div>
-      `;
+      `
     }
 
     if (this.lastMessages.length === 0) {
-      return nothing;
+      return nothing
     }
 
     return html`
       <div class="message-area">
         ${repeat(
-      this.lastMessages,
-      (message, index) => index,
-      (message) => {
-        if (message.type === 'user_message') {
-          return html`<div class="message user-message">${message.data}</div>`;
-        } else {
-          return html`<div class="message assistant-message">${message.data}</div>`;
-        }
-      }
-    )}
+          this.lastMessages,
+          (message, index) => index,
+          (message) => {
+            if (message.type === 'user_message') {
+              return html`<div class="message user-message">${message.data}</div>`
+            } else {
+              return html`<div class="message assistant-message">${message.data}</div>`
+            }
+          },
+        )}
       </div>
-    `;
+    `
   }
 
   #handleSubmit() {
-    if (!this.inputText.trim() || this.requesting) return;
+    if (!this.inputText.trim() || this.requesting) return
 
     const userMessage: ServerToClientMessage = {
       type: 'user_message',
-      data: this.inputText.trim()
-    };
+      data: this.inputText.trim(),
+    }
 
-    this.lastMessages = [...this.lastMessages, userMessage];
+    this.lastMessages = [...this.lastMessages, userMessage]
 
     const message: A2UIClientEventMessage = {
       userAction: {
-        surfaceId: "chat-input",
-        name: "send_message",
-        sourceComponentId: "chat-input",
+        surfaceId: 'chat-input',
+        name: 'send_message',
+        sourceComponentId: 'chat-input',
         timestamp: new Date().toISOString(),
         context: {
           message: this.inputText.trim(),
         },
       },
-    };
+    }
 
-    this.#sendAndProcessMessage(message);
-    this.inputText = "";
+    this.#sendAndProcessMessage(message)
+    this.inputText = ''
   }
 
   async #sendAndProcessMessage(request: A2UIClientEventMessage) {
     try {
-      this.requesting = true;
-      this.error = null;
+      this.requesting = true
+      this.error = null
 
-      const messages = await this.#sendMessage(request);
-      
+      const messages = await this.#sendMessage(request)
+
       // Separate regular messages from A2UI messages
-      const regularMessages: ServerToClientMessage[] = [];
-      const a2uiMessages: any[] = [];
-      
-      messages.forEach(msg => {
+      const regularMessages: ServerToClientMessage[] = []
+      const a2uiMessages: any[] = []
+
+      messages.forEach((msg) => {
         if (msg.a2ui_message) {
-          a2uiMessages.push(msg.a2ui_message);
+          a2uiMessages.push(msg.a2ui_message)
         } else {
-          regularMessages.push(msg);
+          regularMessages.push(msg)
         }
-      });
-      
-      this.lastMessages = [...this.lastMessages, ...regularMessages];
-      this.a2uiMessages = a2uiMessages;
+      })
+
+      this.lastMessages = [...this.lastMessages, ...regularMessages]
+      this.a2uiMessages = a2uiMessages
     } catch (err) {
-      this.error = err instanceof Error ? err.message : "An error occurred";
-      console.error("Chat error:", err);
+      this.error = err instanceof Error ? err.message : 'An error occurred'
+      console.error('Chat error:', err)
     } finally {
-      this.requesting = false;
+      this.requesting = false
     }
   }
 
-  async #sendMessage(
-    message: A2UIClientEventMessage
-  ): Promise<ServerToClientMessage[]> {
-    const response = await this.#a2uiClient.send(message);
+  async #sendMessage(message: A2UIClientEventMessage): Promise<ServerToClientMessage[]> {
+    const response = await this.#a2uiClient.send(message)
 
     // Convert A2UI messages to display format
     return response.map((msg: any) => {
@@ -439,21 +432,21 @@ export class A2UIChat extends SignalWatcher(LitElement) {
       if (msg.content) {
         return {
           type: 'assistant_message',
-          data: msg.content
-        };
+          data: msg.content,
+        }
       }
-      
+
       // Otherwise, show the full response as JSON
       return {
         type: 'assistant_message',
-        data: JSON.stringify(msg, null, 2)
-      };
-    });
+        data: JSON.stringify(msg, null, 2),
+      }
+    })
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "a2ui-chat": A2UIChat;
+    'a2ui-chat': A2UIChat
   }
 }

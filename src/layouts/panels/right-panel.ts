@@ -1,5 +1,5 @@
 import { StoreController } from '@nanostores/lit'
-import { LitElement, css, html } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { styleMap } from 'lit/directives/style-map.js'
 import { savePanelWidth, toggleChatPanel, uiStore } from '#/stores/ui.store'

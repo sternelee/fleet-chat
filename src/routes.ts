@@ -1,10 +1,10 @@
 import { Routes } from '@lit-labs/router'
-import { LitElement, css, html } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement } from 'lit/decorators.js'
 
 // Polyfills URLPattern to handle better borwsers compatibility.
 // @see: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern#browser_compatibility
-// @ts-ignore: Property 'UrlPattern' does not exist
+// @ts-expect-error: Property 'UrlPattern' does not exist
 import 'urlpattern-polyfill'
 
 @customElement('my-app')

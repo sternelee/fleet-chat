@@ -1,2 +1,2 @@
 // Re-export UI components for A2UI integration
-export * from './snackbar.js';
+export * from './snackbar.js'

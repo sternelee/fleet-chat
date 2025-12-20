@@ -1,17 +1,102 @@
 [
-    { "beginRendering": { "surfaceId": "search-results", "root": "root-column", "styles": { "primaryColor": "#007BFF", "font": "Roboto" } } },
+    {
+        "beginRendering": {
+            "surfaceId": "search-results",
+            "root": "root-column",
+            "styles": {
+                "primaryColor": "#007BFF",
+                "font": "Roboto"
+            }
+        }
+    },
     {
         "surfaceUpdate": {
             "surfaceId": "search-results",
             "components": [
-                { "id": "root-column", "component": { "Column": { "children": { "explicitList": ["title-heading", "search-info", "item-list"] } } } },
-                { "id": "title-heading", "component": { "Text": { "usageHint": "h1", "text": { "path": "title" } } } },
-                { "id": "search-info", "component": { "Text": { "text": { "path": "searchInfo" } } } },
-                { "id": "item-list", "component": { "List": { "direction": "vertical", "children": { "template": { "componentId": "result-item-template", "dataBinding": "/results" } } } } },
-                { "id": "result-item-template", "component": { "Card": { "child": "result-layout" } } },
-                { "id": "result-layout", "component": { "Column": { "children": { "explicitList": ["result-title", "result-description"] } } } },
-                { "id": "result-title", "component": { "Text": { "usageHint": "h3", "text": { "path": "title" } } } },
-                { "id": "result-description", "component": { "Text": { "text": { "path": "description" } } } }
+                {
+                    "id": "root-column",
+                    "component": {
+                        "Column": {
+                            "children": {
+                                "explicitList": ["title-heading", "search-info", "item-list"]
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "title-heading",
+                    "component": {
+                        "Text": {
+                            "usageHint": "h1",
+                            "text": {
+                                "path": "title"
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "search-info",
+                    "component": {
+                        "Text": {
+                            "text": {
+                                "path": "searchInfo"
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "item-list",
+                    "component": {
+                        "List": {
+                            "direction": "vertical",
+                            "children": {
+                                "template": {
+                                    "componentId": "result-item-template",
+                                    "dataBinding": "/results"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "result-item-template",
+                    "component": {
+                        "Card": {
+                            "child": "result-layout"
+                        }
+                    }
+                },
+                {
+                    "id": "result-layout",
+                    "component": {
+                        "Column": {
+                            "children": {
+                                "explicitList": ["result-title", "result-description"]
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "result-title",
+                    "component": {
+                        "Text": {
+                            "usageHint": "h3",
+                            "text": {
+                                "path": "title"
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "result-description",
+                    "component": {
+                        "Text": {
+                            "text": {
+                                "path": "description"
+                            }
+                        }
+                    }
+                }
             ]
         }
     },
@@ -20,11 +105,19 @@
             "surfaceId": "search-results",
             "path": "/",
             "contents": [
-                { "key": "title", "valueString": "Search Results" },
-                { "key": "searchInfo", "valueString": "" },
-                { "key": "results", "valueMap": [] }
+                {
+                    "key": "title",
+                    "valueString": "Search Results"
+                },
+                {
+                    "key": "searchInfo",
+                    "valueString": ""
+                },
+                {
+                    "key": "results",
+                    "valueMap": []
+                }
             ]
         }
     }
 ]
-

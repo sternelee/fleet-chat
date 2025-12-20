@@ -1,10 +1,10 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { type Platform, platform } from '@tauri-apps/plugin-os'
-import { LitElement, html } from 'lit'
+import { html, LitElement } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
-import appLogo from '~/assets/images/tauri.svg'
 import { noSelectStyles } from '#/styles/global.css'
 import { menuBarStyles } from '#/styles/menu-bar.css'
+import appLogo from '~/assets/images/tauri.svg'
 import type { MenuItem } from './menu-types'
 import './menu-item'
 

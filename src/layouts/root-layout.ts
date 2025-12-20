@@ -1,9 +1,13 @@
 import { StoreController } from '@nanostores/lit'
-import { LitElement, css, html } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement } from 'lit/decorators.js'
-import { setActiveLeftPanel, toggleTerminalPanel, uiStore } from '#/stores/ui.store'
-import { toggleMaximizeTerminalPanel } from '#/stores/ui.store'
-import { toggleChatPanel } from '#/stores/ui.store'
+import {
+  setActiveLeftPanel,
+  toggleChatPanel,
+  toggleMaximizeTerminalPanel,
+  toggleTerminalPanel,
+  uiStore,
+} from '#/stores/ui.store'
 import { noSelectStyles, scrollableStyles } from '#/styles/global.css'
 
 // Import panel components

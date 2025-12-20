@@ -135,6 +135,33 @@ impl GeminiAgent {
         })
     }
 
+    async fn create_session_with_id(
+        &self,
+        session_id: &str,
+        custom_settings: Option<AgentSettings>,
+    ) -> Result<(), AgentError> {
+        let now = Utc::now();
+        let settings = custom_settings.unwrap_or_else(|| self.default_settings.clone());
+
+        let session = AgentSession {
+            id: session_id.to_string(),
+            created_at: now,
+            updated_at: now,
+            messages: Vec::new(),
+            context: SessionContext {
+                user_intent: None,
+                current_task: None,
+                entities: HashMap::new(),
+                conversation_state: ConversationState::Greeting,
+            },
+            settings,
+        };
+
+        let mut sessions = self.sessions.write().await;
+        sessions.insert(session_id.to_string(), session);
+        Ok(())
+    }
+
     pub async fn create_session(&self, custom_settings: Option<AgentSettings>) -> Result<String, AgentError> {
         let session_id = Uuid::new_v4().to_string();
         let now = Utc::now();
@@ -168,6 +195,11 @@ impl GeminiAgent {
     }
 
     pub async fn send_message(&self, session_id: &str, content: String) -> Result<AgentResponse, AgentError> {
+        // Auto-create session if it doesn't exist
+        if !self.sessions.read().await.contains_key(session_id) {
+            self.create_session_with_id(session_id, None).await?;
+        }
+
         let user_message = ChatMessage {
             id: Uuid::new_v4().to_string(),
             content: content.clone(),

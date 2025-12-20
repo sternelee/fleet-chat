@@ -1,14 +1,72 @@
 [
-    { "beginRendering": { "surfaceId": "no-results", "root": "root-column", "styles": { "primaryColor": "#007BFF", "font": "Roboto" } } },
+    {
+        "beginRendering": {
+            "surfaceId": "no-results",
+            "root": "root-column",
+            "styles": {
+                "primaryColor": "#007BFF",
+                "font": "Roboto"
+            }
+        }
+    },
     {
         "surfaceUpdate": {
             "surfaceId": "no-results",
             "components": [
-                { "id": "root-column", "component": { "Column": { "children": { "explicitList": ["icon", "title-heading", "message", "suggestion"] }, "alignment": "center" } } },
-                { "id": "icon", "component": { "Icon": { "name": { "literalString": "search_off" }, "size": 48.0, "color": "#9E9E9E" } } },
-                { "id": "title-heading", "component": { "Text": { "usageHint": "h2", "text": { "literalString": "No Results Found" } } } },
-                { "id": "message", "component": { "Text": { "text": { "path": "message" } } } },
-                { "id": "suggestion", "component": { "Text": { "text": { "path": "suggestion" } } } }
+                {
+                    "id": "root-column",
+                    "component": {
+                        "Column": {
+                            "children": {
+                                "explicitList": ["icon", "title-heading", "message", "suggestion"]
+                            },
+                            "alignment": "center"
+                        }
+                    }
+                },
+                {
+                    "id": "icon",
+                    "component": {
+                        "Icon": {
+                            "name": {
+                                "literalString": "search_off"
+                            },
+                            "size": 48.0,
+                            "color": "#9E9E9E"
+                        }
+                    }
+                },
+                {
+                    "id": "title-heading",
+                    "component": {
+                        "Text": {
+                            "usageHint": "h2",
+                            "text": {
+                                "literalString": "No Results Found"
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "message",
+                    "component": {
+                        "Text": {
+                            "text": {
+                                "path": "message"
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "suggestion",
+                    "component": {
+                        "Text": {
+                            "text": {
+                                "path": "suggestion"
+                            }
+                        }
+                    }
+                }
             ]
         }
     },
@@ -17,10 +75,15 @@
             "surfaceId": "no-results",
             "path": "/",
             "contents": [
-                { "key": "message", "valueString": "No contacts match your search criteria." },
-                { "key": "suggestion", "valueString": "Try searching with different keywords or department filters." }
+                {
+                    "key": "message",
+                    "valueString": "No contacts match your search criteria."
+                },
+                {
+                    "key": "suggestion",
+                    "valueString": "Try searching with different keywords or department filters."
+                }
             ]
         }
     }
 ]
-

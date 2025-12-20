@@ -1,4 +1,4 @@
-use crate::a2ui_agent::{A2UIAgent, A2UIResponse};
+use crate::a2ui::agent::{A2UIAgent, GeneratedResponse};
 use axum::{
     extract::{Path, State},
     http::{self},
@@ -817,7 +817,10 @@ pub struct AgentSettingsOverride {
 
 #[derive(Debug, Deserialize)]
 pub struct SendMessageRequest {
+    pub session_id: String,
     pub content: String,
+    pub tool_context: Option<serde_json::Value>,
+    pub use_ui: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -987,7 +990,7 @@ pub fn create_axum_app() -> Router {
 async fn a2ui_agent_chat(
     State(state): State<AppState>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<A2UIResponse>, http::StatusCode> {
+) -> Result<Json<GeneratedResponse>, http::StatusCode> {
     let agent = state.a2ui_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
 
     // Create a SendMessageRequest from the JSON value
@@ -1009,14 +1012,21 @@ async fn a2ui_agent_chat(
             .collect()
     });
 
-    let send_request = crate::a2ui_agent::SendMessageRequest {
+    let send_request = SendMessageRequest {
         session_id,
         content,
-        use_ui: request.get("use_ui").and_then(|v| v.as_bool()),
+        use_ui: Some(true), // Default to true for A2UI agent
         tool_context,
     };
 
-    match agent.send_message(send_request).await {
+    match agent
+        .handle_message(
+            &send_request.session_id,
+            &send_request.content,
+            send_request.use_ui.unwrap_or(true),
+        )
+        .await
+    {
         Ok(response) => Ok(Json(response)),
         Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
     }
@@ -1061,10 +1071,10 @@ async fn a2ui_agent_chat_stream(
         session_id, content
     );
 
-    let send_request = crate::a2ui_agent::SendMessageRequest {
+    let send_request = SendMessageRequest {
         session_id,
         content,
-        use_ui: request.get("use_ui").and_then(|v| v.as_bool()),
+        use_ui: Some(true), // Default to true for A2UI agent
         tool_context,
     };
 
@@ -1097,7 +1107,14 @@ async fn a2ui_agent_chat_stream(
 
         // Get response from agent
         println!("[DEBUG] Calling agent.send_message...");
-        match agent.send_message(send_request).await {
+        match agent
+            .handle_message(
+                &send_request.session_id,
+                &send_request.content,
+                send_request.use_ui.unwrap_or(true),
+            )
+            .await
+        {
             Ok(response) => {
                 println!(
                     "[DEBUG] Agent response received, message count: {}, content length: {}",
@@ -1197,7 +1214,7 @@ async fn get_a2ui_session(
 async fn list_a2ui_sessions(State(state): State<AppState>) -> Result<Json<serde_json::Value>, http::StatusCode> {
     let agent = state.a2ui_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
 
-    match agent.list_sessions(None).await {
+    match agent.list_sessions().await {
         Ok(sessions) => Ok(Json(json!({
             "sessions": sessions,
             "count": sessions.len()

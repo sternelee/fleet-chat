@@ -1,57 +1,53 @@
-import { LitElement, html, css, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
-import { classMap } from "lit/directives/class-map.js";
+import { css, html, LitElement, nothing } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import { classMap } from 'lit/directives/class-map.js'
+import { repeat } from 'lit/directives/repeat.js'
 
-export type SnackType = "NONE" | "PENDING" | "SUCCESS" | "ERROR" | "WARNING" | "INFO";
+export type SnackType = 'NONE' | 'PENDING' | 'SUCCESS' | 'ERROR' | 'WARNING' | 'INFO'
 
 export type SnackbarAction = {
-  title: string;
-  action: string;
-  value: any;
-  callback?: () => void;
-};
-
-export type SnackbarMessage = {
-  id: string;
-  message: string;
-  type?: SnackType;
-  persistent?: boolean;
-  actions?: SnackbarAction[];
-};
-
-export type SnackbarUUID = string;
-
-export class SnackbarActionEvent extends Event {
-  constructor(
-    type: string,
-    value?: any,
-    callback?: () => void
-  ) {
-    super(type);
-    this.value = value;
-    this.callback = callback;
-  }
-
-  value?: any;
-  callback?: () => void;
+  title: string
+  action: string
+  value: any
+  callback?: () => void
 }
 
-const DEFAULT_TIMEOUT = 8000;
+export type SnackbarMessage = {
+  id: string
+  message: string
+  type?: SnackType
+  persistent?: boolean
+  actions?: SnackbarAction[]
+}
 
-@customElement("a2ui-snackbar")
+export type SnackbarUUID = string
+
+export class SnackbarActionEvent extends Event {
+  constructor(type: string, value?: any, callback?: () => void) {
+    super(type)
+    this.value = value
+    this.callback = callback
+  }
+
+  value?: any
+  callback?: () => void
+}
+
+const DEFAULT_TIMEOUT = 8000
+
+@customElement('a2ui-snackbar')
 export class Snackbar extends LitElement {
   @property({ reflect: true, type: Boolean })
-  accessor active = false;
+  accessor active = false
 
   @property({ reflect: true, type: Boolean })
-  accessor error = false;
+  accessor error = false
 
   @property()
-  accessor timeout = DEFAULT_TIMEOUT;
+  accessor timeout = DEFAULT_TIMEOUT
 
-  #messages: SnackbarMessage[] = [];
-  #timeout = 0;
+  #messages: SnackbarMessage[] = []
+  #timeout = 0
 
   static styles = css`
     :host {
@@ -201,97 +197,97 @@ export class Snackbar extends LitElement {
       -webkit-font-feature-settings: 'liga';
       -webkit-font-smoothing: antialiased;
     }
-  `;
+  `
 
   show(message: SnackbarMessage, replaceAll = false): SnackbarUUID {
-    const existingMessage = this.#messages.findIndex(
-      (msg) => msg.id === message.id
-    );
+    const existingMessage = this.#messages.findIndex((msg) => msg.id === message.id)
     if (existingMessage === -1) {
       if (replaceAll) {
-        this.#messages.length = 0;
+        this.#messages.length = 0
       }
 
-      this.#messages.push(message);
+      this.#messages.push(message)
     } else {
-      this.#messages[existingMessage] = message;
+      this.#messages[existingMessage] = message
     }
 
-    clearTimeout(this.#timeout);
+    clearTimeout(this.#timeout)
     if (!this.#messages.every((msg) => msg.persistent)) {
       this.#timeout = setTimeout(() => {
-        this.hide();
-      }, this.timeout);
+        this.hide()
+      }, this.timeout)
     }
 
-    this.error = this.#messages.some((msg) => msg.type === SnackType.ERROR);
-    this.active = true;
-    this.requestUpdate();
+    this.error = this.#messages.some((msg) => msg.type === SnackType.ERROR)
+    this.active = true
+    this.requestUpdate()
 
-    return message.id;
+    return message.id
   }
 
   hide(id?: SnackbarUUID) {
     if (id) {
-      const idx = this.#messages.findIndex((msg) => msg.id === id);
+      const idx = this.#messages.findIndex((msg) => msg.id === id)
       if (idx !== -1) {
-        this.#messages.splice(idx, 1);
+        this.#messages.splice(idx, 1)
       }
     } else {
-      this.#messages.length = 0;
+      this.#messages.length = 0
     }
 
-    this.active = this.#messages.length !== 0;
+    this.active = this.#messages.length !== 0
     this.updateComplete.then((avoidedUpdate) => {
       if (!avoidedUpdate) {
-        return;
+        return
       }
-      this.requestUpdate();
-    });
+      this.requestUpdate()
+    })
   }
 
   render() {
-    let rotate = false;
-    let icon = "";
+    let rotate = false
+    let icon = ''
 
     // Find the most significant message to display icon
     for (let i = this.#messages.length - 1; i >= 0; i--) {
-      const msg = this.#messages[i];
+      const msg = this.#messages[i]
       if (msg.type === SnackType.PENDING) {
-        icon = "progress_activity";
-        rotate = true;
-        break;
+        icon = 'progress_activity'
+        rotate = true
+        break
       } else if (msg.type === SnackType.ERROR) {
-        icon = "error";
-        break;
+        icon = 'error'
+        break
       } else if (msg.type === SnackType.SUCCESS) {
-        icon = "check_circle";
-        break;
+        icon = 'check_circle'
+        break
       } else if (msg.type === SnackType.WARNING) {
-        icon = "warning";
-        break;
+        icon = 'warning'
+        break
       } else if (msg.type === SnackType.INFO) {
-        icon = "info";
-        break;
+        icon = 'info'
+        break
       }
     }
 
     return html`
-      ${icon
-        ? html`<span
+      ${
+        icon
+          ? html`<span
             class=${classMap({
-          "icon": true,
-          "material-symbols-outlined": true,
-          rotate,
-        })}
+              icon: true,
+              'material-symbols-outlined': true,
+              rotate,
+            })}
             >${icon}</span
           >`
-        : nothing}
+          : nothing
+      }
       <div id="messages">
         ${repeat(
           this.#messages,
           (message) => message.id,
-          (message) => html`<div>${message.message}</div>`
+          (message) => html`<div>${message.message}</div>`,
         )}
       </div>
       <div id="actions">
@@ -300,7 +296,7 @@ export class Snackbar extends LitElement {
           (message) => message.id,
           (message) => {
             if (!message.actions || message.actions.length === 0) {
-              return nothing;
+              return nothing
             }
 
             return html`${repeat(
@@ -308,37 +304,33 @@ export class Snackbar extends LitElement {
               (action) => action.value,
               (action) => html`<button
                   @click=${() => {
-                  this.hide();
-                  this.dispatchEvent(
-                    new SnackbarActionEvent(
-                      action.action,
-                      action.value,
-                      action.callback
+                    this.hide()
+                    this.dispatchEvent(
+                      new SnackbarActionEvent(action.action, action.value, action.callback),
                     )
-                  );
-                }}
+                  }}
                 >
                   ${action.title}
-                </button>`
-            )}`;
-          }
+                </button>`,
+            )}`
+          },
         )}
       </div>
       <button
         id="close"
         @click=${() => {
-        this.hide();
-        this.dispatchEvent(new SnackbarActionEvent("dismiss"));
-      }}
+          this.hide()
+          this.dispatchEvent(new SnackbarActionEvent('dismiss'))
+        }}
       >
         <span class="material-symbols-outlined">close</span>
       </button>
-    `;
+    `
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "a2ui-snackbar": Snackbar;
+    'a2ui-snackbar': Snackbar
   }
 }

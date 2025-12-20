@@ -1,51 +1,51 @@
-import { LitElement, html, css, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
-import { classMap } from "lit/directives/class-map.js";
+import { css, html, LitElement, nothing } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import { classMap } from 'lit/directives/class-map.js'
+import { repeat } from 'lit/directives/repeat.js'
 
 // A2UI Component Types
 interface A2UIComponent {
-  id: string;
-  component: any;
-  weight?: number;
+  id: string
+  component: any
+  weight?: number
 }
 
 interface SurfaceUpdate {
-  components: A2UIComponent[];
+  components: A2UIComponent[]
 }
 
 interface DataModelUpdate {
-  contents: any[];
+  contents: any[]
 }
 
 interface BeginRendering {
-  surfaceId: string;
-  root: string;
-  styles?: Record<string, any>;
+  surfaceId: string
+  root: string
+  styles?: Record<string, any>
 }
 
-type A2UIMessage = 
+type A2UIMessage =
   | { type: 'surfaceUpdate'; surfaceUpdate: SurfaceUpdate }
   | { type: 'dataModelUpdate'; dataModelUpdate: DataModelUpdate }
   | { type: 'beginRendering'; beginRendering: BeginRendering }
-  | { type: 'deleteSurface'; deleteSurface: { surfaceId: string } };
+  | { type: 'deleteSurface'; deleteSurface: { surfaceId: string } }
 
 // Data model for binding
 interface DataModel {
-  [key: string]: any;
+  [key: string]: any
 }
 
 // Component registry for rendering different A2UI components
-@customElement("a2ui-renderer")
+@customElement('a2ui-renderer')
 export class A2UIRenderer extends LitElement {
   @property({ type: Array })
-  accessor messages: A2UIMessage[] = [];
+  accessor messages: A2UIMessage[] = []
 
   @property({ type: Object })
-  accessor dataModel: DataModel = {};
+  accessor dataModel: DataModel = {}
 
   @property({ type: String })
-  accessor rootComponentId: string = "";
+  accessor rootComponentId: string = ''
 
   static styles = css`
     :host {
@@ -316,38 +316,38 @@ export class A2UIRenderer extends LitElement {
       border-radius: 4px;
       margin: 8px 0;
     }
-  `;
+  `
 
   // Component registry for rendering
-  private components: Map<string, A2UIComponent> = new Map();
+  private components: Map<string, A2UIComponent> = new Map()
 
   willUpdate(changedProperties: Map<string, any>) {
     if (changedProperties.has('messages')) {
-      this.processMessages();
+      this.processMessages()
     }
   }
 
   private processMessages() {
-    this.components.clear();
-    
+    this.components.clear()
+
     for (const message of this.messages) {
       switch (message.type) {
         case 'surfaceUpdate':
-          message.surfaceUpdate.components.forEach(comp => {
-            this.components.set(comp.id, comp);
-          });
-          break;
+          message.surfaceUpdate.components.forEach((comp) => {
+            this.components.set(comp.id, comp)
+          })
+          break
         case 'dataModelUpdate':
-          message.dataModelUpdate.contents.forEach(content => {
-            this.updateDataModel(content);
-          });
-          break;
+          message.dataModelUpdate.contents.forEach((content) => {
+            this.updateDataModel(content)
+          })
+          break
         case 'beginRendering':
-          this.rootComponentId = message.beginRendering.root;
-          break;
+          this.rootComponentId = message.beginRendering.root
+          break
         case 'deleteSurface':
           // Handle surface deletion if needed
-          break;
+          break
       }
     }
   }
@@ -356,318 +356,325 @@ export class A2UIRenderer extends LitElement {
     if (content.key && content.valueMap) {
       this.dataModel = {
         ...this.dataModel,
-        [content.key]: this.valueMapToObject(content.valueMap)
-      };
+        [content.key]: this.valueMapToObject(content.valueMap),
+      }
     }
   }
 
   private valueMapToObject(valueMap: any[]): any {
-    const obj: any = {};
-    valueMap.forEach(item => {
+    const obj: any = {}
+    valueMap.forEach((item) => {
       if (item.key !== undefined) {
         if (item.valueString !== undefined) {
-          obj[item.key] = item.valueString;
+          obj[item.key] = item.valueString
         } else if (item.valueNumber !== undefined) {
-          obj[item.key] = item.valueNumber;
+          obj[item.key] = item.valueNumber
         } else if (item.valueBoolean !== undefined) {
-          obj[item.key] = item.valueBoolean;
+          obj[item.key] = item.valueBoolean
         } else if (item.valueMap) {
-          obj[item.key] = this.valueMapToObject(item.valueMap);
+          obj[item.key] = this.valueMapToObject(item.valueMap)
         }
       }
-    });
-    return obj;
+    })
+    return obj
   }
 
   private resolveBinding(binding: any): any {
-    if (!binding) return null;
-    
+    if (!binding) return null
+
     if (binding.path) {
-      return this.getNestedValue(this.dataModel, binding.path);
+      return this.getNestedValue(this.dataModel, binding.path)
     } else if (binding.literalString !== undefined) {
-      return binding.literalString;
+      return binding.literalString
     } else if (binding.literalNumber !== undefined) {
-      return binding.literalNumber;
+      return binding.literalNumber
     } else if (binding.literalBoolean !== undefined) {
-      return binding.literalBoolean;
+      return binding.literalBoolean
     }
-    
-    return null;
+
+    return null
   }
 
   private getNestedValue(obj: any, path: string): any {
-    return path.split('/').slice(1).reduce((current, key) => {
-      return current && current[key] !== undefined ? current[key] : null;
-    }, obj);
+    return path
+      .split('/')
+      .slice(1)
+      .reduce((current, key) => {
+        return current && current[key] !== undefined ? current[key] : null
+      }, obj)
   }
 
   private handleAction(action: any, event?: Event) {
-    if (!action) return;
+    if (!action) return
 
-    console.log('A2UI Action:', action);
+    console.log('A2UI Action:', action)
 
     // Create a custom event to notify parent components
     const customEvent = new CustomEvent('a2ui-action', {
       detail: {
         name: action.name,
         context: action.context || [],
-        event: event
+        event: event,
       },
       bubbles: true,
-      composed: true
-    });
+      composed: true,
+    })
 
-    this.dispatchEvent(customEvent);
+    this.dispatchEvent(customEvent)
   }
 
   render() {
     if (!this.rootComponentId) {
-      return html`<div class="loading">Loading A2UI components...</div>`;
+      return html`<div class="loading">Loading A2UI components...</div>`
     }
 
-    const rootComponent = this.components.get(this.rootComponentId);
+    const rootComponent = this.components.get(this.rootComponentId)
     if (!rootComponent) {
-      return html`<div class="error">Root component not found: ${this.rootComponentId}</div>`;
+      return html`<div class="error">Root component not found: ${this.rootComponentId}</div>`
     }
 
-    return this.renderComponent(rootComponent);
+    return this.renderComponent(rootComponent)
   }
 
   private renderComponent(component: A2UIComponent) {
-    const comp = component.component;
-    const compType = Object.keys(comp)[0];
-    const compProps = comp[compType];
+    const comp = component.component
+    const compType = Object.keys(comp)[0]
+    const compProps = comp[compType]
 
     switch (compType) {
       case 'Row':
-        return this.renderRow(compProps, component.weight);
+        return this.renderRow(compProps, component.weight)
       case 'Column':
-        return this.renderColumn(compProps, component.weight);
+        return this.renderColumn(compProps, component.weight)
       case 'List':
-        return this.renderList(compProps, component.weight);
+        return this.renderList(compProps, component.weight)
       case 'Card':
-        return this.renderCard(compProps, component.weight);
+        return this.renderCard(compProps, component.weight)
       case 'Text':
-        return this.renderText(compProps, component.weight);
+        return this.renderText(compProps, component.weight)
       case 'Button':
-        return this.renderButton(compProps, component.weight);
+        return this.renderButton(compProps, component.weight)
       case 'TextField':
-        return this.renderTextField(compProps, component.weight);
+        return this.renderTextField(compProps, component.weight)
       case 'Tabs':
-        return this.renderTabs(compProps, component.weight);
+        return this.renderTabs(compProps, component.weight)
       case 'Tab':
-        return this.renderTab(compProps, component.weight);
+        return this.renderTab(compProps, component.weight)
       case 'Icon':
-        return this.renderIcon(compProps, component.weight);
+        return this.renderIcon(compProps, component.weight)
       case 'Divider':
-        return this.renderDivider(compProps, component.weight);
+        return this.renderDivider(compProps, component.weight)
       default:
-        return html`<div class="error">Unknown component type: ${compType}</div>`;
+        return html`<div class="error">Unknown component type: ${compType}</div>`
     }
   }
 
   private renderRow(props: any, weight?: number) {
-    const children = this.renderChildren(props.children);
-    const alignment = props.alignment || 'start';
-    const distribution = props.distribution || 'start';
+    const children = this.renderChildren(props.children)
+    const alignment = props.alignment || 'start'
+    const distribution = props.distribution || 'start'
 
     return html`
-      <div 
+      <div
         class="row ${alignment} ${distribution}"
         style="${weight ? `flex: ${weight};` : ''}"
       >
         ${children}
       </div>
-    `;
+    `
   }
 
   private renderColumn(props: any, weight?: number) {
-    const children = this.renderChildren(props.children);
-    const alignment = props.alignment || 'start';
-    const distribution = props.distribution || 'start';
+    const children = this.renderChildren(props.children)
+    const alignment = props.alignment || 'start'
+    const distribution = props.distribution || 'start'
 
     return html`
-      <div 
+      <div
         class="column ${alignment} ${distribution}"
         style="${weight ? `flex: ${weight};` : ''}"
       >
         ${children}
       </div>
-    `;
+    `
   }
 
   private renderList(props: any, weight?: number) {
     if (props.children?.template) {
-      const template = props.children.template;
-      const dataBinding = template.dataBinding;
-      const data = this.resolveBinding({ path: dataBinding });
-      
+      const template = props.children.template
+      const dataBinding = template.dataBinding
+      const data = this.resolveBinding({ path: dataBinding })
+
       if (data && typeof data === 'object') {
         const items = Object.entries(data).map(([key, value]) => ({
           id: key,
-          data: value
-        }));
+          data: value,
+        }))
 
         return html`
-          <div 
+          <div
             class="list"
             style="${weight ? `flex: ${weight};` : ''}"
           >
-            ${repeat(items, (item) => item.id, (item, index) => {
-              // Create a temporary data context for template rendering
-              const originalData = this.dataModel;
-              this.dataModel = { ...originalData, ...item.data };
-              
-              const templateComponent = this.components.get(template.componentId);
-              const result = templateComponent ? this.renderComponent(templateComponent) : nothing;
-              
-              // Restore original data context
-              this.dataModel = originalData;
-              
-              return html`<div data-item-id="${item.id}">${result}</div>`;
-            })}
+            ${repeat(
+              items,
+              (item) => item.id,
+              (item, index) => {
+                // Create a temporary data context for template rendering
+                const originalData = this.dataModel
+                this.dataModel = { ...originalData, ...item.data }
+
+                const templateComponent = this.components.get(template.componentId)
+                const result = templateComponent ? this.renderComponent(templateComponent) : nothing
+
+                // Restore original data context
+                this.dataModel = originalData
+
+                return html`<div data-item-id="${item.id}">${result}</div>`
+              },
+            )}
           </div>
-        `;
+        `
       }
     }
 
-    return html`<div class="list" style="${weight ? `flex: ${weight};` : ''}"></div>`;
+    return html`<div class="list" style="${weight ? `flex: ${weight};` : ''}"></div>`
   }
 
   private renderCard(props: any, weight?: number) {
-    const childComponent = this.components.get(props.child);
-    const child = childComponent ? this.renderComponent(childComponent) : nothing;
+    const childComponent = this.components.get(props.child)
+    const child = childComponent ? this.renderComponent(childComponent) : nothing
 
     return html`
-      <div 
+      <div
         class="card"
         style="${weight ? `flex: ${weight};` : ''}"
       >
         ${child}
       </div>
-    `;
+    `
   }
 
   private renderText(props: any, weight?: number) {
-    const textValue = this.resolveBinding(props.text) || '';
-    const usageHint = props.usageHint || 'body';
+    const textValue = this.resolveBinding(props.text) || ''
+    const usageHint = props.usageHint || 'body'
 
     return html`
-      <div 
+      <div
         class="text ${usageHint}"
         style="${weight ? `flex: ${weight};` : ''}"
       >
         ${textValue}
       </div>
-    `;
+    `
   }
 
   private renderButton(props: any, weight?: number) {
-    const childComponent = this.components.get(props.child);
-    const child = childComponent ? this.renderComponent(childComponent) : html`Button`;
-    const action = props.action;
+    const childComponent = this.components.get(props.child)
+    const child = childComponent ? this.renderComponent(childComponent) : html`Button`
+    const action = props.action
 
     return html`
-      <button 
+      <button
         class="button ${props.primary ? 'primary' : ''} ${props.secondary ? 'secondary' : ''}"
         style="${weight ? `flex: ${weight};` : ''}"
         @click=${(e: Event) => this.handleAction(action, e)}
       >
         ${child}
       </button>
-    `;
+    `
   }
 
   private renderTextField(props: any, weight?: number) {
-    const label = this.resolveBinding(props.label) || '';
-    const value = this.resolveBinding(props.value) || '';
-    const action = props.action;
+    const label = this.resolveBinding(props.label) || ''
+    const value = this.resolveBinding(props.value) || ''
+    const action = props.action
 
     return html`
-      <div 
+      <div
         class="text-field"
         style="${weight ? `flex: ${weight};` : ''}"
       >
         <label>${label}</label>
-        <input 
+        <input
           type="${props.type || 'text'}"
           .value=${value}
           @input=${(e: Event) => {
-            const target = e.target as HTMLInputElement;
-            this.handleAction(action, e);
+            const target = e.target as HTMLInputElement
+            this.handleAction(action, e)
           }}
         />
       </div>
-    `;
+    `
   }
 
   private renderTabs(props: any, weight?: number) {
-    const children = this.renderChildren(props.children);
-    const selectedTabBinding = props.selectedTabBinding;
-    const selectedTab = this.resolveBinding({ path: selectedTabBinding }) || '';
+    const children = this.renderChildren(props.children)
+    const selectedTabBinding = props.selectedTabBinding
+    const selectedTab = this.resolveBinding({ path: selectedTabBinding }) || ''
 
     return html`
-      <div 
+      <div
         class="tabs"
         style="${weight ? `flex: ${weight};` : ''}"
       >
         ${children}
       </div>
-    `;
+    `
   }
 
   private renderTab(props: any, weight?: number) {
-    const contentComponent = this.components.get(props.content);
-    const content = contentComponent ? this.renderComponent(contentComponent) : nothing;
+    const contentComponent = this.components.get(props.content)
+    const content = contentComponent ? this.renderComponent(contentComponent) : nothing
 
     return html`
       <div class="tab-panel" style="${weight ? `flex: ${weight};` : ''}">
         ${content}
       </div>
-    `;
+    `
   }
 
   private renderIcon(props: any, weight?: number) {
-    const iconType = props.iconType || 'placeholder';
-    
+    const iconType = props.iconType || 'placeholder'
+
     return html`
-      <div 
+      <div
         class="icon icon-${iconType}"
         style="${weight ? `flex: ${weight};` : ''}"
         title="${iconType}"
       >
         ${iconType}
       </div>
-    `;
+    `
   }
 
   private renderDivider(props: any, weight?: number) {
-    const orientation = props.orientation || 'horizontal';
-    
+    const orientation = props.orientation || 'horizontal'
+
     return html`
-      <hr 
+      <hr
         class="divider ${orientation}"
         style="${weight ? `flex: ${weight};` : ''}"
       />
-    `;
+    `
   }
 
   private renderChildren(children: any): any {
-    if (!children) return nothing;
+    if (!children) return nothing
 
     if (children.explicitList) {
       return children.explicitList.map((childId: string) => {
-        const childComponent = this.components.get(childId);
-        return childComponent ? this.renderComponent(childComponent) : nothing;
-      });
+        const childComponent = this.components.get(childId)
+        return childComponent ? this.renderComponent(childComponent) : nothing
+      })
     }
 
-    return nothing;
+    return nothing
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "a2ui-renderer": A2UIRenderer;
+    'a2ui-renderer': A2UIRenderer
   }
 }

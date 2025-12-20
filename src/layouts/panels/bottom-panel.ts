@@ -1,9 +1,13 @@
 import { StoreController } from '@nanostores/lit'
-import { LitElement, css, html } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 import { styleMap } from 'lit/directives/style-map.js'
-import { savePanelHeight, toggleTerminalPanel, uiStore } from '#/stores/ui.store'
-import { toggleMaximizeTerminalPanel } from '#/stores/ui.store'
+import {
+  savePanelHeight,
+  toggleMaximizeTerminalPanel,
+  toggleTerminalPanel,
+  uiStore,
+} from '#/stores/ui.store'
 import { noSelectStyles, scrollableStyles } from '#/styles/global.css'
 import { resizeStyles } from '#/styles/resizable.css'
 import { ResizeHandler } from '#/utils/resizable'
