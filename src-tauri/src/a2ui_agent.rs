@@ -812,8 +812,7 @@ impl A2UIAgent {
             "No tools used".to_string()
         };
 
-        let prompt = format!(
-            r#"You are a helpful AI assistant that can generate rich, interactive user interfaces using the A2UI framework. Your final output MUST be in A2UI JSON format.
+        let base_template = r#"You are a helpful AI assistant that can generate rich, interactive user interfaces using the A2UI framework. Your final output MUST be in A2UI JSON format.
 
 To generate the response, you MUST follow these rules:
 1. Your response MUST be in two parts, separated by the delimiter: `---a2ui_JSON---`.
@@ -822,374 +821,186 @@ To generate the response, you MUST follow these rules:
 4. Each A2UI message MUST validate against the A2UI JSON SCHEMA.
 
 Context:
-- User query: {}
-- Tool calls made: {}
-- Base URL: {}
-- Session state: {:?}
+- User query: {query}
+- Tool calls made: {tool_context}
+- Base URL: {base_url}
+- Session state: {session_state:?}
 
 A2UI COMPONENT PATTERNS:
 
 ## 1. Basic Card Pattern (for single items)
-{
-  "surfaceUpdate": {{
-    "components": [
-      {{
-        "id": "card-root",
-        "component": {{
-          "Card": {{
-            "child": "card-content"
-          }}
-        }}
-      }},
-      {{
-        "id": "card-content",
-        "component": {{
-          "Column": {{
-            "children": {{
-              "explicitList": ["title", "description", "actions"]
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "title",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "Item Title" }},
-            "usageHint": "h4"
-          }}
-        }}
-      }},
-      {{
-        "id": "description",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "Description text here" }},
-            "usageHint": "body"
-          }}
-        }}
-      }}
-    ]
-  }}
-},
-{
-  "dataModelUpdate": {{
-    "contents": [
-      {{
-        "key": "item",
-        "valueMap": [
-          {{ "key": "title", "valueString": "Dynamic Title" }},
-          {{ "key": "description", "valueString": "Dynamic description" }}
-        ]
-      }}
-    ]
-  }}
-},
-{
-  "beginRendering": {{
-    "surfaceId": "main",
-    "root": "card-root"
-  }}
-}}
+[
+  {
+    "surfaceUpdate": {
+      "components": [
+        {
+          "id": "card-root",
+          "component": {
+            "Card": {
+              "child": "card-content"
+            }
+          }
+        },
+        {
+          "id": "card-content",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["title", "description"]
+              }
+            }
+          }
+        },
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": { "literalString": "Item Title" },
+              "usageHint": "h4"
+            }
+          }
+        },
+        {
+          "id": "description",
+          "component": {
+            "Text": {
+              "text": { "literalString": "Description text here" },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "contents": [
+        {
+          "key": "item",
+          "valueMap": [
+            { "key": "title", "valueString": "Dynamic Title" },
+            { "key": "description", "valueString": "Dynamic description" }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "main",
+      "root": "card-root"
+    }
+  }
+]
 
 ## 2. Dynamic List Pattern (for multiple items)
-{
-  "surfaceUpdate": {{
-    "components": [
-      {{
-        "id": "list-container",
-        "component": {{
-          "Column": {{
-            "children": {{
-              "explicitList": ["list-title", "item-list"]
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "list-title",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "Search Results" }},
-            "usageHint": "h3"
-          }}
-        }}
-      }},
-      {{
-        "id": "item-list",
-        "component": {{
-          "List": {{
-            "children": {{
-              "template": {{
-                "componentId": "item-template",
-                "dataBinding": "/items"
-              }}
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "item-template",
-        "component": {{
-          "Card": {{
-            "child": "item-content"
-          }}
-        }}
-      }},
-      {{
-        "id": "item-content",
-        "component": {{
-          "Column": {{
-            "children": {{
-              "explicitList": ["item-title", "item-description"]
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "item-title",
-        "component": {{
-          "Text": {{
-            "text": {{ "path": "/title" }},
-            "usageHint": "h5"
-          }}
-        }}
-      }},
-      {{
-        "id": "item-description",
-        "component": {{
-          "Text": {{
-            "text": {{ "path": "/description" }},
-            "usageHint": "body"
-          }}
-        }}
-      }}
-    ]
-  }}
-},
-{
-  "dataModelUpdate": {{
-    "contents": [
-      {{
-        "key": "items",
-        "valueMap": [
-          {{
-            "key": "item1",
-            "valueMap": [
-              {{ "key": "title", "valueString": "First Item" }},
-              {{ "key": "description", "valueString": "First item description" }}
-            ]
-          }},
-          {{
-            "key": "item2",
-            "valueMap": [
-              {{ "key": "title", "valueString": "Second Item" }},
-              {{ "key": "description", "valueString": "Second item description" }}
-            ]
-          }}
-        ]
-      }}
-    ]
-  }}
-},
-{
-  "beginRendering": {{
-    "surfaceId": "main",
-    "root": "list-container"
-  }}
-}}
-
-## 3. Form Pattern (for user input)
-{
-  "surfaceUpdate": {{
-    "components": [
-      {{
-        "id": "form-container",
-        "component": {{
-          "Card": {{
-            "child": "form-content"
-          }}
-        }}
-      }},
-      {{
-        "id": "form-content",
-        "component": {{
-          "Column": {{
-            "children": {{
-              "explicitList": ["form-title", "name-input", "submit-button"]
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "form-title",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "Contact Form" }},
-            "usageHint": "h4"
-          }}
-        }}
-      }},
-      {{
-        "id": "name-input",
-        "component": {{
-          "TextField": {{
-            "label": {{ "literalString": "Name" }},
-            "value": {{ "literalString": "" }},
-            "action": {{
-              "name": "update_field",
-              "context": [
-                {{ "key": "field", "valueString": "name" }},
-                {{ "key": "value", "path": "/newValue" }}
+[
+  {
+    "surfaceUpdate": {
+      "components": [
+        {
+          "id": "list-container",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["list-title", "item-list"]
+              }
+            }
+          }
+        },
+        {
+          "id": "list-title",
+          "component": {
+            "Text": {
+              "text": { "literalString": "Search Results" },
+              "usageHint": "h3"
+            }
+          }
+        },
+        {
+          "id": "item-list",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "item-template",
+                  "dataBinding": "/items"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "item-template",
+          "component": {
+            "Card": {
+              "child": "item-content"
+            }
+          }
+        },
+        {
+          "id": "item-content",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["item-title", "item-description"]
+              }
+            }
+          }
+        },
+        {
+          "id": "item-title",
+          "component": {
+            "Text": {
+              "text": { "path": "/title" },
+              "usageHint": "h5"
+            }
+          }
+        },
+        {
+          "id": "item-description",
+          "component": {
+            "Text": {
+              "text": { "path": "/description" },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "contents": [
+        {
+          "key": "items",
+          "valueMap": [
+            {
+              "key": "item1",
+              "valueMap": [
+                { "key": "title", "valueString": "First Item" },
+                { "key": "description", "valueString": "First item description" }
               ]
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "submit-button",
-        "component": {{
-          "Button": {{
-            "child": "submit-text",
-            "action": {{
-              "name": "submit_form",
-              "context": [
-                {{ "key": "formData", "path": "/form" }}
+            },
+            {
+              "key": "item2",
+              "valueMap": [
+                { "key": "title", "valueString": "Second Item" },
+                { "key": "description", "valueString": "Second item description" }
               ]
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "submit-text",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "Submit" }}
-          }}
-        }}
-      }}
-    ]
-  }}
-},
-{
-  "dataModelUpdate": {{
-    "contents": [
-      {{
-        "key": "form",
-        "valueMap": [
-          {{ "key": "name", "valueString": "" }}
-        ]
-      }}
-    ]
-  }}
-},
-{
-  "beginRendering": {{
-    "surfaceId": "main",
-    "root": "form-container"
-  }}
-}}
-
-## 4. Tab Pattern (for organizing content)
-{
-  "surfaceUpdate": {{
-    "components": [
-      {{
-        "id": "tabs-container",
-        "component": {{
-          "Tabs": {{
-            "children": {{
-              "explicitList": ["tab1", "tab2"]
-            }},
-            "selectedTabBinding": "/selectedTab"
-          }}
-        }}
-      }},
-      {{
-        "id": "tab1",
-        "component": {{
-          "Tab": {{
-            "tabTitle": "Information",
-            "content": "info-content"
-          }}
-        }}
-      }},
-      {{
-        "id": "tab2",
-        "component": {{
-          "Tab": {{
-            "tabTitle": "Details", 
-            "content": "details-content"
-          }}
-        }}
-      }},
-      {{
-        "id": "info-content",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "General information content" }}
-          }}
-        }}
-      }},
-      {{
-        "id": "details-content",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "Detailed information content" }}
-          }}
-        }}
-      }}
-    ]
-  }}
-},
-{
-  "dataModelUpdate": {{
-    "contents": [
-      {{
-        "key": "selectedTab",
-        "valueString": "tab1"
-      }}
-    ]
-  }}
-},
-{
-  "beginRendering": {{
-    "surfaceId": "main",
-    "root": "tabs-container"
-  }}
-}}
-
-## 5. Loading/Skeleton Pattern (for async operations)
-{
-  "surfaceUpdate": {{
-    "components": [
-      {{
-        "id": "loading-container",
-        "component": {{
-          "Column": {{
-            "children": {{
-              "explicitList": ["loading-text", "loading-spinner"]
-            }}
-          }}
-        }}
-      }},
-      {{
-        "id": "loading-text",
-        "component": {{
-          "Text": {{
-            "text": {{ "literalString": "Loading..." }}
-          }}
-        }}
-      }}
-    ]
-  }}
-},
-{
-  "beginRendering": {{
-    "surfaceId": "main",
-    "root": "loading-container"
-  }}
-}}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "main",
+      "root": "list-container"
+    }
+  }
+]
 
 RESPONSE GUIDELINES:
 1. Choose the most appropriate pattern based on the user's query and context
@@ -1201,14 +1012,15 @@ RESPONSE GUIDELINES:
 7. Use descriptive IDs and follow the adjacency list model (flat component list with ID references)
 
 ---BEGIN A2UI JSON SCHEMA---
-{}
----END A2UI JSON SCHEMA---"#,
-            query,
-            tool_context,
-            session.base_url,
-            session.context.conversation_state,
-            include_str!("a2ui_schema.json")
-        );
+{a2ui_schema}
+---END A2UI JSON SCHEMA---"#;
+
+        let prompt = base_template
+            .replace("{query}", query)
+            .replace("{tool_context}", &tool_context)
+            .replace("{base_url}", &session.base_url)
+            .replace("{session_state:?}", &format!("{:?}", session.context.conversation_state))
+            .replace("{a2ui_schema}", include_str!("a2ui_schema.json"));
 
         Ok(prompt)
     }
