@@ -428,3 +428,109 @@ impl AIProvider for OpenAIProvider {
         "gpt-4"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gemini_provider_creation() {
+        let provider = GeminiProvider::new("test-api-key".to_string());
+        assert_eq!(provider.provider_name(), "Gemini");
+        assert_eq!(provider.default_model(), "gemini-2.5-flash");
+        assert_eq!(provider.model, "gemini-2.5-flash");
+    }
+
+    #[test]
+    fn test_gemini_provider_with_custom_model() {
+        let provider = GeminiProvider::with_model("test-api-key".to_string(), "gemini-pro".to_string());
+        assert_eq!(provider.provider_name(), "Gemini");
+        assert_eq!(provider.model, "gemini-pro");
+    }
+
+    #[test]
+    fn test_openai_provider_creation() {
+        let provider = OpenAIProvider::new("test-api-key".to_string());
+        assert_eq!(provider.provider_name(), "OpenAI");
+        assert_eq!(provider.default_model(), "gpt-4");
+        assert_eq!(provider.model, "gpt-4");
+    }
+
+    #[test]
+    fn test_openai_provider_with_custom_model() {
+        let provider = OpenAIProvider::with_model("test-api-key".to_string(), "gpt-3.5-turbo".to_string());
+        assert_eq!(provider.provider_name(), "OpenAI");
+        assert_eq!(provider.model, "gpt-3.5-turbo");
+    }
+
+    #[tokio::test]
+    async fn test_chat_request_creation() {
+        let messages = vec![ChatMessage {
+            role: "user".to_string(),
+            content: "Hello, world!".to_string(),
+        }];
+
+        let request = ChatRequest {
+            messages,
+            temperature: 0.7,
+            max_tokens: 1024,
+            tools: None,
+        };
+
+        assert_eq!(request.temperature, 0.7);
+        assert_eq!(request.max_tokens, 1024);
+        assert!(request.tools.is_none());
+        assert_eq!(request.messages.len(), 1);
+        assert_eq!(request.messages[0].role, "user");
+        assert_eq!(request.messages[0].content, "Hello, world!");
+    }
+
+    #[test]
+    fn test_tool_parameters_creation() {
+        let mut properties = HashMap::new();
+        properties.insert(
+            "name".to_string(),
+            serde_json::json!({
+                "type": "string",
+                "description": "The name parameter"
+            }),
+        );
+
+        let params = ToolParameters {
+            param_type: "object".to_string(),
+            properties,
+            required: vec!["name".to_string()],
+        };
+
+        assert_eq!(params.param_type, "object");
+        assert_eq!(params.required.len(), 1);
+        assert_eq!(params.required[0], "name");
+        assert!(params.properties.contains_key("name"));
+    }
+
+    #[test]
+    fn test_tool_creation() {
+        let mut properties = HashMap::new();
+        properties.insert(
+            "query".to_string(),
+            serde_json::json!({
+                "type": "string",
+                "description": "Search query"
+            }),
+        );
+
+        let tool = Tool {
+            name: "search".to_string(),
+            description: "Search for information".to_string(),
+            parameters: ToolParameters {
+                param_type: "object".to_string(),
+                properties,
+                required: vec!["query".to_string()],
+            },
+        };
+
+        assert_eq!(tool.name, "search");
+        assert_eq!(tool.description, "Search for information");
+        assert_eq!(tool.parameters.required[0], "query");
+    }
+}
