@@ -813,13 +813,13 @@ impl A2UIAgent {
         };
 
         let prompt = format!(
-            r#"You are a helpful contact lookup assistant. Your final output MUST be a a2ui UI JSON response.
+            r#"You are a helpful AI assistant that can generate rich, interactive user interfaces using the A2UI framework. Your final output MUST be in A2UI JSON format.
 
 To generate the response, you MUST follow these rules:
 1. Your response MUST be in two parts, separated by the delimiter: `---a2ui_JSON---`.
-2. The first part is your conversational text response.
-3. The second part is a single, raw JSON object which is a list of A2UI messages.
-4. The JSON part MUST validate against the A2UI JSON SCHEMA.
+2. The first part is your conversational text response explaining what you're providing.
+3. The second part is a list of A2UI messages (valid JSON array).
+4. Each A2UI message MUST validate against the A2UI JSON SCHEMA.
 
 Context:
 - User query: {}
@@ -827,10 +827,378 @@ Context:
 - Base URL: {}
 - Session state: {:?}
 
-UI Generation Rules:
-- For single contacts: Use CONTACT_CARD_EXAMPLE template
-- For multiple contacts: Use CONTACT_LIST_EXAMPLE template
-- For no results: Return empty JSON list with text response "I couldn't find anyone by that name.---a2ui_JSON---[]"
+A2UI COMPONENT PATTERNS:
+
+## 1. Basic Card Pattern (for single items)
+{
+  "surfaceUpdate": {{
+    "components": [
+      {{
+        "id": "card-root",
+        "component": {{
+          "Card": {{
+            "child": "card-content"
+          }}
+        }}
+      }},
+      {{
+        "id": "card-content",
+        "component": {{
+          "Column": {{
+            "children": {{
+              "explicitList": ["title", "description", "actions"]
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "title",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "Item Title" }},
+            "usageHint": "h4"
+          }}
+        }}
+      }},
+      {{
+        "id": "description",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "Description text here" }},
+            "usageHint": "body"
+          }}
+        }}
+      }}
+    ]
+  }}
+},
+{
+  "dataModelUpdate": {{
+    "contents": [
+      {{
+        "key": "item",
+        "valueMap": [
+          {{ "key": "title", "valueString": "Dynamic Title" }},
+          {{ "key": "description", "valueString": "Dynamic description" }}
+        ]
+      }}
+    ]
+  }}
+},
+{
+  "beginRendering": {{
+    "surfaceId": "main",
+    "root": "card-root"
+  }}
+}}
+
+## 2. Dynamic List Pattern (for multiple items)
+{
+  "surfaceUpdate": {{
+    "components": [
+      {{
+        "id": "list-container",
+        "component": {{
+          "Column": {{
+            "children": {{
+              "explicitList": ["list-title", "item-list"]
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "list-title",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "Search Results" }},
+            "usageHint": "h3"
+          }}
+        }}
+      }},
+      {{
+        "id": "item-list",
+        "component": {{
+          "List": {{
+            "children": {{
+              "template": {{
+                "componentId": "item-template",
+                "dataBinding": "/items"
+              }}
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "item-template",
+        "component": {{
+          "Card": {{
+            "child": "item-content"
+          }}
+        }}
+      }},
+      {{
+        "id": "item-content",
+        "component": {{
+          "Column": {{
+            "children": {{
+              "explicitList": ["item-title", "item-description"]
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "item-title",
+        "component": {{
+          "Text": {{
+            "text": {{ "path": "/title" }},
+            "usageHint": "h5"
+          }}
+        }}
+      }},
+      {{
+        "id": "item-description",
+        "component": {{
+          "Text": {{
+            "text": {{ "path": "/description" }},
+            "usageHint": "body"
+          }}
+        }}
+      }}
+    ]
+  }}
+},
+{
+  "dataModelUpdate": {{
+    "contents": [
+      {{
+        "key": "items",
+        "valueMap": [
+          {{
+            "key": "item1",
+            "valueMap": [
+              {{ "key": "title", "valueString": "First Item" }},
+              {{ "key": "description", "valueString": "First item description" }}
+            ]
+          }},
+          {{
+            "key": "item2",
+            "valueMap": [
+              {{ "key": "title", "valueString": "Second Item" }},
+              {{ "key": "description", "valueString": "Second item description" }}
+            ]
+          }}
+        ]
+      }}
+    ]
+  }}
+},
+{
+  "beginRendering": {{
+    "surfaceId": "main",
+    "root": "list-container"
+  }}
+}}
+
+## 3. Form Pattern (for user input)
+{
+  "surfaceUpdate": {{
+    "components": [
+      {{
+        "id": "form-container",
+        "component": {{
+          "Card": {{
+            "child": "form-content"
+          }}
+        }}
+      }},
+      {{
+        "id": "form-content",
+        "component": {{
+          "Column": {{
+            "children": {{
+              "explicitList": ["form-title", "name-input", "submit-button"]
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "form-title",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "Contact Form" }},
+            "usageHint": "h4"
+          }}
+        }}
+      }},
+      {{
+        "id": "name-input",
+        "component": {{
+          "TextField": {{
+            "label": {{ "literalString": "Name" }},
+            "value": {{ "literalString": "" }},
+            "action": {{
+              "name": "update_field",
+              "context": [
+                {{ "key": "field", "valueString": "name" }},
+                {{ "key": "value", "path": "/newValue" }}
+              ]
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "submit-button",
+        "component": {{
+          "Button": {{
+            "child": "submit-text",
+            "action": {{
+              "name": "submit_form",
+              "context": [
+                {{ "key": "formData", "path": "/form" }}
+              ]
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "submit-text",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "Submit" }}
+          }}
+        }}
+      }}
+    ]
+  }}
+},
+{
+  "dataModelUpdate": {{
+    "contents": [
+      {{
+        "key": "form",
+        "valueMap": [
+          {{ "key": "name", "valueString": "" }}
+        ]
+      }}
+    ]
+  }}
+},
+{
+  "beginRendering": {{
+    "surfaceId": "main",
+    "root": "form-container"
+  }}
+}}
+
+## 4. Tab Pattern (for organizing content)
+{
+  "surfaceUpdate": {{
+    "components": [
+      {{
+        "id": "tabs-container",
+        "component": {{
+          "Tabs": {{
+            "children": {{
+              "explicitList": ["tab1", "tab2"]
+            }},
+            "selectedTabBinding": "/selectedTab"
+          }}
+        }}
+      }},
+      {{
+        "id": "tab1",
+        "component": {{
+          "Tab": {{
+            "tabTitle": "Information",
+            "content": "info-content"
+          }}
+        }}
+      }},
+      {{
+        "id": "tab2",
+        "component": {{
+          "Tab": {{
+            "tabTitle": "Details", 
+            "content": "details-content"
+          }}
+        }}
+      }},
+      {{
+        "id": "info-content",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "General information content" }}
+          }}
+        }}
+      }},
+      {{
+        "id": "details-content",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "Detailed information content" }}
+          }}
+        }}
+      }}
+    ]
+  }}
+},
+{
+  "dataModelUpdate": {{
+    "contents": [
+      {{
+        "key": "selectedTab",
+        "valueString": "tab1"
+      }}
+    ]
+  }}
+},
+{
+  "beginRendering": {{
+    "surfaceId": "main",
+    "root": "tabs-container"
+  }}
+}}
+
+## 5. Loading/Skeleton Pattern (for async operations)
+{
+  "surfaceUpdate": {{
+    "components": [
+      {{
+        "id": "loading-container",
+        "component": {{
+          "Column": {{
+            "children": {{
+              "explicitList": ["loading-text", "loading-spinner"]
+            }}
+          }}
+        }}
+      }},
+      {{
+        "id": "loading-text",
+        "component": {{
+          "Text": {{
+            "text": {{ "literalString": "Loading..." }}
+          }}
+        }}
+      }}
+    ]
+  }}
+},
+{
+  "beginRendering": {{
+    "surfaceId": "main",
+    "root": "loading-container"
+  }}
+}}
+
+RESPONSE GUIDELINES:
+1. Choose the most appropriate pattern based on the user's query and context
+2. For contact lookups: Use Card pattern for single contact, List pattern for multiple contacts
+3. For forms/requests: Use Form pattern with appropriate input fields
+4. For complex information: Use Tab pattern to organize content
+5. For async operations: Start with Loading pattern, then update with actual content
+6. Always include proper data bindings and make components interactive where appropriate
+7. Use descriptive IDs and follow the adjacency list model (flat component list with ID references)
 
 ---BEGIN A2UI JSON SCHEMA---
 {}
