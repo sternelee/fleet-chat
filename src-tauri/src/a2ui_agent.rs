@@ -398,13 +398,43 @@ impl A2UIAgent {
     }
 
     pub async fn send_message(&self, request: SendMessageRequest) -> Result<A2UIResponse, A2UIAgentError> {
+        println!(
+            "[A2UI DEBUG] send_message called with session_id: {}",
+            request.session_id
+        );
+        println!("[A2UI DEBUG] request.content: {}", request.content);
+        println!("[A2UI DEBUG] request.use_ui: {:?}", request.use_ui);
+
         let session = {
-            let sessions = self.sessions.read().await;
-            sessions
-                .get(&request.session_id)
-                .cloned()
-                .ok_or_else(|| A2UIAgentError::SessionNotFound(request.session_id.clone()))?
+            let mut sessions = self.sessions.write().await;
+            println!("[A2UI DEBUG] Loaded {} sessions from memory", sessions.len());
+
+            // Create session if it doesn't exist
+            if !sessions.contains_key(&request.session_id) {
+                println!("[A2UI DEBUG] Creating new session: {}", request.session_id);
+                let now = Utc::now();
+                let new_session = A2UISession {
+                    id: request.session_id.clone(),
+                    created_at: now,
+                    updated_at: now,
+                    messages: Vec::new(),
+                    context: A2UIContext {
+                        user_id: "default-user".to_string(),
+                        app_name: "fleet-chat".to_string(),
+                        session_state: HashMap::new(),
+                        conversation_state: ConversationState::Initial,
+                        last_tool_call: None,
+                    },
+                    tools_used: Vec::new(),
+                    base_url: "http://localhost:1420".to_string(),
+                };
+                sessions.insert(request.session_id.clone(), new_session);
+            }
+
+            sessions.get(&request.session_id).cloned().unwrap()
         };
+
+        println!("[A2UI DEBUG] Found session with {} messages", session.messages.len());
 
         let use_ui = request.use_ui.unwrap_or(true);
         let tool_context = request.tool_context.unwrap_or_default();
@@ -431,11 +461,16 @@ impl A2UIAgent {
         let mut current_query = request.content;
         let mut attempt = 0;
 
+        println!("[A2UI DEBUG] Starting agent pipeline processing");
+
         while attempt <= max_retries {
+            println!("[A2UI DEBUG] Attempt {}/{}", attempt, max_retries + 1);
             attempt += 1;
 
             // Check for tool calls in the conversation
+            println!("[A2UI DEBUG] Detecting and executing tools...");
             let tool_results = self.detect_and_execute_tools(&session, &current_query).await?;
+            println!("[A2UI DEBUG] Found {} tool results", tool_results.len());
 
             if !tool_results.is_empty() {
                 // Update session with tool calls
@@ -450,15 +485,26 @@ impl A2UIAgent {
             }
 
             // Generate response
+            println!("[A2UI DEBUG] Generating response with use_ui: {}", use_ui);
             let response = self
                 .generate_response(&session, &current_query, use_ui, &tool_results)
                 .await?;
+            println!(
+                "[A2UI DEBUG] Generated response content length: {}",
+                response.content.len()
+            );
+            println!(
+                "[A2UI DEBUG] Generated response A2UI messages count: {}",
+                response.a2ui_messages.len()
+            );
 
             // Validate if UI mode is enabled
             if use_ui {
+                println!("[A2UI DEBUG] Validating A2UI response...");
                 let validation_result = self.validate_a2ui_response(&response).await;
                 match validation_result {
                     Ok(_) => {
+                        println!("[A2UI DEBUG] A2UI response validation successful");
                         // Valid response, return it
                         let a2ui_response = A2UIResponse {
                             message_id: Uuid::new_v4().to_string(),
@@ -468,6 +514,10 @@ impl A2UIAgent {
                             conversation_state: format!("{:?}", session.context.conversation_state),
                             updates: None,
                         };
+                        println!(
+                            "[A2UI DEBUG] Returning A2UI response with {} messages",
+                            a2ui_response.a2ui_messages.len()
+                        );
 
                         // Update session with successful response
                         {
@@ -500,7 +550,7 @@ impl A2UIAgent {
                                                 .collect(),
                                         ),
                                         validation_status: Some(ValidationStatus::Valid),
-                                        model_used: Some("gemini-1.5-flash".to_string()),
+                                        model_used: Some("gemini-2.5-flash".to_string()),
                                     }),
                                     a2ui_response: Some(response.a2ui_messages.clone()),
                                 };
@@ -557,7 +607,7 @@ impl A2UIAgent {
                             metadata: Some(MessageMetadata {
                                 tool_calls: tool_results,
                                 validation_status: Some(ValidationStatus::Valid),
-                                model_used: Some("gemini-1.5-flash".to_string()),
+                                model_used: Some("gemini-2.5-flash".to_string()),
                                 ui_components: None,
                             }),
                             a2ui_response: None,
@@ -722,18 +772,30 @@ impl A2UIAgent {
         use_ui: bool,
         tool_results: &[ToolCall],
     ) -> Result<GeneratedResponse, A2UIAgentError> {
+        println!("[A2UI DEBUG] generate_response: query='{}', use_ui={}", query, use_ui);
+
         // Construct prompt based on context and tool results
+        println!("[A2UI DEBUG] Building prompt...");
         let prompt = if use_ui {
             self.build_ui_prompt(session, query, tool_results)?
         } else {
             self.build_text_prompt(session, query, tool_results)?
         };
+        println!("[A2UI DEBUG] Built prompt length: {}", prompt.len());
 
         // Call Gemini API
+        println!("[A2UI DEBUG] Calling Gemini API...");
         let response_content = self.call_gemini_api(&prompt).await?;
+        println!("[A2UI DEBUG] Gemini API response length: {}", response_content.len());
 
         // Parse response
+        println!("[A2UI DEBUG] Parsing response...");
         let generated_response = self.parse_response(&response_content, use_ui)?;
+        println!(
+            "[A2UI DEBUG] Parsed response - content length: {}, a2ui_messages: {}",
+            generated_response.content.len(),
+            generated_response.a2ui_messages.len()
+        );
 
         Ok(generated_response)
     }
@@ -815,6 +877,15 @@ Response Rules:
     }
 
     async fn call_gemini_api(&self, prompt: &str) -> Result<String, A2UIAgentError> {
+        println!(
+            "[A2UI DEBUG] call_gemini_api called with prompt length: {}",
+            prompt.len()
+        );
+        println!(
+            "[A2UI DEBUG] API key starts with: {}",
+            &self.api_key[..8.min(self.api_key.len())]
+        );
+
         #[derive(Deserialize)]
         struct GeminiResponse {
             candidates: Vec<Candidate>,
@@ -850,29 +921,37 @@ Response Rules:
         });
 
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={}",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
             self.api_key
         );
 
+        println!("[A2UI DEBUG] Making request to Gemini API...");
         let response = self.client.post(&url).json(&request_body).send().await?;
+        println!("[A2UI DEBUG] Gemini API response status: {}", response.status());
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
+            println!("[A2UI DEBUG] Gemini API error: status {}, text: {}", status, error_text);
             return Err(A2UIAgentError::GeminiError(format!(
                 "API call failed with status {}: {}",
                 status, error_text
             )));
         }
 
+        println!("[A2UI DEBUG] Parsing JSON response...");
         let gemini_response: GeminiResponse = response.json().await?;
+        println!("[A2UI DEBUG] Found {} candidates", gemini_response.candidates.len());
 
         if let Some(candidate) = gemini_response.candidates.first() {
+            println!("[A2UI DEBUG] Candidate has {} parts", candidate.content.parts.len());
             if let Some(part) = candidate.content.parts.first() {
+                println!("[A2UI DEBUG] Response text length: {}", part.text.len());
                 return Ok(part.text.clone());
             }
         }
 
+        println!("[A2UI DEBUG] No valid response found in Gemini API response");
         Err(A2UIAgentError::GeminiError(
             "No valid response from Gemini API".to_string(),
         ))

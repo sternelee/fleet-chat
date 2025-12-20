@@ -76,7 +76,7 @@ export class MyApp extends LitElement {
     // Make sure the initial route is correctly rendered.
     // If the URL is currently empty or /, point to the home route.
     if (window.location.pathname === '/' || window.location.pathname === '') {
-      this._routes.goto('/')
+      this._routes.goto('/chat')
     } else {
       // If other urls, navigate to the URL
       this._routes.goto(window.location.pathname)

@@ -940,6 +940,7 @@ pub fn create_axum_app() -> Router {
     let state = AppState::default();
 
     Router::new()
+        .without_v07_checks()
         // Basic health checks
         .route("/", get(|| async { "A2UI Backend Service - Fleet Chat" }))
         .route("/ping", get(|| async { "pong!" }))
@@ -1026,11 +1027,15 @@ async fn a2ui_agent_chat_stream(
     State(state): State<AppState>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Response, http::StatusCode> {
+    println!("[DEBUG] a2ui_agent_chat_stream called");
+
     let agent = state
         .a2ui_agent
         .as_ref()
         .ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?
         .clone();
+
+    println!("[DEBUG] Agent available: true");
 
     // Create a SendMessageRequest from the JSON value
     let session_id = request
@@ -1051,6 +1056,11 @@ async fn a2ui_agent_chat_stream(
             .collect()
     });
 
+    println!(
+        "[DEBUG] Parsed request - session_id: {}, content: {}",
+        session_id, content
+    );
+
     let send_request = crate::a2ui_agent::SendMessageRequest {
         session_id,
         content,
@@ -1058,35 +1068,51 @@ async fn a2ui_agent_chat_stream(
         tool_context,
     };
 
+    println!("[DEBUG] SendRequest created: {:?}", send_request);
+
     // Simple SSE implementation that sends all A2UI messages
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, std::convert::Infallible>>(32);
 
     // Spawn a task to handle the agent response and send messages
     tokio::spawn(async move {
+        println!("[DEBUG] Starting SSE task");
+
         // Send initial processing event
         let processing_data = json!({
             "type": "processing",
             "message": "Generating response...",
             "timestamp": chrono::Utc::now().to_rfc3339()
         });
+
+        println!("[DEBUG] Sending processing event: {}", processing_data);
+
         if tx
             .send(Ok(Event::default().data(processing_data.to_string()).event("update")))
             .await
             .is_err()
         {
+            println!("[ERROR] Failed to send processing event");
             return;
         }
 
         // Get response from agent
+        println!("[DEBUG] Calling agent.send_message...");
         match agent.send_message(send_request).await {
             Ok(response) => {
+                println!(
+                    "[DEBUG] Agent response received, message count: {}",
+                    response.a2ui_messages.len()
+                );
                 let message_count = response.a2ui_messages.len();
+
                 // Send each A2UI message as a separate event
                 for (i, a2ui_message) in response.a2ui_messages.into_iter().enumerate() {
                     let message_data = json!({
                         "message_index": i,
                         "a2ui_message": a2ui_message
                     });
+
+                    println!("[DEBUG] Sending A2UI message {}: {}", i, message_data);
 
                     if tx
                         .send(Ok(Event::default()
@@ -1095,6 +1121,7 @@ async fn a2ui_agent_chat_stream(
                         .await
                         .is_err()
                     {
+                        println!("[ERROR] Failed to send A2UI message {}", i);
                         break;
                     }
                 }
@@ -1105,15 +1132,19 @@ async fn a2ui_agent_chat_stream(
                     "message_count": message_count,
                     "timestamp": chrono::Utc::now().to_rfc3339()
                 });
+
+                println!("[DEBUG] Sending completion event: {}", completion_data);
                 let _ = tx.send(Ok(Event::default().data(completion_data.to_string()).event("complete")));
             }
-            Err(_) => {
+            Err(e) => {
+                println!("[ERROR] Agent error: {:?}", e);
                 // Send error event
                 let error_data = json!({
                     "type": "error",
-                    "message": "Failed to generate response",
+                    "message": format!("Failed to generate response: {}", e),
                     "timestamp": chrono::Utc::now().to_rfc3339()
                 });
+                println!("[DEBUG] Sending error event: {}", error_data);
                 let _ = tx.send(Ok(Event::default().data(error_data.to_string()).event("error")));
             }
         }
@@ -1122,6 +1153,7 @@ async fn a2ui_agent_chat_stream(
     // Convert the channel receiver to a stream
     let stream = tokio_stream::wrappers::ReceiverStream::new(rx);
 
+    println!("[DEBUG] Returning SSE response");
     Ok(Sse::new(stream).into_response())
 }
 

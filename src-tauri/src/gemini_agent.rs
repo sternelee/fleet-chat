@@ -110,7 +110,7 @@ impl GeminiAgent {
         let client = Client::new();
 
         let default_settings = AgentSettings {
-            model_name: "gemini-1.5-flash".to_string(),
+            model_name: "gemini-2.5-flash".to_string(),
             temperature: 0.7,
             max_tokens: 2048,
             system_prompt: "你是一个智能助手，能够理解用户需求并提供建议。你可以帮助用户分析需求并建议合适的解决方案。当用户需要界面时，你可以建议使用哪种类型的UI组件。".to_string(),
@@ -302,7 +302,7 @@ impl GeminiAgent {
 
         let url = format!(
             "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-            "gemini-1.5-flash", self.api_key
+            "gemini-2.5-flash", self.api_key
         );
 
         let response = self.client.post(&url).json(&request_body).send().await?;
@@ -410,4 +410,3 @@ mod tests {
         }
     }
 }
-

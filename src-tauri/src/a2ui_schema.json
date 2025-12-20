@@ -6,7 +6,9 @@
         "properties": {
             "beginRendering": {
                 "type": "object",
-                "required": ["surfaceId"],
+                "required": [
+                    "surfaceId"
+                ],
                 "properties": {
                     "surfaceId": {
                         "type": "string"
@@ -30,7 +32,10 @@
             },
             "surfaceUpdate": {
                 "type": "object",
-                "required": ["surfaceId", "components"],
+                "required": [
+                    "surfaceId",
+                    "components"
+                ],
                 "properties": {
                     "surfaceId": {
                         "type": "string"
@@ -39,7 +44,10 @@
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "required": ["id", "component"],
+                            "required": [
+                                "id",
+                                "component"
+                            ],
                             "properties": {
                                 "id": {
                                     "type": "string"
@@ -59,7 +67,10 @@
             },
             "dataModelUpdate": {
                 "type": "object",
-                "required": ["surfaceId", "contents"],
+                "required": [
+                    "surfaceId",
+                    "contents"
+                ],
                 "properties": {
                     "surfaceId": {
                         "type": "string"
@@ -71,7 +82,9 @@
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "required": ["key"],
+                            "required": [
+                                "key"
+                            ],
                             "properties": {
                                 "key": {
                                     "type": "string"
@@ -100,7 +113,9 @@
             },
             "deleteSurface": {
                 "type": "object",
-                "required": ["surfaceId"],
+                "required": [
+                    "surfaceId"
+                ],
                 "properties": {
                     "surfaceId": {
                         "type": "string"
@@ -109,8 +124,28 @@
                 "additionalProperties": false
             }
         },
-        "oneOf": [{ "required": ["beginRendering"] }, { "required": ["surfaceUpdate"] }, { "required": ["dataModelUpdate"] }, { "required": ["deleteSurface"] }],
+        "oneOf": [
+            {
+                "required": [
+                    "beginRendering"
+                ]
+            },
+            {
+                "required": [
+                    "surfaceUpdate"
+                ]
+            },
+            {
+                "required": [
+                    "dataModelUpdate"
+                ]
+            },
+            {
+                "required": [
+                    "deleteSurface"
+                ]
+            }
+        ],
         "additionalProperties": false
     }
 }
-

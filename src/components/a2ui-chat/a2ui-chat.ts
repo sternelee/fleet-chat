@@ -373,11 +373,22 @@ export class A2UIChat extends SignalWatcher(LitElement) {
   ): Promise<ServerToClientMessage[]> {
     const response = await this.#a2uiClient.send(message);
 
-    // Convert A2UI messages to simple format for now
-    return response.map((msg: any) => ({
-      type: 'assistant_message',
-      data: JSON.stringify(msg, null, 2)
-    }));
+    // Convert A2UI messages to display format
+    return response.map((msg: any) => {
+      // If it has content, display the content directly
+      if (msg.content) {
+        return {
+          type: 'assistant_message',
+          data: msg.content
+        };
+      }
+      
+      // Otherwise, show the full response as JSON
+      return {
+        type: 'assistant_message',
+        data: JSON.stringify(msg, null, 2)
+      };
+    });
   }
 }
 
