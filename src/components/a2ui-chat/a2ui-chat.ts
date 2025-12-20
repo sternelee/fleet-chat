@@ -8,6 +8,7 @@ import {
 import { customElement, state } from "lit/decorators.js";
 import { A2UIClient } from "./client.js";
 import { repeat } from "lit/directives/repeat.js";
+import "./a2ui-renderer.js";
 
 // Mock A2UI types for now
 interface ServerToClientMessage {
@@ -35,6 +36,9 @@ export class A2UIChat extends SignalWatcher(LitElement) {
 
   @state()
   private lastMessages: ServerToClientMessage[] = [];
+
+  @state()
+  private a2uiMessages: any[] = [];
 
   @state()
   private inputText = "";
@@ -166,6 +170,14 @@ export class A2UIChat extends SignalWatcher(LitElement) {
       }
     }
 
+    .a2ui-area {
+      margin: 16px 0;
+      padding: 16px;
+      background: #fafafa;
+      border-radius: 8px;
+      border: 1px solid #e1e5e9;
+    }
+
     .message-area {
       display: flex;
       flex-direction: column;
@@ -246,6 +258,7 @@ export class A2UIChat extends SignalWatcher(LitElement) {
 
         ${this.#maybeRenderError()}
         ${this.#maybeRenderForm()}
+        ${this.#maybeRenderA2UI()}
         ${this.#maybeRenderData()}
       </div>
     `;
@@ -294,6 +307,39 @@ export class A2UIChat extends SignalWatcher(LitElement) {
         </div>
       </div>
     `;
+  }
+
+  #maybeRenderA2UI() {
+    if (this.a2uiMessages.length === 0) return nothing;
+
+    return html`
+      <div class="a2ui-area">
+        <a2ui-renderer 
+          .messages=${this.a2uiMessages}
+          @a2ui-action=${this.#handleA2UIAction}
+        ></a2ui-renderer>
+      </div>
+    `;
+  }
+
+  #handleA2UIAction(event: CustomEvent) {
+    console.log('A2UI Action received:', event.detail);
+    
+    // Handle A2UI actions by sending them back to the agent
+    const action = event.detail;
+    const message: A2UIClientEventMessage = {
+      userAction: {
+        surfaceId: "a2ui-surface",
+        name: action.name,
+        sourceComponentId: "a2ui-component",
+        timestamp: new Date().toISOString(),
+        context: {
+          actionContext: action.context,
+        },
+      },
+    };
+
+    this.#sendAndProcessMessage(message);
   }
 
   #maybeRenderData() {
@@ -359,7 +405,21 @@ export class A2UIChat extends SignalWatcher(LitElement) {
       this.error = null;
 
       const messages = await this.#sendMessage(request);
-      this.lastMessages = [...this.lastMessages, ...messages];
+      
+      // Separate regular messages from A2UI messages
+      const regularMessages: ServerToClientMessage[] = [];
+      const a2uiMessages: any[] = [];
+      
+      messages.forEach(msg => {
+        if (msg.a2ui_message) {
+          a2uiMessages.push(msg.a2ui_message);
+        } else {
+          regularMessages.push(msg);
+        }
+      });
+      
+      this.lastMessages = [...this.lastMessages, ...regularMessages];
+      this.a2uiMessages = a2uiMessages;
     } catch (err) {
       this.error = err instanceof Error ? err.message : "An error occurred";
       console.error("Chat error:", err);
