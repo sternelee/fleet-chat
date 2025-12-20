@@ -397,13 +397,25 @@ impl AIProvider for OpenAIProvider {
                         .message
                         .tool_calls
                         .iter()
-                        .map(|tc| {
-                            let arguments =
-                                serde_json::from_str(&tc.function.arguments).unwrap_or_else(|_| serde_json::json!({}));
-                            ToolCall {
-                                id: tc.id.clone(),
-                                name: tc.function.name.clone(),
-                                arguments,
+                        .filter_map(|tc| {
+                            match serde_json::from_str(&tc.function.arguments) {
+                                Ok(arguments) => Some(ToolCall {
+                                    id: tc.id.clone(),
+                                    name: tc.function.name.clone(),
+                                    arguments,
+                                }),
+                                Err(e) => {
+                                    eprintln!(
+                                        "Warning: Failed to parse tool call arguments for '{}': {}. Arguments: {}",
+                                        tc.function.name, e, tc.function.arguments
+                                    );
+                                    // Return a tool call with empty object instead of dropping it
+                                    Some(ToolCall {
+                                        id: tc.id.clone(),
+                                        name: tc.function.name.clone(),
+                                        arguments: serde_json::json!({}),
+                                    })
+                                }
                             }
                         })
                         .collect(),
