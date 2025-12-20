@@ -1138,9 +1138,12 @@ Response Rules:
     }
 
     fn parse_response(&self, response_content: &str, use_ui: bool) -> Result<GeneratedResponse, A2UIAgentError> {
+        println!("[A2UI DEBUG] Raw response content: {}", response_content);
+        
         if use_ui && response_content.contains("---a2ui_JSON---") {
             let parts: Vec<&str> = response_content.splitn(2, "---a2ui_JSON---").collect();
             if parts.len() != 2 {
+                println!("[A2UI DEBUG] Failed to split response by delimiter, parts.len(): {}", parts.len());
                 return Err(A2UIAgentError::MessageError(
                     "Expected response to be split by delimiter".to_string(),
                 ));
@@ -1149,12 +1152,40 @@ Response Rules:
             let text_part = parts[0].trim();
             let json_part = parts[1].trim();
 
+            println!("[A2UI DEBUG] Text part: {}", text_part);
+            println!("[A2UI DEBUG] JSON part before cleaning: {}", json_part);
+
             let json_cleaned = json_part.trim_end_matches("```json").trim_end_matches("```");
+            
+            println!("[A2UI DEBUG] JSON part after cleaning: {}", json_cleaned);
 
             let a2ui_messages: Vec<A2UIMessageResponse> = if json_cleaned.is_empty() {
+                println!("[A2UI DEBUG] JSON part is empty, returning empty messages");
                 vec![]
             } else {
-                serde_json::from_str(json_cleaned)?
+                println!("[A2UI DEBUG] Attempting to parse JSON...");
+                match serde_json::from_str::<Vec<A2UIMessageResponse>>(json_cleaned) {
+                    Ok(messages) => {
+                        println!("[A2UI DEBUG] Successfully parsed {} A2UI messages", messages.len());
+                        messages
+                    }
+                    Err(e) => {
+                        println!("[A2UI DEBUG] Failed to parse JSON: {}", e);
+                        // Try to parse as a single object first, then wrap in array
+                        match serde_json::from_str::<A2UIMessageResponse>(json_cleaned) {
+                            Ok(message) => {
+                                println!("[A2UI DEBUG] Parsed as single message, wrapping in array");
+                                vec![message]
+                            }
+                            Err(e2) => {
+                                println!("[A2UI DEBUG] Failed to parse as single message too: {}", e2);
+                                return Err(A2UIAgentError::MessageError(
+                                    format!("JSON parsing error: {}. Original error: {}", e2, e)
+                                ));
+                            }
+                        }
+                    }
+                }
             };
 
             Ok(GeneratedResponse {
@@ -1162,6 +1193,7 @@ Response Rules:
                 a2ui_messages,
             })
         } else {
+            println!("[A2UI DEBUG] No UI delimiter found, returning as plain text");
             Ok(GeneratedResponse {
                 content: response_content.to_string(),
                 a2ui_messages: vec![],
