@@ -106,7 +106,7 @@ pub struct A2UIResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "t", rename_all = "camelCase")]
+#[serde(untagged)]
 pub enum A2UIMessageResponse {
     BeginRendering(BeginRendering),
     SurfaceUpdate(SurfaceUpdate),
@@ -116,6 +116,7 @@ pub enum A2UIMessageResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeginRendering {
+    #[serde(rename = "surfaceId")]
     pub surface_id: String,
     pub root: String,
     pub styles: Option<Styles>,
@@ -123,19 +124,20 @@ pub struct BeginRendering {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SurfaceUpdate {
-    pub surface_id: String,
     pub components: Vec<UIComponent>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataModelUpdate {
-    pub surface_id: String,
+    #[serde(rename = "surfaceId", skip_serializing_if = "Option::is_none")]
+    pub surface_id: Option<String>,
     pub path: Option<String>,
     pub contents: Vec<DataEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteSurface {
+    #[serde(rename = "surfaceId")]
     pub surface_id: String,
 }
 
@@ -153,7 +155,7 @@ pub struct UIComponent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "component", rename_all = "PascalCase")]
+#[serde(untagged)]
 pub enum ComponentType {
     Column {
         children: ComponentChildren,
@@ -167,12 +169,12 @@ pub enum ComponentType {
     },
     Text {
         text: TextReference,
-        usage_hint: Option<String>,
+        usageHint: Option<String>,
     },
     Image {
         url: TextReference,
         fit: Option<String>,
-        usage_hint: Option<String>,
+        usageHint: Option<String>,
     },
     Button {
         child: String,
@@ -183,31 +185,66 @@ pub enum ComponentType {
         child: String,
     },
     List {
-        direction: Option<String>,
-        children: ComponentChildren,
+        children: TemplateContainer,
     },
     Icon {
-        name: TextReference,
+        iconType: Option<String>,
     },
-    Divider,
+    Divider {
+        orientation: Option<String>,
+    },
+    TextField {
+        label: TextReference,
+        value: TextReference,
+        action: Option<Action>,
+        #[serde(rename = "type")]
+        field_type: Option<String>,
+    },
+    Tab {
+        tabTitle: String,
+        content: String,
+    },
+    Tabs {
+        children: ComponentChildren,
+        #[serde(rename = "selectedTabBinding")]
+        selected_tab_binding: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ComponentChildren {
-    pub explicit_list: Option<Vec<String>>,
-    pub template: Option<Template>,
+#[serde(untagged)]
+pub enum ComponentChildren {
+    ExplicitList {
+        #[serde(rename = "explicitList")]
+        explicit_list: Vec<String>,
+    },
+    Template(TemplateContainer),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateContainer {
+    template: Template,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Template {
-    pub component_id: String,
-    pub data_binding: String,
+    #[serde(rename = "componentId")]
+    component_id: String,
+    #[serde(rename = "dataBinding")]
+    data_binding: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TextReference {
-    pub literal_string: Option<String>,
-    pub path: Option<String>,
+#[serde(untagged)]
+pub enum TextReference {
+    #[serde(rename = "literalString")]
+    LiteralString(String),
+    Path(String),
+    Object {
+        #[serde(rename = "literalString")]
+        literal_string: Option<String>,
+        path: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1163,29 +1200,8 @@ Response Rules:
                 println!("[A2UI DEBUG] JSON part is empty, returning empty messages");
                 vec![]
             } else {
-                println!("[A2UI DEBUG] Attempting to parse JSON...");
-                match serde_json::from_str::<Vec<A2UIMessageResponse>>(json_cleaned) {
-                    Ok(messages) => {
-                        println!("[A2UI DEBUG] Successfully parsed {} A2UI messages", messages.len());
-                        messages
-                    }
-                    Err(e) => {
-                        println!("[A2UI DEBUG] Failed to parse JSON: {}", e);
-                        // Try to parse as a single object first, then wrap in array
-                        match serde_json::from_str::<A2UIMessageResponse>(json_cleaned) {
-                            Ok(message) => {
-                                println!("[A2UI DEBUG] Parsed as single message, wrapping in array");
-                                vec![message]
-                            }
-                            Err(e2) => {
-                                println!("[A2UI DEBUG] Failed to parse as single message too: {}", e2);
-                                return Err(A2UIAgentError::MessageError(
-                                    format!("JSON parsing error: {}. Original error: {}", e2, e)
-                                ));
-                            }
-                        }
-                    }
-                }
+                println!("[A2UI DEBUG] Attempting to parse A2UI messages...");
+                self.parse_a2ui_messages_from_json(json_cleaned)?
             };
 
             Ok(GeneratedResponse {
@@ -1198,6 +1214,70 @@ Response Rules:
                 content: response_content.to_string(),
                 a2ui_messages: vec![],
             })
+        }
+    }
+
+    fn parse_a2ui_messages_from_json(&self, json_str: &str) -> Result<Vec<A2UIMessageResponse>, A2UIAgentError> {
+        // Try to parse as an array of A2UI message objects
+        match serde_json::from_str::<serde_json::Value>(json_str) {
+            Ok(value) => {
+                println!("[A2UI DEBUG] Successfully parsed JSON value");
+                
+                // If it's an array, parse each item
+                if let Some(array) = value.as_array() {
+                    let mut messages = Vec::new();
+                    for (i, item) in array.iter().enumerate() {
+                        println!("[A2UI DEBUG] Processing array item {}: {}", i, item);
+                        match self.convert_json_to_a2ui_message(item) {
+                            Ok(msg) => messages.push(msg),
+                            Err(e) => {
+                                println!("[A2UI DEBUG] Failed to convert array item {}: {}", i, e);
+                                return Err(e);
+                            }
+                        }
+                    }
+                    return Ok(messages);
+                }
+                
+                // If it's a single object, convert it
+                match self.convert_json_to_a2ui_message(&value) {
+                    Ok(msg) => Ok(vec![msg]),
+                    Err(e) => {
+                        println!("[A2UI DEBUG] Failed to convert single object: {}", e);
+                        Err(e)
+                    }
+                }
+            }
+            Err(e) => {
+                println!("[A2UI DEBUG] Failed to parse JSON as value: {}", e);
+                Err(A2UIAgentError::MessageError(format!("JSON parsing error: {}", e)))
+            }
+        }
+    }
+
+    fn convert_json_to_a2ui_message(&self, json_value: &serde_json::Value) -> Result<A2UIMessageResponse, A2UIAgentError> {
+        // Look for the A2UI message type by checking the top-level keys
+        if let Some(_surface_update) = json_value.get("surfaceUpdate") {
+            let surface_update: SurfaceUpdate = serde_json::from_value(json_value.get("surfaceUpdate").unwrap().clone())
+                .map_err(|e| A2UIAgentError::MessageError(format!("Failed to parse SurfaceUpdate: {}", e)))?;
+            Ok(A2UIMessageResponse::SurfaceUpdate(surface_update))
+        } else if let Some(_data_model_update) = json_value.get("dataModelUpdate") {
+            let data_model_update: DataModelUpdate = serde_json::from_value(json_value.get("dataModelUpdate").unwrap().clone())
+                .map_err(|e| A2UIAgentError::MessageError(format!("Failed to parse DataModelUpdate: {}", e)))?;
+            Ok(A2UIMessageResponse::DataModelUpdate(data_model_update))
+        } else if let Some(_begin_rendering) = json_value.get("beginRendering") {
+            let begin_rendering: BeginRendering = serde_json::from_value(json_value.get("beginRendering").unwrap().clone())
+                .map_err(|e| A2UIAgentError::MessageError(format!("Failed to parse BeginRendering: {}", e)))?;
+            Ok(A2UIMessageResponse::BeginRendering(begin_rendering))
+        } else if let Some(_delete_surface) = json_value.get("deleteSurface") {
+            let delete_surface: DeleteSurface = serde_json::from_value(json_value.get("deleteSurface").unwrap().clone())
+                .map_err(|e| A2UIAgentError::MessageError(format!("Failed to parse DeleteSurface: {}", e)))?;
+            Ok(A2UIMessageResponse::DeleteSurface(delete_surface))
+        } else {
+            println!("[A2UI DEBUG] Unknown A2UI message format: {}", json_value);
+            Err(A2UIAgentError::MessageError(
+                format!("Unknown A2UI message format: {}", json_value)
+            ))
         }
     }
 
