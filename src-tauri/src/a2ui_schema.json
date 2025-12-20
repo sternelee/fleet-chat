@@ -1,151 +1,341 @@
 {
-    "type": "array",
-    "items": {
-        "type": "object",
-        "required": [],
-        "properties": {
-            "beginRendering": {
-                "type": "object",
-                "required": [
-                    "surfaceId"
-                ],
-                "properties": {
-                    "surfaceId": {
-                        "type": "string"
-                    },
-                    "root": {
-                        "type": "string"
-                    },
-                    "styles": {
-                        "type": "object",
-                        "properties": {
-                            "primaryColor": {
-                                "type": "string"
-                            },
-                            "font": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                },
-                "additionalProperties": false
-            },
-            "surfaceUpdate": {
-                "type": "object",
-                "required": [
-                    "surfaceId",
-                    "components"
-                ],
-                "properties": {
-                    "surfaceId": {
-                        "type": "string"
-                    },
-                    "components": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "required": [
-                                "id",
-                                "component"
-                            ],
-                            "properties": {
-                                "id": {
-                                    "type": "string"
-                                },
-                                "weight": {
-                                    "type": "number"
-                                },
-                                "component": {
-                                    "type": "object"
-                                }
-                            },
-                            "additionalProperties": false
-                        }
-                    }
-                },
-                "additionalProperties": false
-            },
-            "dataModelUpdate": {
-                "type": "object",
-                "required": [
-                    "surfaceId",
-                    "contents"
-                ],
-                "properties": {
-                    "surfaceId": {
-                        "type": "string"
-                    },
-                    "path": {
-                        "type": "string"
-                    },
-                    "contents": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "required": [
-                                "key"
-                            ],
-                            "properties": {
-                                "key": {
-                                    "type": "string"
-                                },
-                                "valueMap": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object"
-                                    }
-                                },
-                                "valueString": {
-                                    "type": "string"
-                                },
-                                "valueNumber": {
-                                    "type": "number"
-                                },
-                                "valueBoolean": {
-                                    "type": "boolean"
-                                }
-                            },
-                            "additionalProperties": false
-                        }
-                    }
-                },
-                "additionalProperties": false
-            },
-            "deleteSurface": {
-                "type": "object",
-                "required": [
-                    "surfaceId"
-                ],
-                "properties": {
-                    "surfaceId": {
-                        "type": "string"
-                    }
-                },
-                "additionalProperties": false
-            }
+  "title": "A2UI Message Schema",
+  "description": "Describes a JSON payload for an A2UI (Agent to UI) message, which is used to dynamically construct and update user interfaces. A message MUST contain exactly ONE of the action properties: 'beginRendering', 'surfaceUpdate', 'dataModelUpdate', or 'deleteSurface'.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beginRendering": {
+      "type": "object",
+      "description": "Signals the client to begin rendering a surface with a root component and specific styles.",
+      "additionalProperties": false,
+      "properties": {
+        "surfaceId": {
+          "type": "string",
+          "description": "The unique identifier for the UI surface to be rendered."
         },
-        "oneOf": [
-            {
-                "required": [
-                    "beginRendering"
-                ]
+        "root": {
+          "type": "string",
+          "description": "The ID of the root component to render."
+        },
+        "styles": {
+          "type": "object",
+          "description": "Styling information for the UI.",
+          "additionalProperties": false,
+          "properties": {
+            "font": {
+              "type": "string",
+              "description": "The primary font for the UI."
             },
-            {
-                "required": [
-                    "surfaceUpdate"
-                ]
-            },
-            {
-                "required": [
-                    "dataModelUpdate"
-                ]
-            },
-            {
-                "required": [
-                    "deleteSurface"
-                ]
+            "primaryColor": {
+              "type": "string",
+              "description": "The primary UI color as a hexadecimal code (e.g., '#00BFFF').",
+              "pattern": "^#[0-9a-fA-F]{6}$"
             }
-        ],
-        "additionalProperties": false
+          }
+        }
+      },
+      "required": ["root", "surfaceId"]
+    },
+    "surfaceUpdate": {
+      "type": "object",
+      "description": "Updates a surface with a new set of components.",
+      "additionalProperties": false,
+      "properties": {
+        "surfaceId": {
+          "type": "string",
+          "description": "The unique identifier for the UI surface to be updated. If you are adding a new surface this *must* be a new, unique identified that has never been used for any existing surfaces shown."
+        },
+        "components": {
+          "type": "array",
+          "description": "A list containing all UI components for the surface.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "Represents a *single* component in a UI widget tree. This component could be one of many supported types.",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The unique identifier for this component."
+              },
+              "weight": {
+                "type": "number",
+                "description": "The relative weight of this component within a Row or Column. This corresponds to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
+              },
+              "component": {
+                "type": "object",
+                "description": "A wrapper object that MUST contain exactly one key, which is the name of the component type (e.g., 'Heading'). The value is an object containing the properties for that specific component.",
+                "additionalProperties": false,
+                "properties": {
+                  "Text": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "text": {
+                        "type": "object",
+                        "description": "The text content to display. This can be a literal string or a reference to a value in the data model ('path', e.g., '/doc/title').",
+                        "additionalProperties": false,
+                        "properties": {
+                          "literalString": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "usageHint": {
+                        "type": "string",
+                        "description": "A hint for the base text style.",
+                        "enum": [
+                          "h1",
+                          "h2", 
+                          "h3",
+                          "h4",
+                          "h5",
+                          "caption",
+                          "body"
+                        ]
+                      }
+                    },
+                    "required": ["text"]
+                  },
+                  "Button": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "child": {
+                        "type": "string",
+                        "description": "The ID of the child component to display inside the button."
+                      },
+                      "action": {
+                        "type": "object",
+                        "description": "The action to perform when the button is clicked.",
+                        "additionalProperties": false,
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          }
+                        },
+                        "required": ["name"]
+                      }
+                    }
+                  },
+                  "Row": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "alignment": {
+                        "type": "string",
+                        "enum": ["start", "center", "end"]
+                      },
+                      "distribution": {
+                        "type": "string", 
+                        "enum": ["start", "center", "end", "space-between", "space-around", "space-evenly", "stretch"]
+                      },
+                      "children": {
+                        "type": "object",
+                        "description": "Container for child components.",
+                        "additionalProperties": false,
+                        "properties": {
+                          "explicitList": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "Column": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "alignment": {
+                        "type": "string",
+                        "enum": ["start", "center", "end"]
+                      },
+                      "distribution": {
+                        "type": "string",
+                        "enum": ["start", "center", "end", "stretch"]
+                      },
+                      "children": {
+                        "type": "object",
+                        "description": "Container for child components.",
+                        "additionalProperties": false,
+                        "properties": {
+                          "explicitList": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "Card": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "child": {
+                        "type": "string",
+                        "description": "The ID of the child component to display inside the card."
+                      }
+                    },
+                    "required": ["child"]
+                  },
+                  "TextField": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "label": {
+                        "type": "object",
+                        "description": "The label text for the text field.",
+                        "additionalProperties": false,
+                        "properties": {
+                          "literalString": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "value": {
+                        "type": "object",
+                        "description": "The current value of the text field.",
+                        "additionalProperties": false,
+                        "properties": {
+                          "literalString": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": ["text", "password", "email", "number"]
+                      },
+                      "action": {
+                        "type": "object",
+                        "description": "The action to perform when the text field value changes.",
+                        "additionalProperties": false,
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          }
+                        },
+                        "required": ["name"]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": ["id", "component"]
+          }
+        }
+      },
+      "required": ["surfaceId", "components"]
+    },
+    "dataModelUpdate": {
+      "type": "object",
+      "description": "Updates the data model with new values for data bindings.",
+      "additionalProperties": false,
+      "properties": {
+        "surfaceId": {
+          "type": "string",
+          "description": "The unique identifier for the UI surface to be updated."
+        },
+        "contents": {
+          "type": "array",
+          "description": "A list of data model contents to update.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "Represents a data model content update.",
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "The key identifying the data to update."
+              },
+              "valueMap": {
+                "type": "array",
+                "description": "A list of key-value pairs representing the data.",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "valueString": {
+                      "type": "string"
+                    },
+                    "valueNumber": {
+                      "type": "number"
+                    },
+                    "valueBoolean": {
+                      "type": "boolean"
+                    },
+                    "valueMap": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": ["key"]
+          }
+        }
+      },
+      "required": ["surfaceId", "contents"]
+    },
+    "deleteSurface": {
+      "type": "object",
+      "description": "Deletes a surface from the UI.",
+      "additionalProperties": false,
+      "properties": {
+        "surfaceId": {
+          "type": "string",
+          "description": "The unique identifier for the UI surface to be deleted."
+        }
+      },
+      "required": ["surfaceId"]
     }
+  },
+  "oneOf": [
+    {
+      "required": ["beginRendering"]
+    },
+    {
+      "required": ["surfaceUpdate"]
+    },
+    {
+      "required": ["dataModelUpdate"]
+    },
+    {
+      "required": ["deleteSurface"]
+    }
+  ]
 }

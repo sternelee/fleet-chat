@@ -124,6 +124,8 @@ pub struct BeginRendering {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SurfaceUpdate {
+    #[serde(rename = "surfaceId")]
+    pub surface_id: String,
     pub components: Vec<UIComponent>,
 }
 
@@ -535,8 +537,8 @@ impl A2UIAgent {
                 response.a2ui_messages.len()
             );
 
-            // Validate if UI mode is enabled
-            if use_ui {
+            // Validate if UI mode is enabled and we have A2UI messages
+            if use_ui && !response.a2ui_messages.is_empty() {
                 println!("[A2UI DEBUG] Validating A2UI response...");
                 let validation_result = self.validate_a2ui_response(&response).await;
                 match validation_result {
@@ -851,11 +853,18 @@ impl A2UIAgent {
 
         let base_template = r#"You are a helpful AI assistant that can generate rich, interactive user interfaces using the A2UI framework. Your final output MUST be in A2UI JSON format.
 
-To generate the response, you MUST follow these rules:
+CRITICAL RULES - YOU MUST FOLLOW THESE EXACTLY:
+
 1. Your response MUST be in two parts, separated by the delimiter: `---a2ui_JSON---`.
 2. The first part is your conversational text response explaining what you're providing.
 3. The second part is a list of A2UI messages (valid JSON array).
-4. Each A2UI message MUST validate against the A2UI JSON SCHEMA.
+4. EACH A2UI message MUST follow the oneOf pattern EXACTLY:
+   - A message must have EXACTLY ONE of: "surfaceUpdate", "dataModelUpdate", "beginRendering", or "deleteSurface"
+   - NEVER put "components" at the top level - it must be inside "surfaceUpdate"
+   - REQUIRED structure: {"surfaceUpdate": {"surfaceId": "...", "components": [...]}}
+   - WRONG structure: {"components": [...]}  ⚠️ THIS IS INVALID!
+
+5. Each A2UI message MUST validate against the A2UI JSON SCHEMA provided below.
 
 Context:
 - User query: {query}
@@ -1226,22 +1235,55 @@ Response Rules:
                 // If it's an array, parse each item
                 if let Some(array) = value.as_array() {
                     let mut messages = Vec::new();
+                    let mut needs_begin_rendering = false;
+                    
                     for (i, item) in array.iter().enumerate() {
                         println!("[A2UI DEBUG] Processing array item {}: {}", i, item);
                         match self.convert_json_to_a2ui_message(item) {
-                            Ok(msg) => messages.push(msg),
+                            Ok(msg) => {
+                                // Check if we auto-fixed a surfaceUpdate message
+                                if item.get("components").is_some() {
+                                    needs_begin_rendering = true;
+                                }
+                                messages.push(msg);
+                            },
                             Err(e) => {
                                 println!("[A2UI DEBUG] Failed to convert array item {}: {}", i, e);
                                 return Err(e);
                             }
                         }
                     }
+                    
+                    // If we auto-fixed a surfaceUpdate, add beginRendering
+                    if needs_begin_rendering {
+                        println!("[A2UI DEBUG] Adding beginRendering message for auto-fixed surfaceUpdate");
+                        messages.push(A2UIMessageResponse::BeginRendering(BeginRendering {
+                            surface_id: "main".to_string(),
+                            root: "card-root".to_string(), // Default root component
+                            styles: None,
+                        }));
+                    }
+                    
                     return Ok(messages);
                 }
                 
                 // If it's a single object, convert it
                 match self.convert_json_to_a2ui_message(&value) {
-                    Ok(msg) => Ok(vec![msg]),
+                    Ok(msg) => {
+                        let mut messages = vec![msg];
+                        
+                        // If we auto-fixed a surfaceUpdate, add beginRendering
+                        if value.get("components").is_some() {
+                            println!("[A2UI DEBUG] Adding beginRendering message for auto-fixed surfaceUpdate");
+                            messages.push(A2UIMessageResponse::BeginRendering(BeginRendering {
+                                surface_id: "main".to_string(),
+                                root: "card-root".to_string(), // Default root component
+                                styles: None,
+                            }));
+                        }
+                        
+                        Ok(messages)
+                    },
                     Err(e) => {
                         println!("[A2UI DEBUG] Failed to convert single object: {}", e);
                         Err(e)
@@ -1273,6 +1315,22 @@ Response Rules:
             let delete_surface: DeleteSurface = serde_json::from_value(json_value.get("deleteSurface").unwrap().clone())
                 .map_err(|e| A2UIAgentError::MessageError(format!("Failed to parse DeleteSurface: {}", e)))?;
             Ok(A2UIMessageResponse::DeleteSurface(delete_surface))
+        } else if let Some(_components) = json_value.get("components") {
+            // Common Gemini error: it put "components" at the top level instead of inside "surfaceUpdate"
+            // Fix this by wrapping it in a surfaceUpdate
+            println!("[A2UI DEBUG] Detected invalid format with components at top level, auto-fixing...");
+            let components = serde_json::from_value(json_value.get("components").unwrap().clone())
+                .map_err(|e| A2UIAgentError::MessageError(format!("Failed to parse components: {}", e)))?;
+            
+            // Create a valid surfaceUpdate
+            let surface_update = SurfaceUpdate {
+                surface_id: "main".to_string(),
+                components,
+            };
+            
+            // Note: We'll create the beginRendering message separately in the parsing logic
+            // For now, just return the surfaceUpdate
+            Ok(A2UIMessageResponse::SurfaceUpdate(surface_update))
         } else {
             println!("[A2UI DEBUG] Unknown A2UI message format: {}", json_value);
             Err(A2UIAgentError::MessageError(
