@@ -23,6 +23,29 @@ This project generated from [riipandi/tauri-start-lit](https://github.com/riipan
 - [x] Lucide Icons web component: `<lucide-icon>`
 - [x] Persisted UI state management with Nano Stores
 - [x] Customized Tauri window controls
+- [x] A2UI (Agent-to-UI) framework with AI provider support
+
+## AI Provider Configuration
+
+The application supports multiple AI providers for the A2UI agent service. Configure one of the following providers by setting the appropriate environment variable:
+
+### OpenAI (GPT-4, GPT-3.5-turbo, etc.)
+
+```sh
+export OPENAI_API_KEY=your-openai-api-key-here
+```
+
+### Google Gemini (Gemini 2.5 Flash, etc.)
+
+```sh
+export GEMINI_API_KEY=your-gemini-api-key-here
+```
+
+**Provider Selection Priority:**
+1. OpenAI (if `OPENAI_API_KEY` is set)
+2. Gemini (if `GEMINI_API_KEY` is set and OpenAI key not available)
+
+You can also add these variables to a `.env` file in the root directory. See `.env.example` for reference.
 
 ## Recommended IDE Setup
 
