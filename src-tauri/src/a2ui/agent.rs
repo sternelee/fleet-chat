@@ -8,12 +8,13 @@ use thiserror::Error;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use super::provider::{AIProvider, ChatMessage as ProviderChatMessage, ChatRequest, Tool, ToolParameters};
 use super::schema::*;
 
 #[derive(Debug)]
 pub struct A2UIAgent {
     pub client: Client,
-    pub api_key: String,
+    pub provider: Arc<dyn AIProvider>,
     pub sessions: Arc<RwLock<HashMap<String, A2UISession>>>,
     pub tools: Vec<A2UITool>,
     pub schema_validator: JSONSchema,
@@ -148,8 +149,8 @@ pub enum A2UIAgentError {
     ToolExecutionError(String),
     #[error("Template error: {0}")]
     TemplateError(String),
-    #[error("Gemini API error: {0}")]
-    GeminiError(String),
+    #[error("AI Provider error: {0}")]
+    ProviderError(#[from] super::provider::ProviderError),
     #[error("Message parsing error: {0}")]
     MessageError(String),
     #[error("Validation error: {0}")]
@@ -160,110 +161,8 @@ pub enum A2UIAgentError {
     HttpClientError(#[from] reqwest::Error),
 }
 
-// Gemini API Request/Response structures
-#[derive(Debug, Serialize)]
-struct GeminiRequest {
-    contents: Vec<GeminiContent>,
-    generation_config: Option<GeminiGenerationConfig>,
-    tools: Option<Vec<GeminiTool>>,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiContent {
-    parts: Vec<GeminiPart>,
-    role: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiFunctionCall {
-    functionCall: GeminiFunctionCallData,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiFunctionCallData {
-    name: String,
-    args: serde_json::Value,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(untagged)]
-enum GeminiPart {
-    Text { text: String },
-    FunctionCall { functionCall: GeminiFunctionCallData },
-    FunctionResponse { functionResponse: GeminiFunctionResponse },
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiFunctionResponse {
-    name: String,
-    response: serde_json::Value,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiGenerationConfig {
-    temperature: f32,
-    max_output_tokens: i32,
-    top_k: i32,
-    top_p: f32,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiTool {
-    function_declarations: Vec<GeminiFunctionDeclaration>,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiFunctionDeclaration {
-    name: String,
-    description: String,
-    parameters: GeminiFunctionParameters,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiFunctionParameters {
-    #[serde(rename = "type")]
-    param_type: String,
-    properties: HashMap<String, serde_json::Value>,
-    required: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiResponse {
-    candidates: Vec<GeminiCandidate>,
-    prompt_feedback: Option<GeminiPromptFeedback>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiCandidate {
-    content: GeminiResponseContent,
-    finish_reason: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiResponseContent {
-    parts: Vec<GeminiResponsePart>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-enum GeminiResponsePart {
-    Text { text: String },
-    FunctionCall { functionCall: GeminiFunctionCallResponse },
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiFunctionCallResponse {
-    name: String,
-    args: serde_json::Value,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiPromptFeedback {
-    block_reason: Option<String>,
-}
-
 impl A2UIAgent {
-    pub fn new(api_key: String) -> Result<Self, A2UIAgentError> {
+    pub fn new(provider: Arc<dyn AIProvider>) -> Result<Self, A2UIAgentError> {
         let client = Client::new();
 
         // Load A2UI schema for validation
@@ -349,7 +248,7 @@ impl A2UIAgent {
 
         Ok(A2UIAgent {
             client,
-            api_key,
+            provider,
             sessions: Arc::new(RwLock::new(HashMap::new())),
             tools,
             schema_validator,
@@ -477,14 +376,14 @@ impl A2UIAgent {
         // Build the comprehensive UI prompt
         let prompt = self.build_ui_prompt(session, query, use_ui).await?;
 
-        // Create Gemini API request with tools
-        let gemini_request = self.create_gemini_request(&prompt, session, use_ui)?;
+        // Create provider chat request with tools
+        let chat_request = self.create_chat_request(&prompt, session, use_ui)?;
 
-        // Call Gemini API
-        let gemini_response = self.call_gemini_api(&gemini_request).await?;
+        // Call AI provider
+        let provider_response = self.provider.chat_completion(chat_request).await?;
 
         // Parse and process the response
-        let parsed_response = self.parse_response(&gemini_response)?;
+        let parsed_response = self.parse_response(&provider_response.content)?;
 
         // Convert to A2UI messages with auto-fixing
         let a2ui_messages = self.convert_json_to_a2ui_message(&parsed_response, session).await?;
@@ -494,9 +393,10 @@ impl A2UIAgent {
             self.validate_a2ui_response(&a2ui_messages)?;
         }
 
-        let content = self.extract_text_content(&gemini_response)?;
-
-        Ok(GeneratedResponse { content, a2ui_messages })
+        Ok(GeneratedResponse {
+            content: provider_response.content,
+            a2ui_messages,
+        })
     }
 
     async fn build_ui_prompt(
@@ -595,46 +495,36 @@ impl A2UIAgent {
         Ok(prompt)
     }
 
-    fn create_gemini_request(
+    fn create_chat_request(
         &self,
         prompt: &str,
         _session: &A2UISession,
         use_ui: bool,
-    ) -> Result<GeminiRequest, A2UIAgentError> {
-        let mut contents = Vec::new();
-
-        // Add system prompt as a user message
-        contents.push(GeminiContent {
-            parts: vec![GeminiPart::Text {
-                text: prompt.to_string(),
-            }],
-            role: Some("user".to_string()),
-        });
+    ) -> Result<ChatRequest, A2UIAgentError> {
+        let messages = vec![ProviderChatMessage {
+            role: "user".to_string(),
+            content: prompt.to_string(),
+        }];
 
         // Build tools if needed
         let tools = if use_ui && !self.tools.is_empty() {
-            Some(vec![self.create_gemini_tool_from_a2ui_tools()])
+            Some(self.convert_a2ui_tools_to_provider_tools())
         } else {
             None
         };
 
-        let request = GeminiRequest {
-            contents,
-            generation_config: Some(GeminiGenerationConfig {
-                temperature: 0.7,
-                max_output_tokens: 4096,
-                top_k: 40,
-                top_p: 0.95,
-            }),
+        let request = ChatRequest {
+            messages,
+            temperature: 0.7,
+            max_tokens: 4096,
             tools,
         };
 
         Ok(request)
     }
 
-    fn create_gemini_tool_from_a2ui_tools(&self) -> GeminiTool {
-        let function_declarations: Vec<GeminiFunctionDeclaration> = self
-            .tools
+    fn convert_a2ui_tools_to_provider_tools(&self) -> Vec<Tool> {
+        self.tools
             .iter()
             .map(|tool| {
                 let mut properties = HashMap::new();
@@ -675,46 +565,17 @@ impl A2UIAgent {
                     }
                 }
 
-                GeminiFunctionDeclaration {
+                Tool {
                     name: tool.name.clone(),
                     description: tool.description.clone(),
-                    parameters: GeminiFunctionParameters {
+                    parameters: ToolParameters {
                         param_type: "object".to_string(),
                         properties,
                         required,
                     },
                 }
             })
-            .collect();
-
-        GeminiTool { function_declarations }
-    }
-
-    async fn call_gemini_api(&self, request: &GeminiRequest) -> Result<String, A2UIAgentError> {
-        let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-            "gemini-2.5-flash", self.api_key
-        );
-
-        let response = self
-            .client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_text = response.text().await.unwrap_or_default();
-            return Err(A2UIAgentError::GeminiError(format!(
-                "API call failed with status {}: {}",
-                status, error_text
-            )));
-        }
-
-        let response_text = response.text().await?;
-        Ok(response_text)
+            .collect()
     }
 
     fn parse_response(&self, response: &str) -> Result<String, A2UIAgentError> {
@@ -889,31 +750,6 @@ impl A2UIAgent {
         }
 
         Ok(())
-    }
-
-    fn extract_text_content(&self, response: &str) -> Result<String, A2UIAgentError> {
-        // Parse the Gemini response to extract text content
-        let gemini_response: GeminiResponse = serde_json::from_str(response)
-            .map_err(|e| A2UIAgentError::GeminiError(format!("Failed to parse Gemini response: {}", e)))?;
-
-        if let Some(candidate) = gemini_response.candidates.first() {
-            let mut text_parts = Vec::new();
-
-            for part in &candidate.content.parts {
-                match part {
-                    GeminiResponsePart::Text { text } => {
-                        text_parts.push(text.clone());
-                    }
-                    _ => {} // Ignore other parts for text extraction
-                }
-            }
-
-            return Ok(text_parts.join(" "));
-        }
-
-        Err(A2UIAgentError::GeminiError(
-            "No valid content in Gemini response".to_string(),
-        ))
     }
 
     // Tool execution methods

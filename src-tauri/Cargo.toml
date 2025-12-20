@@ -55,6 +55,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # AI/LLM dependencies
 reqwest = { version = "0.12", features = ["json"] }
 jsonschema = { version = "0.18" }
+async-trait = "0.1"
 
 # Used to call the macOS native API
 [target."cfg(target_os = \"macos\")".dependencies]

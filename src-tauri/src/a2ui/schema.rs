@@ -186,4 +186,3 @@ pub struct ValueMapEntry {
     #[serde(rename = "valueMap")]
     pub value_map: Option<Vec<ValueMapEntry>>,
 }
-

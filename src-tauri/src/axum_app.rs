@@ -1,4 +1,5 @@
 use crate::a2ui::agent::{A2UIAgent, GeneratedResponse};
+use crate::a2ui::provider::{AIProvider, GeminiProvider, OpenAIProvider};
 use axum::{
     extract::{Path, State},
     http::{self},
@@ -295,11 +296,19 @@ impl AppState {
     }
 
     fn create_a2ui_agent() -> Option<Arc<A2UIAgent>> {
-        // Try to get API key from environment variable
-        std::env::var("GEMINI_API_KEY")
-            .ok()
-            .and_then(|api_key| A2UIAgent::new(api_key).ok())
-            .map(Arc::new)
+        // Try OpenAI first, then fall back to Gemini
+        if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
+            let provider = Arc::new(OpenAIProvider::new(api_key)) as Arc<dyn AIProvider>;
+            return A2UIAgent::new(provider).ok().map(Arc::new);
+        }
+
+        // Fall back to Gemini if OpenAI key not found
+        if let Ok(api_key) = std::env::var("GEMINI_API_KEY") {
+            let provider = Arc::new(GeminiProvider::new(api_key)) as Arc<dyn AIProvider>;
+            return A2UIAgent::new(provider).ok().map(Arc::new);
+        }
+
+        None
     }
 }
 
