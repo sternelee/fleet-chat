@@ -1100,29 +1100,49 @@ async fn a2ui_agent_chat_stream(
         match agent.send_message(send_request).await {
             Ok(response) => {
                 println!(
-                    "[DEBUG] Agent response received, message count: {}",
-                    response.a2ui_messages.len()
+                    "[DEBUG] Agent response received, message count: {}, content length: {}",
+                    response.a2ui_messages.len(),
+                    response.content.len()
                 );
                 let message_count = response.a2ui_messages.len();
 
-                // Send each A2UI message as a separate event
-                for (i, a2ui_message) in response.a2ui_messages.into_iter().enumerate() {
-                    let message_data = json!({
-                        "message_index": i,
-                        "a2ui_message": a2ui_message
+                // If there are A2UI messages, send them
+                if !response.a2ui_messages.is_empty() {
+                    for (i, a2ui_message) in response.a2ui_messages.into_iter().enumerate() {
+                        let message_data = json!({
+                            "type": "a2ui_message",
+                            "message_index": i,
+                            "a2ui_message": a2ui_message
+                        });
+
+                        println!("[DEBUG] Sending A2UI message {}: {}", i, message_data);
+
+                        if tx
+                            .send(Ok(Event::default()
+                                .data(message_data.to_string())
+                                .event("a2ui_message")))
+                            .await
+                            .is_err()
+                        {
+                            println!("[ERROR] Failed to send A2UI message {}", i);
+                            break;
+                        }
+                    }
+                } else {
+                    // No A2UI messages, send the content as a regular message
+                    let content_data = json!({
+                        "type": "content_message",
+                        "content": response.content
                     });
 
-                    println!("[DEBUG] Sending A2UI message {}: {}", i, message_data);
+                    println!("[DEBUG] Sending content message: {}", content_data);
 
                     if tx
-                        .send(Ok(Event::default()
-                            .data(message_data.to_string())
-                            .event("a2ui_message")))
+                        .send(Ok(Event::default().data(content_data.to_string()).event("content")))
                         .await
                         .is_err()
                     {
-                        println!("[ERROR] Failed to send A2UI message {}", i);
-                        break;
+                        println!("[ERROR] Failed to send content message");
                     }
                 }
 
