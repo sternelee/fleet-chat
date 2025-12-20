@@ -44,7 +44,6 @@ function proxyFetch() {
 
   window.fetch = async function (...args) {
     const [url, options] = args;
-    console.log("url=", url);
     if (url.startsWith("ipc://")) {
       return originalFetch(...args);
     }
@@ -98,6 +97,9 @@ function proxyFetch() {
         // 如果解析失败，保持原始文本
         console.warn("Failed to parse JSON response:", e);
       }
+    } else {
+
+      console.log("response text:", bodyText);
     }
 
     console.log("contentType=", contentType);

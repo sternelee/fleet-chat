@@ -4,6 +4,7 @@ initialize("");
 // Import the components
 import "./components/button";
 import "./components/lucide-icon";
+import "./components/a2ui-chat";
 
 // Import the pages
 import "./views/errors/not-found";

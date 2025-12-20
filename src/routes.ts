@@ -37,6 +37,14 @@ export class MyApp extends LitElement {
 					</root-layout>
 				`,
       },
+      {
+        path: '/chat',
+        render: () => html`
+					<root-layout @navigate=${this._onNavigate}>
+						<a2ui-chat></a2ui-chat>
+					</root-layout>
+				`,
+      },
     ],
     {
       fallback: {
