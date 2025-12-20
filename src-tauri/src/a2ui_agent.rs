@@ -106,11 +106,14 @@ pub struct A2UIResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
 pub enum A2UIMessageResponse {
+    #[serde(rename = "beginRendering")]
     BeginRendering(BeginRendering),
+    #[serde(rename = "surfaceUpdate")]
     SurfaceUpdate(SurfaceUpdate),
+    #[serde(rename = "dataModelUpdate")]
     DataModelUpdate(DataModelUpdate),
+    #[serde(rename = "deleteSurface")]
     DeleteSurface(DeleteSurface),
 }
 
