@@ -68,7 +68,6 @@ async-trait = "0.1"
 cocoa = "0.26.0"
 icns = "0.3"
 image = "0.25"
-tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2.7.1"
