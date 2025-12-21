@@ -73,15 +73,14 @@
     {
         "dataModelUpdate": {
             "surfaceId": "no-results",
-            "path": "/",
-            "contents": [
+            "patches": [
                 {
-                    "key": "message",
-                    "valueString": "No contacts match your search criteria."
+                    "path": "/message",
+                    "value": "No contacts match your search criteria."
                 },
                 {
-                    "key": "suggestion",
-                    "valueString": "Try searching with different keywords or department filters."
+                    "path": "/suggestion",
+                    "value": "Try searching with different keywords or department filters."
                 }
             ]
         }

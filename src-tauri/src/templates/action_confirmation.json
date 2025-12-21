@@ -92,15 +92,14 @@
     {
         "dataModelUpdate": {
             "surfaceId": "action-modal",
-            "path": "/",
-            "contents": [
+            "patches": [
                 {
-                    "key": "actionTitle",
-                    "valueString": "Action Confirmation"
+                    "path": "/actionTitle",
+                    "value": "Action Confirmation"
                 },
                 {
-                    "key": "actionMessage",
-                    "valueString": "Your action has been processed."
+                    "path": "/actionMessage",
+                    "value": "Your action has been processed."
                 }
             ]
         }

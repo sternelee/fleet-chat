@@ -299,64 +299,40 @@
         },
         "dataModelUpdate": {
             "type": "object",
-            "description": "Updates the data model with new values for data bindings.",
+            "description": "Updates the data model with patches using JSON Pointer (RFC 6901) format.",
             "additionalProperties": false,
             "properties": {
                 "surfaceId": {
                     "type": "string",
                     "description": "The unique identifier for the UI surface to be updated."
                 },
-                "contents": {
+                "patches": {
                     "type": "array",
-                    "description": "A list of data model contents to update.",
+                    "description": "A list of patches to apply to the data model. Each patch specifies a JSON Pointer path and a value.",
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "description": "Represents a data model content update.",
+                        "description": "Represents a single data model patch using JSON Pointer.",
                         "additionalProperties": false,
                         "properties": {
-                            "key": {
+                            "path": {
                                 "type": "string",
-                                "description": "The key identifying the data to update."
+                                "description": "A JSON Pointer (RFC 6901) path to the location in the data model to update (e.g., '/user/name', '/contacts/0/email')."
                             },
-                            "valueMap": {
-                                "type": "array",
-                                "description": "A list of key-value pairs representing the data.",
-                                "items": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "key": {
-                                            "type": "string"
-                                        },
-                                        "valueString": {
-                                            "type": "string"
-                                        },
-                                        "valueNumber": {
-                                            "type": "number"
-                                        },
-                                        "valueBoolean": {
-                                            "type": "boolean"
-                                        },
-                                        "valueMap": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        }
-                                    }
-                                }
+                            "value": {
+                                "description": "The new value to set at the specified path. Can be any valid JSON value (string, number, boolean, object, array, null)."
                             }
                         },
                         "required": [
-                            "key"
+                            "path",
+                            "value"
                         ]
                     }
                 }
             },
             "required": [
                 "surfaceId",
-                "contents"
+                "patches"
             ]
         },
         "deleteSurface": {

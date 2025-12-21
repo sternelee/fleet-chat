@@ -103,19 +103,18 @@
     {
         "dataModelUpdate": {
             "surfaceId": "search-results",
-            "path": "/",
-            "contents": [
+            "patches": [
                 {
-                    "key": "title",
-                    "valueString": "Search Results"
+                    "path": "/title",
+                    "value": "Search Results"
                 },
                 {
-                    "key": "searchInfo",
-                    "valueString": ""
+                    "path": "/searchInfo",
+                    "value": ""
                 },
                 {
-                    "key": "results",
-                    "valueMap": []
+                    "path": "/results",
+                    "value": []
                 }
             ]
         }
