@@ -22,6 +22,14 @@ export class MyApp extends LitElement {
           `,
       },
       {
+        path: '/search',
+        render: () => html`
+					<root-layout @navigate=${this._onNavigate}>
+						<view-search></view-search>
+					</root-layout>
+				`,
+      },
+      {
         path: '/projects',
         render: () => html`
 					<root-layout @navigate=${this._onNavigate}>

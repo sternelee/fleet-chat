@@ -11,6 +11,7 @@ import './components/a2ui'
 import './views/errors/not-found'
 import './views/errors/not-in-browser'
 import './views/home/home.component'
+import './views/search/search.component'
 
 // Import application routes
 import './layouts/root-layout'
