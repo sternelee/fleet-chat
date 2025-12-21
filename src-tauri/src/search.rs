@@ -125,21 +125,27 @@ fn extract_app_icon(_app_path: &str) -> Option<String> {
 /// Search for applications installed on the system
 #[command]
 pub async fn search_applications(query: String) -> Result<Vec<Application>, String> {
+    use applications::{AppInfoContext, AppTrait};
+
     let query_lower = query.to_lowercase();
 
-    // Get all applications using the applications crate
-    let apps = applications::get_all_applications().map_err(|e| format!("Failed to get applications: {}", e))?;
+    // Create context and refresh apps
+    let mut ctx = AppInfoContext::new(vec![]);
+    ctx.refresh_apps().map_err(|e| format!("Failed to refresh applications: {}", e))?;
+
+    // Get all applications
+    let apps = ctx.get_all_apps();
 
     // Filter and map to our Application struct
     let mut results: Vec<Application> = apps
         .into_iter()
-        .filter(|app| app.name.to_lowercase().contains(&query_lower))
+        .filter(|app| app.get_name().to_lowercase().contains(&query_lower))
         .map(|app| {
-            let path_str = app.path.to_string_lossy().to_string();
+            let path_str = app.get_path().to_string_lossy().to_string();
             let icon_base64 = extract_app_icon(&path_str);
 
             Application {
-                name: app.name.clone(),
+                name: app.get_name().clone(),
                 path: path_str,
                 icon_path: None,
                 icon_base64,
