@@ -49,16 +49,16 @@ export namespace WindowManagement {
   export async function getWindows(): Promise<Window[]> {
     try {
       // Try Tauri APIs first
-      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+      if (typeof window !== "undefined" && (window as any).__TAURI__) {
         // For now, return empty array as Tauri doesn't have window enumeration API
         // In a real implementation, this would use platform-specific APIs
         return [];
       }
-      
+
       // Fallback for web environment
       return [];
     } catch (error) {
-      console.error('Failed to get windows:', error);
+      console.error("Failed to get windows:", error);
       return [];
     }
   }
@@ -68,15 +68,15 @@ export namespace WindowManagement {
    */
   export async function focusWindow(windowToFocus: Window): Promise<boolean> {
     try {
-      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+      if (typeof window !== "undefined" && (window as any).__TAURI__) {
         // In a real implementation, this would focus the window by ID
         // For now, we'll simulate success
-        console.log('Focusing window:', windowToFocus.id);
+        console.log("Focusing window:", windowToFocus.id);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Failed to focus window:', error);
+      console.error("Failed to focus window:", error);
       return false;
     }
   }
@@ -86,24 +86,26 @@ export namespace WindowManagement {
    */
   export async function getScreens(): Promise<Screen[]> {
     try {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         // Return primary screen info
-        return [{
-          name: 'Primary Display',
-          make: 'Unknown',
-          model: 'Display',
-          bounds: {
-            position: { x: 0, y: 0 },
-            size: { 
-              height: window.screen.height, 
-              width: window.screen.width 
-            }
-          }
-        }];
+        return [
+          {
+            name: "Primary Display",
+            make: "Unknown",
+            model: "Display",
+            bounds: {
+              position: { x: 0, y: 0 },
+              size: {
+                height: window.screen.height,
+                width: window.screen.width,
+              },
+            },
+          },
+        ];
       }
       return [];
     } catch (error) {
-      console.error('Failed to get screens:', error);
+      console.error("Failed to get screens:", error);
       return [];
     }
   }
@@ -113,10 +115,10 @@ export namespace WindowManagement {
    */
   export async function getActiveWorkspace(): Promise<Workspace> {
     return {
-      id: 'default',
-      name: 'Default Workspace',
-      monitorId: 'primary',
-      active: true
+      id: "default",
+      name: "Default Workspace",
+      monitorId: "primary",
+      active: true,
     };
   }
 
@@ -134,7 +136,7 @@ export namespace WindowManagement {
   export async function getWindowsOnActiveWorkspace(): Promise<Window[]> {
     const workspace = await getActiveWorkspace();
     const allWindows = await WindowManagement.getWindows();
-    return allWindows.filter(w => w.workspaceId === workspace.id);
+    return allWindows.filter((w) => w.workspaceId === workspace.id);
   }
 
   /**
@@ -142,7 +144,7 @@ export namespace WindowManagement {
    */
   export async function setWindowBounds(bounds: WindowBounds): Promise<void> {
     // Implementation would set window bounds
-    console.log('Setting window bounds:', { bounds });
+    console.log("Setting window bounds:", { bounds });
   }
 
   /**
@@ -150,7 +152,7 @@ export namespace WindowManagement {
    */
   export async function getActiveWindow(): Promise<Window | null> {
     const windows = await getWindows();
-    return windows.find(w => w.active) || null;
+    return windows.find((w) => w.active) || null;
   }
 }
 
@@ -163,10 +165,11 @@ interface GetWindowsOptions {
 
 export async function getWindows(options: GetWindowsOptions = {}): Promise<Window[]> {
   const allWindows = await WindowManagement.getWindows();
-  
+
   if (options.workspaceId) {
-    return allWindows.filter(w => w.workspaceId === options.workspaceId);
+    return allWindows.filter((w) => w.workspaceId === options.workspaceId);
   }
-  
+
   return allWindows;
 }
+

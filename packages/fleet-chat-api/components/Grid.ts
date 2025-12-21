@@ -1,14 +1,14 @@
 /**
  * Grid Component
- * 
+ *
  * Raycast-compatible Grid component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { repeat } from 'lit/directives/repeat.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
 
-@customElement('fc-grid')
+@customElement("fc-grid")
 export class FCGrid extends LitElement {
   static styles = css`
     :host {
@@ -188,7 +188,7 @@ export class FCGrid extends LitElement {
   }> = [];
 
   @property({ type: String })
-  searchBarPlaceholder = 'Search...';
+  searchBarPlaceholder = "Search...";
 
   @property({ type: Boolean })
   filtering = true;
@@ -200,7 +200,7 @@ export class FCGrid extends LitElement {
   aspectRatio = 1;
 
   @property({ type: String })
-  filter = '';
+  filter = "";
 
   @property({ type: Number })
   selectedIndex = -1;
@@ -224,19 +224,19 @@ export class FCGrid extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.style.setProperty('--item-width', `${this.itemSize.width}px`);
-    this.style.setProperty('--aspect-ratio', this.aspectRatio.toString());
+    this.style.setProperty("--item-width", `${this.itemSize.width}px`);
+    this.style.setProperty("--aspect-ratio", this.aspectRatio.toString());
   }
 
   willUpdate(changedProperties: Map<string, any>) {
-    if (changedProperties.has('items') || changedProperties.has('filter')) {
+    if (changedProperties.has("items") || changedProperties.has("filter")) {
       this.updateFilteredItems();
     }
-    if (changedProperties.has('itemSize')) {
-      this.style.setProperty('--item-width', `${this.itemSize.width}px`);
+    if (changedProperties.has("itemSize")) {
+      this.style.setProperty("--item-width", `${this.itemSize.width}px`);
     }
-    if (changedProperties.has('aspectRatio')) {
-      this.style.setProperty('--aspect-ratio', this.aspectRatio.toString());
+    if (changedProperties.has("aspectRatio")) {
+      this.style.setProperty("--aspect-ratio", this.aspectRatio.toString());
     }
   }
 
@@ -247,8 +247,8 @@ export class FCGrid extends LitElement {
     }
 
     const filterLower = this.filter.toLowerCase();
-    this.filteredItems = this.items.filter(item => {
-      const searchText = `${item.title} ${item.subtitle || ''}`.toLowerCase();
+    this.filteredItems = this.items.filter((item) => {
+      const searchText = `${item.title} ${item.subtitle || ""}`.toLowerCase();
       return searchText.includes(filterLower);
     });
   }
@@ -259,24 +259,26 @@ export class FCGrid extends LitElement {
   }
 
   private selectItem(item: any) {
-    this.dispatchEvent(new CustomEvent('item-selected', {
-      detail: item,
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("item-selected", {
+        detail: item,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private handleKeyDown(event: KeyboardEvent) {
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         event.preventDefault();
         this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredItems.length - 1);
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         event.preventDefault();
         this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
         break;
-      case 'Enter':
+      case "Enter":
         event.preventDefault();
         if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
           this.selectItem(this.filteredItems[this.selectedIndex]);
@@ -288,41 +290,49 @@ export class FCGrid extends LitElement {
   render() {
     return html`
       <div class="grid-container" @keydown="${this.handleKeyDown}">
-        ${this.filtering ? html`
-          <div class="search-bar">
-            <input
-              type="text"
-              class="search-input"
-              placeholder="${this.searchBarPlaceholder}"
-              value="${this.filter}"
-              @input="${this.handleSearchInput}"
-            />
-          </div>
-        ` : ''}
-        
+        ${this.filtering
+          ? html`
+              <div class="search-bar">
+                <input
+                  type="text"
+                  class="search-input"
+                  placeholder="${this.searchBarPlaceholder}"
+                  value="${this.filter}"
+                  @input="${this.handleSearchInput}"
+                />
+              </div>
+            `
+          : ""}
+
         <div class="grid-items">
-          ${this.filteredItems.length > 0 ? html`
-            ${repeat(this.filteredItems, (item) => item.id, (item, _index) => html`
-              <fc-grid-item
-                .item="${item}"
-                .selected="${_index === this.selectedIndex}"
-                @click="${() => this.selectItem(item)}"
-              ></fc-grid-item>
-            `)}
-          ` : html`
-            <div class="empty-state">
-              <div class="empty-icon">🔍</div>
-              <div class="empty-title">No Results</div>
-              <div class="empty-message">Try adjusting your search terms</div>
-            </div>
-          `}
+          ${this.filteredItems.length > 0
+            ? html`
+                ${repeat(
+                  this.filteredItems,
+                  (item) => item.id,
+                  (item, _index) => html`
+                    <fc-grid-item
+                      .item="${item}"
+                      .selected="${_index === this.selectedIndex}"
+                      @click="${() => this.selectItem(item)}"
+                    ></fc-grid-item>
+                  `,
+                )}
+              `
+            : html`
+                <div class="empty-state">
+                  <div class="empty-icon">🔍</div>
+                  <div class="empty-title">No Results</div>
+                  <div class="empty-message">Try adjusting your search terms</div>
+                </div>
+              `}
         </div>
       </div>
     `;
   }
 }
 
-@customElement('fc-grid-item')
+@customElement("fc-grid-item")
 export class FCGridItem extends LitElement {
   static styles = css`
     :host {
@@ -362,30 +372,31 @@ export class FCGridItem extends LitElement {
     const { title, subtitle, image, icon } = this.item;
 
     return html`
-      <div class="grid-item ${this.selected ? 'selected' : ''}" @click="${this.handleClick}">
+      <div class="grid-item ${this.selected ? "selected" : ""}" @click="${this.handleClick}">
         <div class="grid-item-content">
-          ${image ? html`
-            <img src="${image}" alt="${title}" class="item-image" />
-          ` : icon ? html`
-            <div class="item-icon">${icon}</div>
-          ` : ''}
-          
+          ${image
+            ? html` <img src="${image}" alt="${title}" class="item-image" /> `
+            : icon
+              ? html` <div class="item-icon">${icon}</div> `
+              : ""}
+
           <div class="item-title">${title}</div>
-          ${subtitle ? html`
-            <div class="item-subtitle">${subtitle}</div>
-          ` : ''}
+          ${subtitle ? html` <div class="item-subtitle">${subtitle}</div> ` : ""}
         </div>
       </div>
     `;
   }
 
   private handleClick() {
-    this.dispatchEvent(new CustomEvent('item-click', {
-      detail: this.item,
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("item-click", {
+        detail: this.item,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 }
 
 export default FCGrid;
+

@@ -3,15 +3,15 @@
  * Raycast-compatible Detail component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
 
 export interface DetailMetadataItem {
   label: string;
   text: string;
 }
 
-@customElement('fc-detail')
+@customElement("fc-detail")
 export class FCDetail extends LitElement {
   static styles = css`
     :host {
@@ -249,8 +249,12 @@ export class FCDetail extends LitElement {
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     /* Empty State */
@@ -327,7 +331,7 @@ export class FCDetail extends LitElement {
   `;
 
   @property({ type: String })
-  markdown: string = '';
+  markdown: string = "";
 
   @property({ type: Array })
   metadata?: DetailMetadataItem[];
@@ -336,16 +340,16 @@ export class FCDetail extends LitElement {
   isLoading: boolean = false;
 
   @property({ type: String })
-  loadingText: string = 'Loading...';
+  loadingText: string = "Loading...";
 
   @property({ type: String })
-  emptyTitle: string = 'No Content';
+  emptyTitle: string = "No Content";
 
   @property({ type: String })
-  emptyDescription: string = '';
+  emptyDescription: string = "";
 
   @property({ type: String })
-  emptyIcon: string = '📄';
+  emptyIcon: string = "📄";
 
   @property({ type: Boolean })
   showMetadata: boolean = true;
@@ -354,59 +358,59 @@ export class FCDetail extends LitElement {
    * Parse markdown content
    */
   private _parseMarkdown(markdown: string): string {
-    if (!markdown) return '';
+    if (!markdown) return "";
 
     // Basic markdown parsing - in a real implementation,
     // you'd want to use a proper markdown parser like marked
     let html = markdown;
 
     // Headers
-    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+    html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+    html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
 
     // Bold
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
     // Italic
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
     // Code blocks
     html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-      return `<pre><code class="language-${lang || 'text'}">${this._escapeHtml(code)}</code></pre>`;
+      return `<pre><code class="language-${lang || "text"}">${this._escapeHtml(code)}</code></pre>`;
     });
 
     // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
     // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
     // Lists
-    html = html.replace(/^\* (.+)$/gim, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    html = html.replace(/^\* (.+)$/gim, "<li>$1</li>");
+    html = html.replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>");
 
     // Blockquotes
-    html = html.replace(/^> (.+)$/gim, '<blockquote>$1</blockquote>');
+    html = html.replace(/^> (.+)$/gim, "<blockquote>$1</blockquote>");
 
     // Horizontal rules
-    html = html.replace(/^---$/gim, '<hr>');
+    html = html.replace(/^---$/gim, "<hr>");
 
     // Line breaks
-    html = html.replace(/\n\n/g, '</p><p>');
-    html = '<p>' + html + '</p>';
+    html = html.replace(/\n\n/g, "</p><p>");
+    html = "<p>" + html + "</p>";
 
     // Clean up empty paragraphs
-    html = html.replace(/<p><\/p>/g, '');
-    html = html.replace(/<p>(<h[1-6]>)/g, '$1');
-    html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1');
-    html = html.replace(/<p>(<ul>)/g, '$1');
-    html = html.replace(/(<\/ul>)<\/p>/g, '$1');
-    html = html.replace(/<p>(<blockquote>)/g, '$1');
-    html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
-    html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
-    html = html.replace(/<p>(<pre>)/g, '$1');
-    html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+    html = html.replace(/<p><\/p>/g, "");
+    html = html.replace(/<p>(<h[1-6]>)/g, "$1");
+    html = html.replace(/(<\/h[1-6]>)<\/p>/g, "$1");
+    html = html.replace(/<p>(<ul>)/g, "$1");
+    html = html.replace(/(<\/ul>)<\/p>/g, "$1");
+    html = html.replace(/<p>(<blockquote>)/g, "$1");
+    html = html.replace(/(<\/blockquote>)<\/p>/g, "$1");
+    html = html.replace(/<p>(<hr>)<\/p>/g, "$1");
+    html = html.replace(/<p>(<pre>)/g, "$1");
+    html = html.replace(/(<\/pre>)<\/p>/g, "$1");
 
     return html;
   }
@@ -415,7 +419,7 @@ export class FCDetail extends LitElement {
    * Escape HTML characters
    */
   private _escapeHtml(text: string): string {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
@@ -456,12 +460,14 @@ export class FCDetail extends LitElement {
     return html`
       <div class="metadata">
         <div class="metadata-title">Details</div>
-        ${this.metadata.map(item => html`
-          <div class="metadata-item">
-            <div class="metadata-label">${item.label}</div>
-            <div class="metadata-text">${item.text}</div>
-          </div>
-        `)}
+        ${this.metadata.map(
+          (item) => html`
+            <div class="metadata-item">
+              <div class="metadata-label">${item.label}</div>
+              <div class="metadata-text">${item.text}</div>
+            </div>
+          `,
+        )}
       </div>
     `;
   }
@@ -490,6 +496,7 @@ export class FCDetail extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fc-detail': FCDetail;
+    "fc-detail": FCDetail;
   }
 }
+

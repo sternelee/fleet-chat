@@ -1,14 +1,14 @@
 /**
  * List Component
- * 
+ *
  * Raycast-compatible List component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { repeat } from 'lit/directives/repeat.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
 
-@customElement('fc-list')
+@customElement("fc-list")
 export class FCList extends LitElement {
   static styles = css`
     :host {
@@ -155,19 +155,19 @@ export class FCList extends LitElement {
   }> = [];
 
   @property({ type: String })
-  searchBarPlaceholder = 'Search...';
+  searchBarPlaceholder = "Search...";
 
   @property({ type: Boolean })
   filtering = true;
 
   @property({ type: String })
-  navigationTitle = '';
+  navigationTitle = "";
 
   @property({ type: Number })
   selectedIndex = -1;
 
   @property({ type: String })
-  filter = '';
+  filter = "";
 
   @property({ type: Array })
   actions: any[] = [];
@@ -188,16 +188,16 @@ export class FCList extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.addEventListener('keydown', this.handleKeyDown.bind(this));
+    this.addEventListener("keydown", this.handleKeyDown.bind(this));
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.removeEventListener('keydown', this.handleKeyDown.bind(this));
+    this.removeEventListener("keydown", this.handleKeyDown.bind(this));
   }
 
   willUpdate(changedProperties: Map<string, any>) {
-    if (changedProperties.has('items') || changedProperties.has('filter')) {
+    if (changedProperties.has("items") || changedProperties.has("filter")) {
       this.updateFilteredItems();
     }
   }
@@ -209,23 +209,24 @@ export class FCList extends LitElement {
     }
 
     const filterLower = this.filter.toLowerCase();
-    this.filteredItems = this.items.filter(item => {
-      const searchText = `${item.title} ${item.subtitle || ''} ${(item.keywords || []).join(' ')}`.toLowerCase();
+    this.filteredItems = this.items.filter((item) => {
+      const searchText =
+        `${item.title} ${item.subtitle || ""} ${(item.keywords || []).join(" ")}`.toLowerCase();
       return searchText.includes(filterLower);
     });
   }
 
   private handleKeyDown(event: KeyboardEvent) {
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         event.preventDefault();
         this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredItems.length - 1);
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         event.preventDefault();
         this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
         break;
-      case 'Enter':
+      case "Enter":
         event.preventDefault();
         if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
           this.selectItem(this.filteredItems[this.selectedIndex]);
@@ -241,51 +242,61 @@ export class FCList extends LitElement {
   }
 
   private selectItem(item: any) {
-    this.dispatchEvent(new CustomEvent('item-selected', {
-      detail: item,
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("item-selected", {
+        detail: item,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   render() {
     return html`
       <div class="list-container">
-        ${this.filtering ? html`
-          <div class="search-bar">
-            <input
-              type="text"
-              class="search-input"
-              placeholder="${this.searchBarPlaceholder}"
-              value="${this.filter}"
-              @input="${this.handleSearchInput}"
-            />
-          </div>
-        ` : ''}
-        
+        ${this.filtering
+          ? html`
+              <div class="search-bar">
+                <input
+                  type="text"
+                  class="search-input"
+                  placeholder="${this.searchBarPlaceholder}"
+                  value="${this.filter}"
+                  @input="${this.handleSearchInput}"
+                />
+              </div>
+            `
+          : ""}
+
         <div class="list-items">
-          ${this.filteredItems.length > 0 ? html`
-            ${repeat(this.filteredItems, (item) => item.id, (item, _index) => html`
-              <fc-list-item
-                .item="${item}"
-                .selected="${_index === this.selectedIndex}"
-                @click="${() => this.selectItem(item)}"
-              ></fc-list-item>
-            `)}
-          ` : html`
-            <div class="empty-state">
-              <div class="empty-icon">🔍</div>
-              <div class="empty-title">No Results</div>
-              <div class="empty-message">Try adjusting your search terms</div>
-            </div>
-          `}
+          ${this.filteredItems.length > 0
+            ? html`
+                ${repeat(
+                  this.filteredItems,
+                  (item) => item.id,
+                  (item, _index) => html`
+                    <fc-list-item
+                      .item="${item}"
+                      .selected="${_index === this.selectedIndex}"
+                      @click="${() => this.selectItem(item)}"
+                    ></fc-list-item>
+                  `,
+                )}
+              `
+            : html`
+                <div class="empty-state">
+                  <div class="empty-icon">🔍</div>
+                  <div class="empty-title">No Results</div>
+                  <div class="empty-message">Try adjusting your search terms</div>
+                </div>
+              `}
         </div>
       </div>
     `;
   }
 }
 
-@customElement('fc-list-item')
+@customElement("fc-list-item")
 export class FCListItem extends LitElement {
   static styles = css`
     :host {
@@ -320,36 +331,40 @@ export class FCListItem extends LitElement {
     const { title, subtitle, icon, accessories = [] } = this.item;
 
     return html`
-      <div class="list-item ${this.selected ? 'selected' : ''}" @click="${this.handleClick}">
-        ${icon ? html`
-          <div class="item-icon">${icon}</div>
-        ` : ''}
-        
+      <div class="list-item ${this.selected ? "selected" : ""}" @click="${this.handleClick}">
+        ${icon ? html` <div class="item-icon">${icon}</div> ` : ""}
+
         <div class="item-content">
           <div class="item-title">${title}</div>
-          ${subtitle ? html`
-            <div class="item-subtitle">${subtitle}</div>
-          ` : ''}
+          ${subtitle ? html` <div class="item-subtitle">${subtitle}</div> ` : ""}
         </div>
 
-        ${accessories.length > 0 ? html`
-          <div class="item-accessories">
-            ${repeat(accessories, (accessory: { text: string; tag?: string }) => html`
-              <div class="item-accessory">${accessory.text}</div>
-            `)}
-          </div>
-        ` : ''}
+        ${accessories.length > 0
+          ? html`
+              <div class="item-accessories">
+                ${repeat(
+                  accessories,
+                  (accessory: { text: string; tag?: string }) => html`
+                    <div class="item-accessory">${accessory.text}</div>
+                  `,
+                )}
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
 
   private handleClick() {
-    this.dispatchEvent(new CustomEvent('item-click', {
-      detail: this.item,
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("item-click", {
+        detail: this.item,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 }
 
 export default FCList;
+

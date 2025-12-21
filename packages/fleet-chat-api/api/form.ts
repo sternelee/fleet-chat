@@ -1,6 +1,6 @@
 /**
  * Form Component API Stub
- * 
+ *
  * This is a placeholder for the Form component API
  * The actual implementation is in src/plugins/ui/components/fc-form.ts
  */
@@ -20,7 +20,8 @@ export const Form = {
   create: (props: FormProps) => {
     // This would create a Form component
     return null;
-  }
+  },
 };
 
 export default Form;
+

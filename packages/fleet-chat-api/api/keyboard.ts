@@ -3,7 +3,7 @@
  * Provides Raycast-compatible keyboard utilities
  */
 
-export type KeyModifier = 'cmd' | 'ctrl' | 'alt' | 'shift' | 'meta';
+export type KeyModifier = "cmd" | "ctrl" | "alt" | "shift" | "meta";
 
 export interface KeyboardShortcut {
   key: string;
@@ -15,14 +15,14 @@ export interface KeyboardShortcut {
  */
 export function isModifierKeyPressed(event: KeyboardEvent, modifier: KeyModifier): boolean {
   switch (modifier) {
-    case 'cmd':
-    case 'meta':
+    case "cmd":
+    case "meta":
       return event.metaKey;
-    case 'ctrl':
+    case "ctrl":
       return event.ctrlKey;
-    case 'alt':
+    case "alt":
       return event.altKey;
-    case 'shift':
+    case "shift":
       return event.shiftKey;
     default:
       return false;
@@ -34,14 +34,14 @@ export function isModifierKeyPressed(event: KeyboardEvent, modifier: KeyModifier
  */
 export function getKeyComboString(event: KeyboardEvent): string {
   const modifiers: KeyModifier[] = [];
-  
-  if (event.metaKey) modifiers.push('cmd');
-  if (event.ctrlKey) modifiers.push('ctrl');
-  if (event.altKey) modifiers.push('alt');
-  if (event.shiftKey) modifiers.push('shift');
-  
+
+  if (event.metaKey) modifiers.push("cmd");
+  if (event.ctrlKey) modifiers.push("ctrl");
+  if (event.altKey) modifiers.push("alt");
+  if (event.shiftKey) modifiers.push("shift");
+
   const key = event.key.toUpperCase();
-  return [...modifiers, key].join('+');
+  return [...modifiers, key].join("+");
 }
 
 /**
@@ -49,32 +49,41 @@ export function getKeyComboString(event: KeyboardEvent): string {
  */
 export function formatShortcut(shortcut: string): string {
   return shortcut
-    .split('+')
-    .map(key => {
+    .split("+")
+    .map((key) => {
       const upperKey = key.trim().toUpperCase();
       switch (upperKey) {
-        case 'CMD': return '⌘';
-        case 'CTRL': return '⌃';
-        case 'ALT': return '⌥';
-        case 'SHIFT': return '⇧';
-        case 'META': return '◆';
-        default: return upperKey;
+        case "CMD":
+          return "⌘";
+        case "CTRL":
+          return "⌃";
+        case "ALT":
+          return "⌥";
+        case "SHIFT":
+          return "⇧";
+        case "META":
+          return "◆";
+        default:
+          return upperKey;
       }
     })
-    .join('');
+    .join("");
 }
 
 /**
  * Parse a shortcut string into components
  */
 export function parseShortcut(shortcut: string): KeyboardShortcut {
-  const parts = shortcut.toLowerCase().split('+').map(p => p.trim());
-  const key = parts.pop() || '';
-  
-  const modifiers: KeyModifier[] = parts.filter(part => 
-    ['cmd', 'ctrl', 'alt', 'shift', 'meta'].includes(part)
+  const parts = shortcut
+    .toLowerCase()
+    .split("+")
+    .map((p) => p.trim());
+  const key = parts.pop() || "";
+
+  const modifiers: KeyModifier[] = parts.filter((part) =>
+    ["cmd", "ctrl", "alt", "shift", "meta"].includes(part),
   ) as KeyModifier[];
-  
+
   return { key, modifiers };
 }
 
@@ -85,10 +94,10 @@ export function shortcutsMatch(a: KeyboardShortcut, b: KeyboardShortcut): boolea
   if (a.key.toLowerCase() !== b.key.toLowerCase()) {
     return false;
   }
-  
+
   const aModifiers = new Set(a.modifiers || []);
   const bModifiers = new Set(b.modifiers || []);
-  
-  return aModifiers.size === bModifiers.size && 
-         [...aModifiers].every(mod => bModifiers.has(mod));
+
+  return aModifiers.size === bModifiers.size && [...aModifiers].every((mod) => bModifiers.has(mod));
 }
+

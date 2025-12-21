@@ -15,7 +15,7 @@ export interface PreferenceValues {
 export interface ToastOptions {
   title: string;
   message?: string;
-  style?: 'success' | 'error' | 'warning' | 'info';
+  style?: "success" | "error" | "warning" | "info";
   duration?: number;
 }
 
@@ -92,7 +92,7 @@ export interface AIOptions {
   apiKey?: string;
 }
 
-export type KeyModifier = 'cmd' | 'ctrl' | 'alt' | 'shift' | 'meta';
+export type KeyModifier = "cmd" | "ctrl" | "alt" | "shift" | "meta";
 
 // Additional types for Fleet Chat specific features
 export interface PluginManifest {
@@ -114,7 +114,7 @@ export interface PluginCommand {
   name: string;
   title: string;
   description?: string;
-  mode: 'view' | 'no-view';
+  mode: "view" | "no-view";
   keywords?: string[];
   preferences?: PluginPreferences;
   arguments?: PluginArgument[];
@@ -122,7 +122,7 @@ export interface PluginCommand {
 
 export interface PluginArgument {
   name: string;
-  type: 'text' | 'number' | 'boolean' | 'file' | 'directory';
+  type: "text" | "number" | "boolean" | "file" | "directory";
   required?: boolean;
   description?: string;
   default?: any;
@@ -130,7 +130,7 @@ export interface PluginArgument {
 
 export interface PluginPreferences {
   [key: string]: {
-    type: 'textfield' | 'passwordfield' | 'checkbox' | 'dropdown';
+    type: "textfield" | "passwordfield" | "checkbox" | "dropdown";
     title: string;
     description?: string;
     default?: any;
@@ -145,7 +145,7 @@ export interface ExtensionInfo {
   version: string;
   description: string;
   author: string;
-  status: 'loading' | 'loaded' | 'running' | 'error';
+  status: "loading" | "loaded" | "running" | "error";
   commands: PluginCommand[];
   lastUsed: Date;
   error?: string;
@@ -206,14 +206,14 @@ export interface SearchOptions {
   query: string;
   limit?: number;
   offset?: number;
-  type?: 'all' | 'files' | 'apps' | 'plugins';
-  sortBy?: 'relevance' | 'date' | 'name';
-  order?: 'asc' | 'desc';
+  type?: "all" | "files" | "apps" | "plugins";
+  sortBy?: "relevance" | "date" | "name";
+  order?: "asc" | "desc";
 }
 
 export interface SearchResult {
   id: string;
-  type: 'file' | 'application' | 'plugin' | 'command';
+  type: "file" | "application" | "plugin" | "command";
   title: string;
   subtitle?: string;
   path?: string;
@@ -312,13 +312,13 @@ export type OptionalFields<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, 
 
 // Event types
 export interface PluginEvent {
-  type: 'loaded' | 'unloaded' | 'error' | 'command-executed';
+  type: "loaded" | "unloaded" | "error" | "command-executed";
   pluginId: string;
   data?: any;
 }
 
 export interface UIEvent {
-  type: 'theme-changed' | 'resize' | 'focus' | 'blur';
+  type: "theme-changed" | "resize" | "focus" | "blur";
   data?: any;
 }
 
@@ -343,8 +343,8 @@ export interface AppConfig {
     permissions: Record<string, string[]>;
   };
   ui: {
-    theme: 'light' | 'dark' | 'auto';
-    fontSize: 'small' | 'medium' | 'large';
+    theme: "light" | "dark" | "auto";
+    fontSize: "small" | "medium" | "large";
     language: string;
   };
   privacy: {
@@ -358,3 +358,4 @@ export interface AppConfig {
     experimentalFeatures: boolean;
   };
 }
+

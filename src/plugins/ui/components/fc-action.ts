@@ -3,8 +3,8 @@
  * Raycast-compatible Action component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
 
 export interface ActionProps {
   title: string;
@@ -16,7 +16,7 @@ export interface ActionProps {
   tooltip?: string;
 }
 
-@customElement('fc-action')
+@customElement("fc-action")
 export class FCAction extends LitElement {
   static styles = css`
     :host {
@@ -106,7 +106,7 @@ export class FCAction extends LitElement {
     }
 
     .action-loading::after {
-      content: '';
+      content: "";
       position: absolute;
       top: 50%;
       left: 50%;
@@ -121,8 +121,12 @@ export class FCAction extends LitElement {
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     /* Tooltip */
@@ -146,7 +150,7 @@ export class FCAction extends LitElement {
   `;
 
   @property({ type: String })
-  title: string = '';
+  title: string = "";
 
   @property({ type: String })
   icon?: string;
@@ -183,8 +187,8 @@ export class FCAction extends LitElement {
 
   private createTooltipElement() {
     if (this.tooltip) {
-      this.tooltipElement = document.createElement('div');
-      this.tooltipElement.className = 'action-tooltip';
+      this.tooltipElement = document.createElement("div");
+      this.tooltipElement.className = "action-tooltip";
       this.tooltipElement.textContent = this.tooltip;
       document.body.appendChild(this.tooltipElement);
     }
@@ -192,14 +196,14 @@ export class FCAction extends LitElement {
 
   private formatShortcut(shortcut: string): string {
     return shortcut
-      .split('+')
-      .map(key => {
-        const keyElement = document.createElement('span');
-        keyElement.className = 'action-shortcut-key';
+      .split("+")
+      .map((key) => {
+        const keyElement = document.createElement("span");
+        keyElement.className = "action-shortcut-key";
         keyElement.textContent = key.trim();
         return keyElement.outerHTML;
       })
-      .join(' + ');
+      .join(" + ");
   }
 
   private handleClick(event: Event) {
@@ -212,10 +216,10 @@ export class FCAction extends LitElement {
 
     if (this.onAction) {
       this.isLoading = true;
-      
+
       Promise.resolve(this.onAction())
-        .catch(error => {
-          console.error('Action execution error:', error);
+        .catch((error) => {
+          console.error("Action execution error:", error);
         })
         .finally(() => {
           this.isLoading = false;
@@ -228,28 +232,28 @@ export class FCAction extends LitElement {
       const rect = (event.target as HTMLElement).getBoundingClientRect();
       this.tooltipPosition = {
         top: rect.bottom + 8,
-        left: rect.left + rect.width / 2
+        left: rect.left + rect.width / 2,
       };
-      
+
       this.tooltipElement.style.top = `${this.tooltipPosition.top}px`;
       this.tooltipElement.style.left = `${this.tooltipPosition.left}px`;
-      this.tooltipElement.style.transform = 'translateX(-50%)';
-      this.tooltipElement.classList.add('visible');
+      this.tooltipElement.style.transform = "translateX(-50%)";
+      this.tooltipElement.classList.add("visible");
       this.showTooltip = true;
     }
   }
 
   private handleMouseLeave() {
     if (this.tooltipElement) {
-      this.tooltipElement.classList.remove('visible');
+      this.tooltipElement.classList.remove("visible");
       this.showTooltip = false;
     }
   }
 
   updated(changedProperties: any) {
     super.updated(changedProperties);
-    
-    if (changedProperties.has('tooltip')) {
+
+    if (changedProperties.has("tooltip")) {
       // Recreate tooltip if it changed
       if (this.tooltipElement) {
         this.tooltipElement.remove();
@@ -261,7 +265,7 @@ export class FCAction extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    
+
     if (this.tooltipElement) {
       this.tooltipElement.remove();
       this.tooltipElement = null;
@@ -270,11 +274,13 @@ export class FCAction extends LitElement {
 
   render() {
     const classes = [
-      'action-item',
-      this.disabled ? 'disabled' : '',
-      this.destructive ? 'destructive' : '',
-      this.isLoading ? 'action-loading' : ''
-    ].filter(Boolean).join(' ');
+      "action-item",
+      this.disabled ? "disabled" : "",
+      this.destructive ? "destructive" : "",
+      this.isLoading ? "action-loading" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     return html`
       <div
@@ -287,23 +293,19 @@ export class FCAction extends LitElement {
         aria-label="${this.title}"
         aria-disabled="${this.disabled}"
       >
-        ${this.icon ? html`
-          <div class="action-icon">${this.icon}</div>
-        ` : ''}
-        
+        ${this.icon ? html` <div class="action-icon">${this.icon}</div> ` : ""}
+
         <div class="action-text">${this.title}</div>
-        
-        ${this.shortcut ? html`
-          <div class="action-shortcut">
-            ${this.formatShortcut(this.shortcut)}
-          </div>
-        ` : ''}
+
+        ${this.shortcut
+          ? html` <div class="action-shortcut">${this.formatShortcut(this.shortcut)}</div> `
+          : ""}
       </div>
     `;
   }
 }
 
-@customElement('fc-action-panel')
+@customElement("fc-action-panel")
 export class FCActionPanel extends LitElement {
   static styles = css`
     :host {
@@ -358,7 +360,7 @@ export class FCActionPanel extends LitElement {
   `;
 
   @property({ type: String })
-  position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' = 'top-right';
+  position: "top-right" | "top-left" | "bottom-right" | "bottom-left" = "top-right";
 
   @property({ type: Boolean })
   visible: boolean = true;
@@ -372,12 +374,12 @@ export class FCActionPanel extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    document.addEventListener('click', this.handleClickOutside.bind(this));
+    document.addEventListener("click", this.handleClickOutside.bind(this));
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    document.removeEventListener('click', this.handleClickOutside.bind(this));
+    document.removeEventListener("click", this.handleClickOutside.bind(this));
   }
 
   render() {
@@ -396,7 +398,7 @@ export class FCActionPanel extends LitElement {
 }
 
 // Separator component for action panels
-@customElement('fc-action-separator')
+@customElement("fc-action-separator")
 export class FCActionSeparator extends LitElement {
   static styles = css`
     :host {
@@ -418,8 +420,9 @@ export class FCActionSeparator extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fc-action': FCAction;
-    'fc-action-panel': FCActionPanel;
-    'fc-action-separator': FCActionSeparator;
+    "fc-action": FCAction;
+    "fc-action-panel": FCActionPanel;
+    "fc-action-separator": FCActionSeparator;
   }
 }
+

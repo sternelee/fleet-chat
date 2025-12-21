@@ -3,12 +3,12 @@
  * Raycast-compatible Form component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 
 export interface FormFieldProps {
   id: string;
-  type: 'textfield' | 'textarea' | 'checkbox' | 'dropdown' | 'password';
+  type: "textfield" | "textarea" | "checkbox" | "dropdown" | "password";
   label: string;
   placeholder?: string;
   required?: boolean;
@@ -27,12 +27,12 @@ export interface FormFieldProps {
 export interface FormActionProps {
   id: string;
   title: string;
-  type?: 'submit' | 'cancel';
+  type?: "submit" | "cancel";
   onAction?: (values: Record<string, any>) => void | Promise<void>;
   disabled?: boolean;
 }
 
-@customElement('fc-form')
+@customElement("fc-form")
 export class FCForm extends LitElement {
   static styles = css`
     :host {
@@ -232,8 +232,12 @@ export class FCForm extends LitElement {
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .form-loading {
@@ -284,7 +288,7 @@ export class FCForm extends LitElement {
   }
 
   protected updated(changedProperties: any) {
-    if (changedProperties.has('fields')) {
+    if (changedProperties.has("fields")) {
       this.initializeFormValues();
     }
   }
@@ -293,10 +297,10 @@ export class FCForm extends LitElement {
     const values: Record<string, any> = {};
     const errors: Record<string, string> = {};
 
-    this.fields.forEach(field => {
-      values[field.id] = field.default !== undefined ? field.default : 
-        field.type === 'checkbox' ? false : '';
-      errors[field.id] = '';
+    this.fields.forEach((field) => {
+      values[field.id] =
+        field.default !== undefined ? field.default : field.type === "checkbox" ? false : "";
+      errors[field.id] = "";
     });
 
     this.formValues = values;
@@ -305,10 +309,10 @@ export class FCForm extends LitElement {
 
   private handleInputChange(fieldId: string, value: any) {
     this.formValues[fieldId] = value;
-    
+
     // Clear error for this field
     if (this.formErrors[fieldId]) {
-      this.formErrors[fieldId] = '';
+      this.formErrors[fieldId] = "";
       this.requestUpdate();
     }
 
@@ -317,27 +321,27 @@ export class FCForm extends LitElement {
   }
 
   private validateField(fieldId: string, value: any): boolean {
-    const field = this.fields.find(f => f.id === fieldId);
+    const field = this.fields.find((f) => f.id === fieldId);
     if (!field || !field.validation) return true;
 
     const { validation } = field;
     let errorMessage: string | null = null;
 
     // Required validation
-    if (field.required && (!value || (typeof value === 'string' && !value.trim()))) {
-      errorMessage = 'This field is required';
+    if (field.required && (!value || (typeof value === "string" && !value.trim()))) {
+      errorMessage = "This field is required";
     }
 
     // Pattern validation
-    if (!errorMessage && validation.pattern && typeof value === 'string') {
+    if (!errorMessage && validation.pattern && typeof value === "string") {
       const regex = new RegExp(validation.pattern);
       if (!regex.test(value)) {
-        errorMessage = 'Invalid format';
+        errorMessage = "Invalid format";
       }
     }
 
     // Length validation
-    if (!errorMessage && typeof value === 'string') {
+    if (!errorMessage && typeof value === "string") {
       if (validation.minLength && value.length < validation.minLength) {
         errorMessage = `Minimum ${validation.minLength} characters required`;
       }
@@ -347,7 +351,7 @@ export class FCForm extends LitElement {
     }
 
     // Number range validation
-    if (!errorMessage && typeof value === 'number') {
+    if (!errorMessage && typeof value === "number") {
       if (validation.min !== undefined && value < validation.min) {
         errorMessage = `Minimum value is ${validation.min}`;
       }
@@ -373,7 +377,7 @@ export class FCForm extends LitElement {
   private validateForm(): boolean {
     let isValid = true;
 
-    this.fields.forEach(field => {
+    this.fields.forEach((field) => {
       if (!this.validateField(field.id, this.formValues[field.id])) {
         isValid = false;
       }
@@ -392,12 +396,12 @@ export class FCForm extends LitElement {
 
     try {
       // Find submit action
-      const submitAction = this.actions.find(action => action.type === 'submit');
+      const submitAction = this.actions.find((action) => action.type === "submit");
       if (submitAction && submitAction.onAction) {
         await submitAction.onAction(this.formValues);
       }
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error("Form submission error:", error);
     } finally {
       this.isSubmitting = false;
       this.requestUpdate();
@@ -405,16 +409,16 @@ export class FCForm extends LitElement {
   }
 
   private async handleCancel() {
-    const cancelAction = this.actions.find(action => action.type === 'cancel');
+    const cancelAction = this.actions.find((action) => action.type === "cancel");
     if (cancelAction && cancelAction.onAction) {
       await cancelAction.onAction(this.formValues);
     }
   }
 
   private handleActionClick(action: FormActionProps) {
-    if (action.type === 'submit') {
+    if (action.type === "submit") {
       this.handleSubmit();
-    } else if (action.type === 'cancel') {
+    } else if (action.type === "cancel") {
       this.handleCancel();
     } else if (action.onAction) {
       action.onAction(this.formValues);
@@ -426,19 +430,19 @@ export class FCForm extends LitElement {
     const error = this.formErrors[field.id];
 
     switch (field.type) {
-      case 'textfield':
-      case 'password':
+      case "textfield":
+      case "password":
         return this.renderTextField(field, value, error);
-      
-      case 'textarea':
+
+      case "textarea":
         return this.renderTextArea(field, value, error);
-      
-      case 'checkbox':
+
+      case "checkbox":
         return this.renderCheckbox(field, value, error);
-      
-      case 'dropdown':
+
+      case "dropdown":
         return this.renderDropdown(field, value, error);
-      
+
       default:
         return html``;
     }
@@ -448,29 +452,30 @@ export class FCForm extends LitElement {
     return html`
       <div class="form-field">
         <label class="form-field-label">
-          ${field.label}
-          ${field.required ? html`<span class="form-field-required">*</span>` : ''}
+          ${field.label} ${field.required ? html`<span class="form-field-required">*</span>` : ""}
         </label>
-        
+
         <input
           type="${field.type}"
-          class="form-input ${error ? 'error' : ''}"
-          placeholder="${field.placeholder || ''}"
-          .value=${value || ''}
+          class="form-input ${error ? "error" : ""}"
+          placeholder="${field.placeholder || ""}"
+          .value=${value || ""}
           ?disabled=${this.isLoading || this.isSubmitting}
-          @input=${(e: InputEvent) => this.handleInputChange(field.id, (e.target as HTMLInputElement).value)}
+          @input=${(e: InputEvent) =>
+            this.handleInputChange(field.id, (e.target as HTMLInputElement).value)}
         />
-        
-        ${field.placeholder ? html`
-          <div class="form-field-description">${field.placeholder}</div>
-        ` : ''}
-        
-        ${error ? html`
-          <div class="form-error">
-            <span class="form-error-icon">⚠️</span>
-            ${error}
-          </div>
-        ` : ''}
+
+        ${field.placeholder
+          ? html` <div class="form-field-description">${field.placeholder}</div> `
+          : ""}
+        ${error
+          ? html`
+              <div class="form-error">
+                <span class="form-error-icon">⚠️</span>
+                ${error}
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -479,28 +484,29 @@ export class FCForm extends LitElement {
     return html`
       <div class="form-field">
         <label class="form-field-label">
-          ${field.label}
-          ${field.required ? html`<span class="form-field-required">*</span>` : ''}
+          ${field.label} ${field.required ? html`<span class="form-field-required">*</span>` : ""}
         </label>
-        
+
         <textarea
-          class="form-textarea ${error ? 'error' : ''}"
-          placeholder="${field.placeholder || ''}"
-          .value=${value || ''}
+          class="form-textarea ${error ? "error" : ""}"
+          placeholder="${field.placeholder || ""}"
+          .value=${value || ""}
           ?disabled=${this.isLoading || this.isSubmitting}
-          @input=${(e: InputEvent) => this.handleInputChange(field.id, (e.target as HTMLTextAreaElement).value)}
+          @input=${(e: InputEvent) =>
+            this.handleInputChange(field.id, (e.target as HTMLTextAreaElement).value)}
         ></textarea>
-        
-        ${field.placeholder ? html`
-          <div class="form-field-description">${field.placeholder}</div>
-        ` : ''}
-        
-        ${error ? html`
-          <div class="form-error">
-            <span class="form-error-icon">⚠️</span>
-            ${error}
-          </div>
-        ` : ''}
+
+        ${field.placeholder
+          ? html` <div class="form-field-description">${field.placeholder}</div> `
+          : ""}
+        ${error
+          ? html`
+              <div class="form-error">
+                <span class="form-error-icon">⚠️</span>
+                ${error}
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -515,28 +521,26 @@ export class FCForm extends LitElement {
             id="${field.id}"
             .checked=${value}
             ?disabled=${this.isLoading || this.isSubmitting}
-            @change=${(e: Event) => this.handleInputChange(field.id, (e.target as HTMLInputElement).checked)}
+            @change=${(e: Event) =>
+              this.handleInputChange(field.id, (e.target as HTMLInputElement).checked)}
           />
-          
-          <label 
-            class="form-checkbox-label" 
-            for="${field.id}"
-          >
-            ${field.label}
-            ${field.required ? html`<span class="form-field-required">*</span>` : ''}
+
+          <label class="form-checkbox-label" for="${field.id}">
+            ${field.label} ${field.required ? html`<span class="form-field-required">*</span>` : ""}
           </label>
         </div>
-        
-        ${field.placeholder ? html`
-          <div class="form-field-description">${field.placeholder}</div>
-        ` : ''}
-        
-        ${error ? html`
-          <div class="form-error">
-            <span class="form-error-icon">⚠️</span>
-            ${error}
-          </div>
-        ` : ''}
+
+        ${field.placeholder
+          ? html` <div class="form-field-description">${field.placeholder}</div> `
+          : ""}
+        ${error
+          ? html`
+              <div class="form-error">
+                <span class="form-error-icon">⚠️</span>
+                ${error}
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -545,34 +549,37 @@ export class FCForm extends LitElement {
     return html`
       <div class="form-field">
         <label class="form-field-label">
-          ${field.label}
-          ${field.required ? html`<span class="form-field-required">*</span>` : ''}
+          ${field.label} ${field.required ? html`<span class="form-field-required">*</span>` : ""}
         </label>
-        
+
         <select
-          class="form-select ${error ? 'error' : ''}"
-          .value=${value || ''}
+          class="form-select ${error ? "error" : ""}"
+          .value=${value || ""}
           ?disabled=${this.isLoading || this.isSubmitting}
-          @change=${(e: Event) => this.handleInputChange(field.id, (e.target as HTMLSelectElement).value)}
+          @change=${(e: Event) =>
+            this.handleInputChange(field.id, (e.target as HTMLSelectElement).value)}
         >
-          ${!field.required ? html`<option value="">Select an option</option>` : ''}
-          ${field.options?.map(option => html`
-            <option value="${option.value}" ?selected=${option.value === value}>
-              ${option.title}
-            </option>
-          `)}
+          ${!field.required ? html`<option value="">Select an option</option>` : ""}
+          ${field.options?.map(
+            (option) => html`
+              <option value="${option.value}" ?selected=${option.value === value}>
+                ${option.title}
+              </option>
+            `,
+          )}
         </select>
-        
-        ${field.placeholder ? html`
-          <div class="form-field-description">${field.placeholder}</div>
-        ` : ''}
-        
-        ${error ? html`
-          <div class="form-error">
-            <span class="form-error-icon">⚠️</span>
-            ${error}
-          </div>
-        ` : ''}
+
+        ${field.placeholder
+          ? html` <div class="form-field-description">${field.placeholder}</div> `
+          : ""}
+        ${error
+          ? html`
+              <div class="form-error">
+                <span class="form-error-icon">⚠️</span>
+                ${error}
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -582,18 +589,19 @@ export class FCForm extends LitElement {
 
     return html`
       <div class="form-actions">
-        ${this.actions.map(action => {
-          const isLoading = this.isSubmitting && action.type === 'submit';
+        ${this.actions.map((action) => {
+          const isLoading = this.isSubmitting && action.type === "submit";
           const isDisabled = action.disabled || this.isLoading || this.isSubmitting;
-          
+
           return html`
             <button
-              class="form-button ${action.type === 'submit' ? 'form-button-primary' : 'form-button-secondary'}"
+              class="form-button ${action.type === "submit"
+                ? "form-button-primary"
+                : "form-button-secondary"}"
               ?disabled=${isDisabled}
               @click=${() => this.handleActionClick(action)}
             >
-              ${isLoading ? html`<div class="loading-spinner"></div>` : ''}
-              ${action.title}
+              ${isLoading ? html`<div class="loading-spinner"></div>` : ""} ${action.title}
             </button>
           `;
         })}
@@ -603,18 +611,28 @@ export class FCForm extends LitElement {
 
   render() {
     return html`
-      <div class="form-container ${this.isLoading || this.isSubmitting ? 'form-loading' : ''}">
-        ${(this.title || this.description) ? html`
-          <div class="form-header">
-            ${this.title ? html`<div class="form-title">${this.title}</div>` : ''}
-            ${this.description ? html`<div class="form-description">${this.description}</div>` : ''}
-          </div>
-        ` : ''}
-        
-        <form class="form-fields" @submit=${(e: Event) => { e.preventDefault(); this.handleSubmit(); }}>
-          ${this.fields.map(field => this.renderField(field))}
+      <div class="form-container ${this.isLoading || this.isSubmitting ? "form-loading" : ""}">
+        ${this.title || this.description
+          ? html`
+              <div class="form-header">
+                ${this.title ? html`<div class="form-title">${this.title}</div>` : ""}
+                ${this.description
+                  ? html`<div class="form-description">${this.description}</div>`
+                  : ""}
+              </div>
+            `
+          : ""}
+
+        <form
+          class="form-fields"
+          @submit=${(e: Event) => {
+            e.preventDefault();
+            this.handleSubmit();
+          }}
+        >
+          ${this.fields.map((field) => this.renderField(field))}
         </form>
-        
+
         ${this.renderActions()}
       </div>
     `;
@@ -646,6 +664,7 @@ export class FCForm extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fc-form': FCForm;
+    "fc-form": FCForm;
   }
 }
+

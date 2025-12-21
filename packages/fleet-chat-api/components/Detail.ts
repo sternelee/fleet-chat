@@ -1,14 +1,14 @@
 /**
  * Detail Component
- * 
+ *
  * Raycast-compatible Detail component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { repeat } from 'lit/directives/repeat.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
 
-@customElement('fc-detail')
+@customElement("fc-detail")
 export class FCDetail extends LitElement {
   static styles = css`
     :host {
@@ -71,7 +71,8 @@ export class FCDetail extends LitElement {
       line-height: 1.6;
     }
 
-    .markdown-content ul, .markdown-content ol {
+    .markdown-content ul,
+    .markdown-content ol {
       margin: 16px 0;
       padding-left: 24px;
     }
@@ -235,8 +236,12 @@ export class FCDetail extends LitElement {
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .error-state {
@@ -268,10 +273,10 @@ export class FCDetail extends LitElement {
   `;
 
   @property({ type: String })
-  markdown = '';
+  markdown = "";
 
   @property({ type: String })
-  html = '';
+  html = "";
 
   @property({ type: Boolean })
   isLoading = false;
@@ -286,7 +291,7 @@ export class FCDetail extends LitElement {
   actions: Array<{
     title: string;
     icon?: string;
-    style?: 'default' | 'primary';
+    style?: "default" | "primary";
     onAction: () => void | Promise<void>;
   }> = [];
 
@@ -297,41 +302,48 @@ export class FCDetail extends LitElement {
 
     return html`
       <div class="detail-container">
-        ${this.markdown || this.html ? html`
-          <div class="content-area">
-            ${this.html ? html`
-              <div class="markdown-content">${this.html}</div>
-            ` : html`
-              <div class="markdown-content">${this.renderMarkdown()}</div>
-            `}
-          </div>
-        ` : ''}
-
-        ${this.metadata.length > 0 ? html`
-          <div class="metadata">
-            <div class="metadata-title">Information</div>
-            ${repeat(this.metadata, item => html`
-              <div class="metadata-item">
-                <span class="metadata-label">${item.label}</span>
-                <span class="metadata-text">${item.text}</span>
+        ${this.markdown || this.html
+          ? html`
+              <div class="content-area">
+                ${this.html
+                  ? html` <div class="markdown-content">${this.html}</div> `
+                  : html` <div class="markdown-content">${this.renderMarkdown()}</div> `}
               </div>
-            `)}
-          </div>
-        ` : ''}
-
-        ${this.actions.length > 0 ? html`
-          <div class="actions">
-            ${repeat(this.actions, action => html`
-              <button
-                class="action-button ${action.style === 'primary' ? 'primary' : ''}"
-                @click="${() => this.handleAction(action)}"
-              >
-                ${action.icon ? html`<span>${action.icon}</span>` : ''}
-                ${action.title}
-              </button>
-            `)}
-          </div>
-        ` : ''}
+            `
+          : ""}
+        ${this.metadata.length > 0
+          ? html`
+              <div class="metadata">
+                <div class="metadata-title">Information</div>
+                ${repeat(
+                  this.metadata,
+                  (item) => html`
+                    <div class="metadata-item">
+                      <span class="metadata-label">${item.label}</span>
+                      <span class="metadata-text">${item.text}</span>
+                    </div>
+                  `,
+                )}
+              </div>
+            `
+          : ""}
+        ${this.actions.length > 0
+          ? html`
+              <div class="actions">
+                ${repeat(
+                  this.actions,
+                  (action) => html`
+                    <button
+                      class="action-button ${action.style === "primary" ? "primary" : ""}"
+                      @click="${() => this.handleAction(action)}"
+                    >
+                      ${action.icon ? html`<span>${action.icon}</span>` : ""} ${action.title}
+                    </button>
+                  `,
+                )}
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -351,30 +363,33 @@ export class FCDetail extends LitElement {
   }
 
   private parseBasicMarkdown(markdown: string): string {
-    return markdown
-      // Headers
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      // Bold
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Italic
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      // Code
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-      // Line breaks
-      .replace(/\n/g, '<br>');
+    return (
+      markdown
+        // Headers
+        .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+        .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+        .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+        // Bold
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        // Italic
+        .replace(/\*(.*?)\*/g, "<em>$1</em>")
+        // Code
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+        // Line breaks
+        .replace(/\n/g, "<br>")
+    );
   }
 
   private async handleAction(action: any) {
     try {
       await action.onAction();
     } catch (error) {
-      console.error('Action failed:', error);
+      console.error("Action failed:", error);
     }
   }
 }
 
 export default FCDetail;
+

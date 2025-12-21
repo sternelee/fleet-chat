@@ -3,8 +3,8 @@
  * Raycast-compatible List component built with Lit
  */
 
-import { LitElement, html, css, PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { LitElement, html, css, PropertyValues } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 
 export interface ListItemProps {
   id: string;
@@ -33,7 +33,7 @@ export interface ListAction {
   onAction: () => void | Promise<void>;
 }
 
-@customElement('fc-list')
+@customElement("fc-list")
 export class FCList extends LitElement {
   static styles = css`
     :host {
@@ -230,8 +230,13 @@ export class FCList extends LitElement {
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
     }
 
     /* Action Panel */
@@ -281,7 +286,7 @@ export class FCList extends LitElement {
   items: ListItemProps[] = [];
 
   @property({ type: String })
-  searchPlaceholder: string = 'Search...';
+  searchPlaceholder: string = "Search...";
 
   @property({ type: Boolean })
   isLoading: boolean = false;
@@ -290,19 +295,19 @@ export class FCList extends LitElement {
   enableSearch: boolean = true;
 
   @property({ type: String })
-  emptyStateTitle: string = 'No Items';
+  emptyStateTitle: string = "No Items";
 
   @property({ type: String })
-  emptyStateDescription: string = '';
+  emptyStateDescription: string = "";
 
   @property({ type: String })
-  emptyStateIcon: string = '📋';
+  emptyStateIcon: string = "📋";
 
   @state()
   private _selectedIndex = 0;
 
   @state()
-  private _searchQuery = '';
+  private _searchQuery = "";
 
   @state()
   private _filteredItems: ListItemProps[] = [];
@@ -318,11 +323,11 @@ export class FCList extends LitElement {
 
   protected firstUpdated() {
     this._filteredItems = this.items;
-    this.addEventListener('keydown', this._handleKeydown);
+    this.addEventListener("keydown", this._handleKeydown);
   }
 
   protected updated(changedProps: PropertyValues) {
-    if (changedProps.has('items') || changedProps.has('_searchQuery')) {
+    if (changedProps.has("items") || changedProps.has("_searchQuery")) {
       this._filterItems();
     }
   }
@@ -332,13 +337,12 @@ export class FCList extends LitElement {
       this._filteredItems = [...this.items];
     } else {
       const query = this._searchQuery.toLowerCase();
-      this._filteredItems = this.items.filter(item => {
+      this._filteredItems = this.items.filter((item) => {
         const titleMatch = item.title.toLowerCase().includes(query);
         const subtitleMatch = item.subtitle?.toLowerCase().includes(query) ?? false;
-        const keywordsMatch = item.keywords?.some(keyword => 
-          keyword.toLowerCase().includes(query)
-        ) ?? false;
-        
+        const keywordsMatch =
+          item.keywords?.some((keyword) => keyword.toLowerCase().includes(query)) ?? false;
+
         return titleMatch || subtitleMatch || keywordsMatch;
       });
     }
@@ -351,59 +355,61 @@ export class FCList extends LitElement {
 
   private _handleKeydown = (event: KeyboardEvent) => {
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         event.preventDefault();
         this._selectedIndex = Math.min(this._selectedIndex + 1, this._filteredItems.length - 1);
         this._scrollToSelected();
         break;
-      
-      case 'ArrowUp':
+
+      case "ArrowUp":
         event.preventDefault();
         this._selectedIndex = Math.max(0, this._selectedIndex - 1);
         this._scrollToSelected();
         break;
-      
-      case 'Enter':
+
+      case "Enter":
         event.preventDefault();
         if (this._filteredItems[this._selectedIndex]) {
           this._selectItem(this._filteredItems[this._selectedIndex]);
         }
         break;
-      
-      case 'Escape':
+
+      case "Escape":
         this._hideActionPanel();
         break;
     }
   };
 
   private _scrollToSelected() {
-    const items = this.shadowRoot?.querySelectorAll('.list-item');
+    const items = this.shadowRoot?.querySelectorAll(".list-item");
     if (items && items[this._selectedIndex]) {
       (items[this._selectedIndex] as HTMLElement).scrollIntoView({
-        block: 'nearest',
-        behavior: 'smooth'
+        block: "nearest",
+        behavior: "smooth",
       });
     }
   }
 
   private _selectItem(item: ListItemProps) {
-    this.dispatchEvent(new CustomEvent('itemSelected', {
-      detail: { item },
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("itemSelected", {
+        detail: { item },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private _showActionPanel(item: ListItemProps, event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
-    
+
     const rect = (event.target as HTMLElement).getBoundingClientRect();
-    
+
     this._actionPanelItem = item;
     this._actionPanelPosition = {
       top: rect.top,
-      right: window.innerWidth - rect.right
+      right: window.innerWidth - rect.right,
     };
     this._actionPanelVisible = true;
   }
@@ -417,7 +423,7 @@ export class FCList extends LitElement {
     try {
       action.onAction();
     } catch (error) {
-      console.error('Error executing action:', error);
+      console.error("Error executing action:", error);
     }
     this._hideActionPanel();
   }
@@ -442,15 +448,18 @@ export class FCList extends LitElement {
 
   private _renderLoadingSkeleton() {
     return html`
-      ${Array.from({ length: 5 }, () => html`
-        <div class="loading-skeleton">
-          <div class="skeleton-icon"></div>
-          <div class="skeleton-content">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-subtitle"></div>
+      ${Array.from(
+        { length: 5 },
+        () => html`
+          <div class="loading-skeleton">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-subtitle"></div>
+            </div>
           </div>
-        </div>
-      `)}
+        `,
+      )}
     `;
   }
 
@@ -469,47 +478,53 @@ export class FCList extends LitElement {
 
     return html`
       <div
-        class="list-item ${isSelected ? 'selected' : ''}"
+        class="list-item ${isSelected ? "selected" : ""}"
         @click=${() => this._selectItem(item)}
-        @contextmenu=${(e: MouseEvent) => item.actions ? this._showActionPanel(item, e) : null}
+        @contextmenu=${(e: MouseEvent) => (item.actions ? this._showActionPanel(item, e) : null)}
       >
-        ${item.icon ? html`
-          <div class="item-icon">
-            ${item.icon.startsWith('http') ? 
-              html`<img src="${item.icon}" alt="${item.title}">` : 
-              item.icon
-            }
-          </div>
-        ` : ''}
-        
+        ${item.icon
+          ? html`
+              <div class="item-icon">
+                ${item.icon.startsWith("http")
+                  ? html`<img src="${item.icon}" alt="${item.title}" />`
+                  : item.icon}
+              </div>
+            `
+          : ""}
+
         <div class="item-content">
           <div class="item-title">${item.title}</div>
-          ${item.subtitle ? html`
-            <div class="item-subtitle">${item.subtitle}</div>
-          ` : ''}
+          ${item.subtitle ? html` <div class="item-subtitle">${item.subtitle}</div> ` : ""}
         </div>
 
-        ${item.accessories && item.accessories.length > 0 ? html`
-          <div class="item-accessories">
-            ${item.accessories.map(accessory => html`
-              <div class="accessory">
-                ${accessory.icon ? html`
-                  <span class="accessory-icon">${accessory.icon}</span>
-                ` : ''}
-                ${accessory.text ? html`
-                  <span>${accessory.text}</span>
-                ` : ''}
-                ${accessory.tag ? html`
-                  <span class="accessory-tag" style="
-                    ${accessory.tag.color ? `background: ${accessory.tag.color};` : ''}
-                  ">
-                    ${accessory.tag.value}
-                  </span>
-                ` : ''}
+        ${item.accessories && item.accessories.length > 0
+          ? html`
+              <div class="item-accessories">
+                ${item.accessories.map(
+                  (accessory) => html`
+                    <div class="accessory">
+                      ${accessory.icon
+                        ? html` <span class="accessory-icon">${accessory.icon}</span> `
+                        : ""}
+                      ${accessory.text ? html` <span>${accessory.text}</span> ` : ""}
+                      ${accessory.tag
+                        ? html`
+                            <span
+                              class="accessory-tag"
+                              style="
+                    ${accessory.tag.color ? `background: ${accessory.tag.color};` : ""}
+                  "
+                            >
+                              ${accessory.tag.value}
+                            </span>
+                          `
+                        : ""}
+                    </div>
+                  `,
+                )}
               </div>
-            `)}
-          </div>
-        ` : ''}
+            `
+          : ""}
       </div>
     `;
   }
@@ -522,20 +537,21 @@ export class FCList extends LitElement {
     return html`
       <div
         class="action-panel"
-        style="top: ${this._actionPanelPosition.top}px; right: ${this._actionPanelPosition.right}px;"
+        style="top: ${this._actionPanelPosition.top}px; right: ${this._actionPanelPosition
+          .right}px;"
         @click=${(e: MouseEvent) => e.stopPropagation()}
       >
-        ${this._actionPanelItem.actions.map(action => html`
-          <div class="action-item" @click=${() => this._executeAction(action)}>
-            ${action.icon ? html`
-              <span class="action-icon">${action.icon}</span>
-            ` : ''}
-            <span class="action-text">${action.title}</span>
-            ${action.shortcut ? html`
-              <span class="action-shortcut">${action.shortcut}</span>
-            ` : ''}
-          </div>
-        `)}
+        ${this._actionPanelItem.actions.map(
+          (action) => html`
+            <div class="action-item" @click=${() => this._executeAction(action)}>
+              ${action.icon ? html` <span class="action-icon">${action.icon}</span> ` : ""}
+              <span class="action-text">${action.title}</span>
+              ${action.shortcut
+                ? html` <span class="action-shortcut">${action.shortcut}</span> `
+                : ""}
+            </div>
+          `,
+        )}
       </div>
     `;
   }
@@ -544,15 +560,13 @@ export class FCList extends LitElement {
     return html`
       <div class="list-container" @click=${this._hideActionPanel}>
         ${this._renderSearchInput()}
-        
-        ${this.isLoading ? 
-          this._renderLoadingSkeleton() :
-          this._filteredItems.length > 0 ?
-            this._filteredItems.map((item, index) => this._renderItem(item, index)) :
-            this._renderEmptyState()
-        }
+        ${this.isLoading
+          ? this._renderLoadingSkeleton()
+          : this._filteredItems.length > 0
+            ? this._filteredItems.map((item, index) => this._renderItem(item, index))
+            : this._renderEmptyState()}
       </div>
-      
+
       ${this._renderActionPanel()}
     `;
   }
@@ -560,6 +574,7 @@ export class FCList extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fc-list': FCList;
+    "fc-list": FCList;
   }
 }
+

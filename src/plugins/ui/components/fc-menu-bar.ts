@@ -3,8 +3,8 @@
  * Raycast-compatible menu bar component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
 
 export interface MenuItem {
   title: string;
@@ -19,7 +19,7 @@ export interface MenuBarProps {
   title?: string;
 }
 
-@customElement('fc-menu-bar')
+@customElement("fc-menu-bar")
 export class FCMenuBar extends LitElement {
   static styles = css`
     :host {
@@ -163,7 +163,7 @@ export class FCMenuBar extends LitElement {
   }
 
   private handleKeyDown(event: KeyboardEvent, item: MenuItem) {
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.key === "Enter" || event.key === " ") {
       this.handleClick(item, event);
     }
   }
@@ -174,33 +174,27 @@ export class FCMenuBar extends LitElement {
 
     return html`
       <div
-        class="menu-item ${hasChildren ? 'submenu' : ''}"
+        class="menu-item ${hasChildren ? "submenu" : ""}"
         @click=${(e: Event) => this.handleClick(item, e)}
         @keydown=${(e: KeyboardEvent) => this.handleKeyDown(e, item)}
         role="menuitem"
         tabindex="${!item.onAction && !hasChildren ? -1 : 0}"
         aria-label="${item.title}"
-        aria-haspopup="${hasChildren ? 'true' : 'false'}"
+        aria-haspopup="${hasChildren ? "true" : "false"}"
       >
-        ${item.icon ? html`
-          <div class="menu-item-icon">${item.icon}</div>
-        ` : ''}
-        
+        ${item.icon ? html` <div class="menu-item-icon">${item.icon}</div> ` : ""}
+
         <div class="menu-item-text">${item.title}</div>
-        
-        ${item.shortcut ? html`
-          <div class="menu-item-shortcut">${item.shortcut}</div>
-        ` : ''}
-        
-        ${hasChildren ? html`
-          <div class="menu-item-icon">▶</div>
-        ` : ''}
-        
-        ${hasChildren && this.activeSubmenu === item.title ? html`
-          <div class="submenu-children">
-            ${item.children!.map(child => this.renderMenuItem(child, depth + 1))}
-          </div>
-        ` : ''}
+
+        ${item.shortcut ? html` <div class="menu-item-shortcut">${item.shortcut}</div> ` : ""}
+        ${hasChildren ? html` <div class="menu-item-icon">▶</div> ` : ""}
+        ${hasChildren && this.activeSubmenu === item.title
+          ? html`
+              <div class="submenu-children">
+                ${item.children!.map((child) => this.renderMenuItem(child, depth + 1))}
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -212,7 +206,7 @@ export class FCMenuBar extends LitElement {
   private renderItems() {
     return this.items.map((item, index) => {
       // Check if this should be a separator (title change or specific conditions)
-      if (item.title === '-') {
+      if (item.title === "-") {
         return this.renderSeparator();
       }
       return this.renderMenuItem(item);
@@ -222,13 +216,9 @@ export class FCMenuBar extends LitElement {
   render() {
     return html`
       <div class="menu-bar">
-        ${this.title ? html`
-          <div class="menu-bar-title">${this.title}</div>
-        ` : ''}
-        
-        <div class="menu-content">
-          ${this.renderItems()}
-        </div>
+        ${this.title ? html` <div class="menu-bar-title">${this.title}</div> ` : ""}
+
+        <div class="menu-content">${this.renderItems()}</div>
       </div>
     `;
   }
@@ -236,6 +226,7 @@ export class FCMenuBar extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fc-menu-bar': FCMenuBar;
+    "fc-menu-bar": FCMenuBar;
   }
 }
+

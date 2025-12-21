@@ -1,6 +1,6 @@
 /**
  * Action Component API Stub
- * 
+ *
  * This is a placeholder for the Action component API
  * The actual implementation is in src/plugins/ui/components/fc-action.ts
  */
@@ -10,7 +10,7 @@ export interface ActionProps {
   onAction?: () => void | Promise<void>;
   shortcut?: string;
   icon?: string;
-  style?: 'default' | 'destructive';
+  style?: "default" | "destructive";
   dialog?: {
     title: string;
     message: string;
@@ -36,15 +36,16 @@ export const Action = {
   create: (props: ActionProps) => {
     // This would create an Action component
     return null;
-  }
+  },
 };
 
-// Stub ActionPanel component - actual implementation in UI components  
+// Stub ActionPanel component - actual implementation in UI components
 export const ActionPanel = {
   // Placeholder for ActionPanel component
   create: (props: ActionPanelProps) => {
     // This would create an ActionPanel component
     return null;
-  }
+  },
 };
 export default Action;
+

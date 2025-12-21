@@ -101,7 +101,7 @@ export class AI {
     categoryScores: Record<string, number>;
   }> {
     try {
-      const result = await invoke("ai_moderate", { content }) as {
+      const result = (await invoke("ai_moderate", { content })) as {
         flagged: boolean;
         categories: Record<string, boolean>;
         categoryScores: Record<string, number>;
@@ -215,4 +215,3 @@ export class AIClient {
     return AI.embed(text, this.config.model);
   }
 }
-

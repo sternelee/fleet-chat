@@ -79,7 +79,10 @@ export interface PluginAPI {
   // Enhanced Navigation
   pop: () => Promise<void>;
   push: (view: HTMLElement, options?: import("@fleet-chat/api").NavigationOptions) => Promise<void>;
-  replace: (view: HTMLElement, options?: import("@fleet-chat/api").NavigationOptions) => Promise<void>;
+  replace: (
+    view: HTMLElement,
+    options?: import("@fleet-chat/api").NavigationOptions,
+  ) => Promise<void>;
   popToRoot: (type?: "immediate" | "animated") => Promise<void>;
   clear: () => Promise<void>;
   useNavigation: () => import("@fleet-chat/api").NavigationContext;

@@ -3,8 +3,8 @@
  * Raycast-compatible dropdown component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 
 export interface DropdownOption {
   value: string;
@@ -22,7 +22,7 @@ export interface DropdownProps {
   searchable?: boolean;
 }
 
-@customElement('fc-dropdown')
+@customElement("fc-dropdown")
 export class FCDropdown extends LitElement {
   static styles = css`
     :host {
@@ -212,7 +212,7 @@ export class FCDropdown extends LitElement {
   value?: string;
 
   @property({ type: String })
-  placeholder?: string = 'Select an option...';
+  placeholder?: string = "Select an option...";
 
   @property({ type: Boolean })
   disabled: boolean = false;
@@ -227,7 +227,7 @@ export class FCDropdown extends LitElement {
   private isOpen: boolean = false;
 
   @state()
-  private searchTerm: string = '';
+  private searchTerm: string = "";
 
   @state()
   private filteredOptions: DropdownOption[] = [];
@@ -237,20 +237,20 @@ export class FCDropdown extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.filteredOptions = this.options;
-    document.addEventListener('click', this.handleDocumentClick);
-    document.addEventListener('keydown', this.handleKeyDown);
+    document.addEventListener("click", this.handleDocumentClick);
+    document.addEventListener("keydown", this.handleKeyDown);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    document.removeEventListener('click', this.handleDocumentClick);
-    document.removeEventListener('keydown', this.handleKeyDown);
+    document.removeEventListener("click", this.handleDocumentClick);
+    document.removeEventListener("keydown", this.handleKeyDown);
   }
 
   updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
-    
-    if (changedProperties.has('options')) {
+
+    if (changedProperties.has("options")) {
       this.updateFilteredOptions();
     }
   }
@@ -262,7 +262,7 @@ export class FCDropdown extends LitElement {
   };
 
   private handleKeyDown = (event: KeyboardEvent) => {
-    if (this.isOpen && event.key === 'Escape') {
+    if (this.isOpen && event.key === "Escape") {
       this.close();
       event.preventDefault();
     }
@@ -273,24 +273,25 @@ export class FCDropdown extends LitElement {
       this.filteredOptions = this.options;
     } else {
       const searchLower = this.searchTerm.toLowerCase();
-      this.filteredOptions = this.options.filter(option =>
-        option.title.toLowerCase().includes(searchLower) ||
-        option.value.toLowerCase().includes(searchLower)
+      this.filteredOptions = this.options.filter(
+        (option) =>
+          option.title.toLowerCase().includes(searchLower) ||
+          option.value.toLowerCase().includes(searchLower),
       );
     }
   }
 
   private open() {
     if (this.disabled) return;
-    
+
     this.isOpen = true;
-    this.searchTerm = '';
+    this.searchTerm = "";
     this.updateFilteredOptions();
   }
 
   private close() {
     this.isOpen = false;
-    this.searchTerm = '';
+    this.searchTerm = "";
     this.updateFilteredOptions();
   }
 
@@ -304,17 +305,19 @@ export class FCDropdown extends LitElement {
 
   private selectOption(option: DropdownOption) {
     if (option.disabled) return;
-    
+
     this.value = option.value;
     this.close();
-    
+
     if (this.onValueChange) {
       this.onValueChange(option.value);
     }
 
-    this.dispatchEvent(new CustomEvent('change', {
-      detail: { value: option.value, option }
-    }));
+    this.dispatchEvent(
+      new CustomEvent("change", {
+        detail: { value: option.value, option },
+      }),
+    );
   }
 
   private handleSearchInput(event: Event) {
@@ -325,21 +328,21 @@ export class FCDropdown extends LitElement {
 
   private getSelectedTitle(): string {
     if (!this.value) return this.placeholder!;
-    
-    const selectedOption = this.options.find(opt => opt.value === this.value);
+
+    const selectedOption = this.options.find((opt) => opt.value === this.value);
     return selectedOption ? selectedOption.title : this.placeholder!;
   }
 
   private getSelectedIcon(): string | undefined {
     if (!this.value) return undefined;
-    
-    const selectedOption = this.options.find(opt => opt.value === this.value);
+
+    const selectedOption = this.options.find((opt) => opt.value === this.value);
     return selectedOption ? selectedOption.icon : undefined;
   }
 
   private renderSearch() {
-    if (!this.searchable) return '';
-    
+    if (!this.searchable) return "";
+
     return html`
       <div class="dropdown-search">
         <input
@@ -356,31 +359,27 @@ export class FCDropdown extends LitElement {
 
   private renderOptions() {
     if (this.filteredOptions.length === 0) {
-      return html`
-        <div class="no-results">No options found</div>
-      `;
+      return html` <div class="no-results">No options found</div> `;
     }
 
-    return this.filteredOptions.map(option => {
+    return this.filteredOptions.map((option) => {
       const isSelected = option.value === this.value;
-      
+
       return html`
         <div
-          class="dropdown-option ${isSelected ? 'selected' : ''} ${option.disabled ? 'disabled' : ''}"
+          class="dropdown-option ${isSelected ? "selected" : ""} ${option.disabled
+            ? "disabled"
+            : ""}"
           @click=${() => this.selectOption(option)}
           role="option"
           aria-selected="${isSelected}"
           aria-disabled="${option.disabled}"
         >
-          ${option.icon ? html`
-            <div class="dropdown-option-icon">${option.icon}</div>
-          ` : ''}
-          
+          ${option.icon ? html` <div class="dropdown-option-icon">${option.icon}</div> ` : ""}
+
           <div class="dropdown-option-text">${option.title}</div>
-          
-          ${isSelected ? html`
-            <div class="dropdown-option-check">✓</div>
-          ` : ''}
+
+          ${isSelected ? html` <div class="dropdown-option-check">✓</div> ` : ""}
         </div>
       `;
     });
@@ -394,7 +393,7 @@ export class FCDropdown extends LitElement {
     return html`
       <div class="dropdown-container">
         <div
-          class="dropdown-trigger ${this.disabled ? 'disabled' : ''} ${this.isOpen ? 'active' : ''}"
+          class="dropdown-trigger ${this.disabled ? "disabled" : ""} ${this.isOpen ? "active" : ""}"
           @click=${this.toggle}
           role="combobox"
           aria-expanded="${this.isOpen}"
@@ -402,19 +401,16 @@ export class FCDropdown extends LitElement {
           aria-disabled="${this.disabled}"
           tabindex="${this.disabled ? -1 : 0}"
         >
-          <div class="dropdown-value ${showPlaceholder ? 'dropdown-placeholder' : ''}">
-            ${selectedIcon ? html`
-              <span style="margin-right: 8px;">${selectedIcon}</span>
-            ` : ''}
+          <div class="dropdown-value ${showPlaceholder ? "dropdown-placeholder" : ""}">
+            ${selectedIcon ? html` <span style="margin-right: 8px;">${selectedIcon}</span> ` : ""}
             ${selectedTitle}
           </div>
-          
+
           <div class="dropdown-icon">▼</div>
         </div>
-        
-        <div class="dropdown-menu ${this.isOpen ? 'active' : ''}" role="listbox">
-          ${this.renderSearch()}
-          ${this.renderOptions()}
+
+        <div class="dropdown-menu ${this.isOpen ? "active" : ""}" role="listbox">
+          ${this.renderSearch()} ${this.renderOptions()}
         </div>
       </div>
     `;
@@ -423,6 +419,7 @@ export class FCDropdown extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fc-dropdown': FCDropdown;
+    "fc-dropdown": FCDropdown;
   }
 }
+

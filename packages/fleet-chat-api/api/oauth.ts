@@ -277,9 +277,9 @@ export class OAuthClient {
 
 // PKCE helper class
 export class PKCEClient {
-  private verifier: string = '';
-  private challenge: string = '';
-  private method: string = '';
+  private verifier: string = "";
+  private challenge: string = "";
+  private method: string = "";
 
   constructor(
     private options: {
@@ -319,4 +319,3 @@ export class PKCEClient {
     return this.options.providerIcon;
   }
 }
-

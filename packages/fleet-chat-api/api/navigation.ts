@@ -1,11 +1,11 @@
 /**
  * Navigation Context and Hooks for Fleet Chat Plugins
- * 
+ *
  * Provides React-compatible navigation context and hooks for plugin navigation
  * Inspired by Vicinae's navigation system but adapted for Lit components
  */
 
-import { atom } from 'nanostores';
+import { atom } from "nanostores";
 
 // Navigation state types
 export interface NavigationState {
@@ -70,7 +70,7 @@ class NavigationManager implements NavigationContext {
   }
 
   private notifyListeners(state: NavigationState): void {
-    this.listeners.forEach(listener => listener(state));
+    this.listeners.forEach((listener) => listener(state));
   }
 
   private generateComponentId(): string {
@@ -92,7 +92,7 @@ class NavigationManager implements NavigationContext {
       };
 
       const currentStack = [...this.state.stack];
-      
+
       // If we're not at the top of the stack, truncate everything after current index
       if (this.state.currentIndex < currentStack.length - 1) {
         currentStack.splice(this.state.currentIndex + 1);
@@ -110,10 +110,9 @@ class NavigationManager implements NavigationContext {
       });
 
       // Emit navigation event for UI components
-      this.emitNavigationEvent('push', navigationItem);
-      
+      this.emitNavigationEvent("push", navigationItem);
     } catch (error) {
-      console.error('Navigation push failed:', error);
+      console.error("Navigation push failed:", error);
       this.updateState({ isTransitioning: false });
       throw error;
     }
@@ -127,7 +126,7 @@ class NavigationManager implements NavigationContext {
     try {
       const currentStack = [...this.state.stack];
       const newIndex = this.state.currentIndex - 1;
-      
+
       // Remove current item from stack
       const poppedItem = currentStack.pop();
 
@@ -141,11 +140,10 @@ class NavigationManager implements NavigationContext {
 
       // Emit navigation event
       if (poppedItem) {
-        this.emitNavigationEvent('pop', poppedItem);
+        this.emitNavigationEvent("pop", poppedItem);
       }
-      
     } catch (error) {
-      console.error('Navigation pop failed:', error);
+      console.error("Navigation pop failed:", error);
       this.updateState({ isTransitioning: false });
       throw error;
     }
@@ -159,7 +157,7 @@ class NavigationManager implements NavigationContext {
     try {
       const currentStack = [...this.state.stack];
       const rootItems = currentStack.slice(0, 1);
-      
+
       this.updateState({
         stack: rootItems,
         currentIndex: 0,
@@ -169,10 +167,9 @@ class NavigationManager implements NavigationContext {
       });
 
       // Emit navigation event
-      this.emitNavigationEvent('popToRoot', { type });
-      
+      this.emitNavigationEvent("popToRoot", { type });
     } catch (error) {
-      console.error('Navigation popToRoot failed:', error);
+      console.error("Navigation popToRoot failed:", error);
       this.updateState({ isTransitioning: false });
       throw error;
     }
@@ -204,10 +201,9 @@ class NavigationManager implements NavigationContext {
       });
 
       // Emit navigation event
-      this.emitNavigationEvent('replace', navigationItem);
-      
+      this.emitNavigationEvent("replace", navigationItem);
     } catch (error) {
-      console.error('Navigation replace failed:', error);
+      console.error("Navigation replace failed:", error);
       this.updateState({ isTransitioning: false });
       throw error;
     }
@@ -224,7 +220,7 @@ class NavigationManager implements NavigationContext {
       isTransitioning: false,
     });
 
-    this.emitNavigationEvent('clear', null);
+    this.emitNavigationEvent("clear", null);
   }
 
   canGoBack(): boolean {
@@ -242,13 +238,13 @@ class NavigationManager implements NavigationContext {
 
   getCurrentTitle(): string {
     const currentItem = this.state.stack[this.state.currentIndex];
-    return currentItem?.title || '';
+    return currentItem?.title || "";
   }
 
   // Event listener management
   subscribe(listener: (state: NavigationState) => void): () => void {
     this.listeners.add(listener);
-    
+
     // Return unsubscribe function
     return () => {
       this.listeners.delete(listener);
@@ -256,9 +252,9 @@ class NavigationManager implements NavigationContext {
   }
 
   private emitNavigationEvent(type: string, data: any): void {
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('navigation', {
-        detail: { type, data, state: this.state }
+    if (typeof window !== "undefined") {
+      const event = new CustomEvent("navigation", {
+        detail: { type, data, state: this.state },
       });
       window.dispatchEvent(event);
     }
@@ -270,16 +266,16 @@ class NavigationManager implements NavigationContext {
   }
 
   getNavigationPath(): string[] {
-    return this.state.stack.map(item => item.title || item.id);
+    return this.state.stack.map((item) => item.title || item.id);
   }
 
   findComponentById(id: string): HTMLElement | null {
-    const item = this.state.stack.find(item => item.id === id);
+    const item = this.state.stack.find((item) => item.id === id);
     return item?.component || null;
   }
 
   findComponentByTitle(title: string): HTMLElement | null {
-    const item = this.state.stack.find(item => item.title === title);
+    const item = this.state.stack.find((item) => item.title === title);
     return item?.component || null;
   }
 }
@@ -345,27 +341,28 @@ export async function clear(): Promise<void> {
 
 // Keyboard navigation support
 export function attachKeyboardNavigation(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   const handleKeyDown = (event: KeyboardEvent) => {
     // Check for modifier keys to avoid interfering with app shortcuts
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     switch (event.key) {
-      case 'Escape':
+      case "Escape":
         if (navigationManager.canGoBack()) {
           event.preventDefault();
           navigationManager.pop();
         }
         break;
-      case 'Backspace':
+      case "Backspace":
         // Allow backspace navigation only when not focused on input elements
         const activeElement = document.activeElement;
-        if (!activeElement || (
-          activeElement.tagName !== 'INPUT' && 
-          activeElement.tagName !== 'TEXTAREA' &&
-          (activeElement as HTMLElement).contentEditable !== 'true'
-        )) {
+        if (
+          !activeElement ||
+          (activeElement.tagName !== "INPUT" &&
+            activeElement.tagName !== "TEXTAREA" &&
+            (activeElement as HTMLElement).contentEditable !== "true")
+        ) {
           if (navigationManager.canGoBack()) {
             event.preventDefault();
             navigationManager.pop();
@@ -375,16 +372,17 @@ export function attachKeyboardNavigation(): void {
     }
   };
 
-  window.addEventListener('keydown', handleKeyDown);
-  
+  window.addEventListener("keydown", handleKeyDown);
+
   // Return cleanup function (not used here but useful for React-like cleanup)
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   return (): void => {
-    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener("keydown", handleKeyDown);
   };
 }
 
 // Initialize keyboard navigation
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   attachKeyboardNavigation();
 }
+

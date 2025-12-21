@@ -3,8 +3,8 @@
  * Raycast-compatible Grid component built with Lit
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
 
 export interface GridItemProps {
   id: string;
@@ -19,7 +19,7 @@ export interface GridItemProps {
   }>;
 }
 
-@customElement('fc-grid')
+@customElement("fc-grid")
 export class FCGrid extends LitElement {
   static styles = css`
     :host {
@@ -62,12 +62,24 @@ export class FCGrid extends LitElement {
       animation: fadeIn 0.3s ease-out;
     }
 
-    .grid-columns-1 { grid-template-columns: 1fr; }
-    .grid-columns-2 { grid-template-columns: repeat(2, 1fr); }
-    .grid-columns-3 { grid-template-columns: repeat(3, 1fr); }
-    .grid-columns-4 { grid-template-columns: repeat(4, 1fr); }
-    .grid-columns-5 { grid-template-columns: repeat(5, 1fr); }
-    .grid-columns-6 { grid-template-columns: repeat(6, 1fr); }
+    .grid-columns-1 {
+      grid-template-columns: 1fr;
+    }
+    .grid-columns-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .grid-columns-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .grid-columns-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .grid-columns-5 {
+      grid-template-columns: repeat(5, 1fr);
+    }
+    .grid-columns-6 {
+      grid-template-columns: repeat(6, 1fr);
+    }
 
     /* Responsive grid */
     @media (max-width: 768px) {
@@ -252,8 +264,12 @@ export class FCGrid extends LitElement {
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     @keyframes fadeIn {
@@ -292,13 +308,13 @@ export class FCGrid extends LitElement {
   columns: number = 3;
 
   @property({ type: String })
-  aspectRatio: 'auto' | '16-9' | '4-3' | '1-1' | '3-2' = 'auto';
+  aspectRatio: "auto" | "16-9" | "4-3" | "1-1" | "3-2" = "auto";
 
   @property({ type: Boolean })
   fit: boolean = false;
 
   @property({ type: String })
-  searchPlaceholder: string = 'Search items...';
+  searchPlaceholder: string = "Search items...";
 
   @property({ type: Boolean })
   enableSearch: boolean = true;
@@ -307,13 +323,13 @@ export class FCGrid extends LitElement {
   isLoading: boolean = false;
 
   @property({ type: String })
-  emptyStateTitle: string = 'No Items';
+  emptyStateTitle: string = "No Items";
 
   @property({ type: String })
-  emptyStateDescription: string = '';
+  emptyStateDescription: string = "";
 
   @property({ type: String })
-  emptyStateIcon: string = '📋';
+  emptyStateIcon: string = "📋";
 
   private filteredItems: GridItemProps[] = [];
 
@@ -322,7 +338,7 @@ export class FCGrid extends LitElement {
   }
 
   protected updated(changedProperties: any) {
-    if (changedProperties.has('items') || changedProperties.has('searchQuery')) {
+    if (changedProperties.has("items") || changedProperties.has("searchQuery")) {
       this.filterItems();
     }
   }
@@ -338,21 +354,21 @@ export class FCGrid extends LitElement {
   }
 
   private getAspectRatioClassName(): string {
-    return this.aspectRatio !== 'auto' ? `aspect-ratio-${this.aspectRatio}` : '';
+    return this.aspectRatio !== "auto" ? `aspect-ratio-${this.aspectRatio}` : "";
   }
 
   private getItemClassName(): string {
-    const classes = ['grid-item'];
-    
+    const classes = ["grid-item"];
+
     if (this.fit) {
-      classes.push('grid-item-fit');
+      classes.push("grid-item-fit");
     }
-    
-    if (this.aspectRatio !== 'auto') {
+
+    if (this.aspectRatio !== "auto") {
       classes.push(this.getAspectRatioClassName());
     }
-    
-    return classes.join(' ');
+
+    return classes.join(" ");
   }
 
   private renderSearchInput() {
@@ -373,15 +389,15 @@ export class FCGrid extends LitElement {
   private handleSearchInput(event: InputEvent) {
     const target = event.target as HTMLInputElement;
     const query = target.value.toLowerCase();
-    
+
     if (!query) {
       this.filteredItems = this.items;
       return;
     }
 
-    this.filteredItems = this.items.filter(item =>
-      item.title.toLowerCase().includes(query) ||
-      item.subtitle?.toLowerCase().includes(query)
+    this.filteredItems = this.items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(query) || item.subtitle?.toLowerCase().includes(query),
     );
   }
 
@@ -406,61 +422,65 @@ export class FCGrid extends LitElement {
 
   private renderItem(item: GridItemProps, index: number) {
     const itemActions = item.actions || [];
-    
+
     return html`
-      <div
-        class="grid-item"
-        @click=${() => this.handleItemClick(item)}
-      >
-        ${itemActions.length > 0 ? html`
-          <div class="grid-item-actions">
-            ${itemActions.slice(0, 2).map(action => html`
-              <button
-                class="grid-action-btn"
-                @click=${(e: Event) => this.handleActionClick(e, action)}
-                title="${action.title}"
-              >
-                ${action.icon || '⚡'}
-              </button>
-            `)}
-          </div>
-        ` : ''}
-        
+      <div class="grid-item" @click=${() => this.handleItemClick(item)}>
+        ${itemActions.length > 0
+          ? html`
+              <div class="grid-item-actions">
+                ${itemActions
+                  .slice(0, 2)
+                  .map(
+                    (action) => html`
+                      <button
+                        class="grid-action-btn"
+                        @click=${(e: Event) => this.handleActionClick(e, action)}
+                        title="${action.title}"
+                      >
+                        ${action.icon || "⚡"}
+                      </button>
+                    `,
+                  )}
+              </div>
+            `
+          : ""}
+
         <div class="grid-item-content">
-          ${item.icon ? html`
-            <div class="grid-item-icon">
-              ${item.icon.startsWith('http') ? 
-                html`<img src="${item.icon}" alt="${item.title}">` : 
-                item.icon
-              }
-            </div>
-          ` : ''}
-          
+          ${item.icon
+            ? html`
+                <div class="grid-item-icon">
+                  ${item.icon.startsWith("http")
+                    ? html`<img src="${item.icon}" alt="${item.title}" />`
+                    : item.icon}
+                </div>
+              `
+            : ""}
+
           <div class="grid-item-title">${item.title}</div>
-          ${item.subtitle ? html`
-            <div class="grid-item-subtitle">${item.subtitle}</div>
-          ` : ''}
+          ${item.subtitle ? html` <div class="grid-item-subtitle">${item.subtitle}</div> ` : ""}
         </div>
       </div>
     `;
   }
 
   private handleItemClick(item: GridItemProps) {
-    this.dispatchEvent(new CustomEvent('itemSelected', {
-      detail: { item },
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("itemSelected", {
+        detail: { item },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private handleActionClick(event: Event, action: { title: string; onAction: () => void }) {
     event.preventDefault();
     event.stopPropagation();
-    
+
     try {
       action.onAction();
     } catch (error) {
-      console.error('Action execution error:', error);
+      console.error("Action execution error:", error);
     }
   }
 
@@ -472,12 +492,13 @@ export class FCGrid extends LitElement {
     return html`
       <div class="grid-container">
         ${this.renderSearchInput()}
-        
-        ${this.filteredItems.length > 0 ? html`
-          <div class="grid-items ${this.getGridClassName()}">
-            ${this.filteredItems.map((item, index) => this.renderItem(item, index))}
-          </div>
-        ` : this.renderEmptyState()}
+        ${this.filteredItems.length > 0
+          ? html`
+              <div class="grid-items ${this.getGridClassName()}">
+                ${this.filteredItems.map((item, index) => this.renderItem(item, index))}
+              </div>
+            `
+          : this.renderEmptyState()}
       </div>
     `;
   }
@@ -485,6 +506,7 @@ export class FCGrid extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'fc-grid': FCGrid;
+    "fc-grid": FCGrid;
   }
 }
+
