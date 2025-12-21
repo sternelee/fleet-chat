@@ -1,0 +1,41 @@
+{
+    "name": "@fleet-chat/plugin-testplugin",
+    "version": "1.0.0",
+    "description": "testplugin plugin for Fleet Chat",
+    "type": "module",
+    "scripts": {
+        "build": "tsc --noEmit",
+        "dev": "tsc --noEmit --watch",
+        "typecheck": "tsc --noEmit",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@fleet-chat/raycast-api-compat": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "^24.5.2",
+        "typescript": "^5.9.2"
+    },
+    "keywords": [
+        "fleet-chat",
+        "plugin",
+        "testplugin"
+    ],
+    "author": "Fleet Chat Developer",
+    "license": "MIT",
+    "private": true,
+    "$schema": "https://developers.raycast.com/schemas/extension-manifest.json",
+    "icon": "⚡",
+    "title": "Testplugin",
+    "categories": [
+        "Productivity"
+    ],
+    "commands": [
+        {
+            "name": "hello",
+            "title": "Hello World",
+            "description": "Shows a greeting message",
+            "mode": "view"
+        }
+    ]
+}

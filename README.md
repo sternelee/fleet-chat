@@ -25,6 +25,10 @@ Fleet Chat is an experimental VS Code-like desktop application built with Tauri 
 - [x] **Application Search** - macOS app discovery with ICNS icon extraction
 - [x] **File Search** - Fast file content and name search
 - [x] **A2UI Framework** - Agent-to-UI system with multi-provider AI support
+- [x] **Plugin System** - Vicinae-inspired architecture with Raycast plugin compatibility
+- [x] **React-to-Lit Compilation** - Seamlessly run existing Raycast plugins
+- [x] **Web Worker Isolation** - Secure sandboxed plugin execution
+- [x] **pnpm Workspace Management** - Modern plugin development and dependency management
 - [x] **Hot Module Replacement** - Fast development with live reload
 - [x] **Modern Tooling** - Biome for linting/formatting, TypeScript strict mode
 
@@ -51,6 +55,58 @@ export GEMINI_API_KEY=your-gemini-api-key-here
 
 You can also add these variables to a `.env` file in the root directory. See `.env.example` for reference.
 
+## 🔌 Plugin Development
+
+Fleet Chat features a comprehensive plugin system inspired by Vicinae architecture that supports Raycast plugin compatibility:
+
+### Creating a New Plugin
+
+```bash
+# Create a new plugin using the CLI tool
+node tools/plugin-cli.js create my-plugin
+
+# This creates a new plugin in src/plugins/examples/my-plugin/
+cd src/plugins/examples/my-plugin
+
+# Install plugin dependencies
+pnpm install
+```
+
+### Plugin Structure
+
+```
+src/plugins/examples/my-plugin/
+├── package.json          # Plugin manifest and dependencies
+├── tsconfig.json         # TypeScript configuration
+├── src/
+│   ├── index.ts          # Main plugin entry point
+│   └── commands/         # Plugin commands
+├── README.md             # Plugin documentation
+└── assets/               # Plugin icons and assets
+```
+
+### Example Plugin
+
+```typescript
+import { List, ActionPanel, Action } from "@raycast/api";
+
+export default function Command() {
+  return (
+    <List>
+      <List.Item
+        title="Hello World"
+        subtitle="Welcome to Fleet Chat plugins!"
+        actions={
+          <ActionPanel>
+            <Action title="Say Hello" onAction={() => console.log("Hello!")} />
+          </ActionPanel>
+        }
+      />
+    </List>
+  );
+}
+```
+
 ## 🚀 Quick Start
 
 ```bash
@@ -58,10 +114,10 @@ You can also add these variables to a `.env` file in the root directory. See `.e
 git clone https://github.com/sternelee/fleet-chat.git
 cd fleet-chat
 
-# Install dependencies
+# Install dependencies (including workspace packages)
 pnpm install
 
-# Start development server
+# Start development server with plugin system
 pnpm dev
 
 # Build for production
@@ -77,15 +133,28 @@ fleet-chat/
 │   ├── routes.ts          # Route configuration
 │   ├── stores/            # NanoStores state management
 │   ├── views/             # Lit components (search, explorer, etc.)
+│   ├── plugins/           # Plugin system
+│   │   ├── plugin-system.ts      # Core type definitions
+│   │   ├── plugin-manager.ts     # Plugin lifecycle management
+│   │   ├── plugin-integration.ts # UI integration layer
+│   │   ├── storage/             # Storage components (LocalStorage, Cache)
+│   │   ├── system/              # System components (Clipboard, FileSystem)
+│   │   ├── ui/components/       # UI components (List, Grid, Detail, Form, Action)
+│   │   ├── examples/            # Example plugins (hello-world, testplugin)
+│   │   └── renderer/            # React-to-Lit compilation system
 │   └── styles/            # CSS stylesheets
 ├── src-tauri/             # Backend (Rust/Tauri)
 │   ├── src/               # Rust source code
 │   │   ├── a2ui/          # A2UI backend service
+│   │   ├── plugins.rs     # Plugin system integration
 │   │   ├── search.rs      # Application/file search with ICNS extraction
 │   │   ├── axum_app.rs    # Axum web server
 │   │   └── ...
 │   ├── Cargo.toml         # Rust dependencies
 │   └── tauri.conf.json    # Tauri configuration
+├── packages/              # Shared packages (fleet-chat-api, raycast-api-compat)
+├── tools/                 # Development tools (plugin-cli.js)
+├── pnpm-workspace.yaml    # Workspace configuration
 ├── icons/                 # Application icons
 └── assets/                # Static assets
 ```
@@ -110,6 +179,12 @@ pnpm typecheck    # Run TypeScript type checking
 # Maintenance
 pnpm cleanup      # Clean all build artifacts
 pnpm update-deps  # Update dependencies
+
+# Plugin Development
+node tools/plugin-cli.js create <plugin-name>    # Create new plugin
+node tools/plugin-cli.js build <plugin-name>     # Build plugin
+node tools/plugin-cli.js test <plugin-name>      # Test plugin
+node tools/plugin-cli.js list                    # List available plugins
 ```
 
 ## 🏗️ Architecture
@@ -126,6 +201,16 @@ pnpm update-deps  # Update dependencies
 - **Web Server**: Axum HTTP server providing RESTful APIs
 - **AI Integration**: Multi-provider support (OpenAI GPT-4, Google Gemini 2.5 Flash)
 - **Search**: macOS application discovery and file search capabilities
+- **Plugin Integration**: Rust plugin system for management and execution
+
+### Plugin System
+- **Architecture**: Vicinae-inspired design with React-to-Lit compilation
+- **Isolation**: Web Worker sandboxed execution environment
+- **Compatibility**: Full Raycast API compatibility layer
+- **UI Components**: Complete set of Raycast-compatible components (List, Grid, Detail, Form, Action)
+- **Storage**: LocalStorage and Cache with TTL support
+- **System APIs**: Clipboard and FileSystem with Tauri integration
+- **Development**: pnpm workspace management and CLI tools
 
 ### Panel System
 - **Left Panels**: Explorer (default), Search, Source Control, Settings

@@ -1,0 +1,21 @@
+{
+    "name": "@fleet-chat/tools",
+    "version": "1.0.0",
+    "description": "Development tools for Fleet Chat plugins",
+    "type": "module",
+    "bin": {
+        "fleet-plugin": "plugin-cli.js"
+    },
+    "scripts": {
+        "lint": "eslint . --fix",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@types/node": "^24.5.2",
+        "eslint": "^9.0.0",
+        "typescript": "^5.9.2"
+    },
+    "private": true,
+    "author": "Fleet Chat",
+    "license": "MIT"
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@fleet-chat/api": ["./fleet-chat-api"],
+      "@fleet-chat/raycast-api-compat": ["./raycast-api-compat"],
+      "@fleet-chat/extension-manager": ["./fleet-chat-extension-manager"]
+    }
+  }
+}

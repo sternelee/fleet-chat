@@ -65,7 +65,17 @@ pnpm tauri <command>  # Run any Tauri CLI command
   - Gemini provider: Gemini 2.5 Flash support
   - JSON schema validation for UI responses
   - Session management and conversation state tracking
-- **Plugins**: Multiple Tauri plugins (dialog, http, log, notification, etc.)
+- **Plugins**: Multiple Tauri plugins (fs, clipboard, opener, shell, dialog, http, log, notification)
+
+### Plugin System (Vicinae-inspired Architecture)
+- **Framework**: React-to-Lit compilation pipeline for Raycast plugin compatibility
+- **Isolation**: Web Worker-based plugin execution with sandboxed environments
+- **API Compatibility**: Full Raycast API compatibility layer with Lit web components
+- **Module Management**: pnpm workspace for plugin development and management
+- **Storage**: FCLocalStorage and FCCache with TTL and memory caching
+- **System Integration**: FCClipboard and FCFileSystem with Tauri integration
+- **UI Components**: Complete set of Raycast-compatible components (List, Grid, Detail, Form, Action, ActionPanel)
+- **Development Tools**: CLI tool for plugin creation and management (`tools/plugin-cli.js`)
 
 ### Panel System
 The application features a flexible, state-persistent panel system:
@@ -95,6 +105,11 @@ The application features a flexible, state-persistent panel system:
 - `src/routes.ts` - Application routing configuration
 - `src-tauri/src/a2ui_schema.json` - JSON schema for A2UI message validation
 - `src-tauri/src/templates/` - Pre-built A2UI UI templates (contact_list, contact_card, action_confirmation, etc.)
+- `pnpm-workspace.yaml` - pnpm workspace configuration for plugin management
+- `src/plugins/plugin-system.ts` - Core plugin system type definitions
+- `src/plugins/plugin-manager.ts` - Plugin lifecycle and execution management
+- `src/plugins/plugin-integration.ts` - Integration with Fleet Chat UI and Tauri APIs
+- `tools/plugin-cli.js` - CLI tool for plugin development and management
 
 ## Development Notes
 
@@ -144,12 +159,26 @@ The application features a flexible, state-persistent panel system:
 ### Core Rust Modules (`src-tauri/src/`)
 - **lib.rs** - Main Tauri application entry point and plugin setup
 - **axum_app.rs** - Axum web server with A2UI RESTful API endpoints
+- **plugins.rs** - Tauri plugin system integration for plugin management
 - **a2ui/agent.rs** - A2UI backend service implementing Google ADK patterns
 - **a2ui/provider.rs** - AI provider abstraction layer (OpenAI, Gemini)
 - **a2ui/schema.rs** - A2UI message schema definitions
 - **gemini_agent.rs** - Legacy Gemini AI client (being phased out)
 - **tauri_axum.rs** - Bridge between Tauri and Axum for local HTTP requests
 - **window.rs** - macOS-specific window styling and customization
+
+### Plugin System Modules (`src/plugins/`)
+- **plugin-system.ts** - Core plugin system type definitions and interfaces
+- **plugin-manager.ts** - Plugin lifecycle, execution, and worker management
+- **plugin-integration.ts** - Integration layer with Fleet Chat UI and Tauri APIs
+- **storage/local-storage.ts** - FCLocalStorage for persistent data storage
+- **storage/cache.ts** - FCCache with TTL and memory caching capabilities
+- **system/clipboard.ts** - FCClipboard with Tauri and browser fallback support
+- **system/filesystem.ts** - FCFileSystem with file operations and metadata
+- **ui/components/** - Raycast-compatible UI components (List, Grid, Detail, Form, Action)
+- **renderer/** - React-to-Lit compilation and rendering system
+- **examples/** - Example plugins demonstrating the plugin system
+- **public/workers/** - Web Workers for isolated plugin execution
 
 ### Key A2UI Components
 - **A2UIAgent** - Core agent with session management and tool calling

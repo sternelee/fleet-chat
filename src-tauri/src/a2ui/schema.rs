@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 // Include the A2UI schema as a static string
 pub const A2UI_SCHEMA_JSON: &str = include_str!("schema.json");

@@ -3,7 +3,16 @@ import { customElement, property } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
 import { repeat } from 'lit/directives/repeat.js'
 
-export type SnackType = 'NONE' | 'PENDING' | 'SUCCESS' | 'ERROR' | 'WARNING' | 'INFO'
+export enum SnackType {
+  NONE = 'NONE',
+  PENDING = 'PENDING',
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR',
+  WARNING = 'WARNING',
+  INFO = 'INFO'
+}
+
+export type SnackTypeType = 'NONE' | 'PENDING' | 'SUCCESS' | 'ERROR' | 'WARNING' | 'INFO'
 
 export type SnackbarAction = {
   title: string
@@ -15,7 +24,7 @@ export type SnackbarAction = {
 export type SnackbarMessage = {
   id: string
   message: string
-  type?: SnackType
+  type?: SnackTypeType
   persistent?: boolean
   actions?: SnackbarAction[]
 }
@@ -47,7 +56,7 @@ export class Snackbar extends LitElement {
   accessor timeout = DEFAULT_TIMEOUT
 
   #messages: SnackbarMessage[] = []
-  #timeout = 0
+  #timeout: number | NodeJS.Timeout = 0
 
   static styles = css`
     :host {

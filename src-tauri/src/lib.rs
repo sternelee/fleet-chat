@@ -1,15 +1,16 @@
 mod a2ui;
 mod axum_app;
 mod gemini_agent;
+mod plugins;
 mod search;
 mod tauri_axum;
 mod window;
 use axum::Router;
 use axum_app::create_axum_app;
+use search::{search_applications, search_files, unified_search};
 use std::sync::Arc;
 use tauri::{async_runtime::Mutex, State};
 use tauri_axum::{LocalRequest, LocalResponse};
-use search::{search_applications, search_files, unified_search};
 
 struct AppState {
     router: Arc<Mutex<Router>>,
@@ -46,11 +47,23 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_clipboard::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_oauth::init())
         .manage(app_state)
         .setup(|app| {
             // Setup the customized main window
             match window::setup_window(app) {
-                Ok(_) => Ok(()),
+                Ok(_) => {
+                    // Initialize plugin system
+                    match plugins::init_plugin_system(app) {
+                        Ok(_) => Ok(()),
+                        Err(e) => {
+                            eprintln!("Error setting up plugin system: {}", e);
+                            Err(e)
+                        }
+                    }
+                }
                 Err(e) => {
                     eprintln!("Error setting up window: {}", e);
                     Err(e)
@@ -62,7 +75,16 @@ pub fn run() {
             local_app_request,
             search_applications,
             search_files,
-            unified_search
+            unified_search,
+            // Plugin system commands
+            plugins::load_plugin,
+            plugins::unload_plugin,
+            plugins::execute_plugin_command,
+            plugins::get_loaded_plugins,
+            plugins::get_plugin_commands,
+            plugins::reload_plugin,
+            plugins::read_extension_manifest,
+            plugins::get_user_extensions_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

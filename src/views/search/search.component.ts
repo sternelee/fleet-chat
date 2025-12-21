@@ -1,10 +1,10 @@
-import { invoke } from "@tauri-apps/api/core";
 import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { invoke } from "@tauri-apps/api/core";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+import { pluginIntegration, executePluginCommand } from "../../plugins/plugin-integration";
 
 interface Application {
   name: string;
@@ -25,22 +25,44 @@ interface SearchResult {
   files: FileMatch[];
 }
 
+interface PluginCommand {
+  key: string;
+  pluginId: string;
+  command: {
+    name: string;
+    title: string;
+    description?: string;
+    mode: string;
+    icon?: string;
+    keywords?: string[];
+  };
+}
+
 @customElement("view-search")
 export class ViewSearch extends LitElement {
   @state() private query = "";
   @state() private results: SearchResult = { applications: [], files: [] };
   @state() private loading = false;
   @state() private selectedIndex = 0;
-  @state() private searchMode: "all" | "apps" | "files" = "all";
+  @state() private searchMode: "all" | "apps" | "files" | "plugins" = "all";
   @state() private isVisible = false;
   @state() private recentSearches: string[] = [];
+  @state() private pluginCommands: PluginCommand[] = [];
 
   private searchDebounceTimer: number | null = null;
   private animationTimeout: number | null = null;
 
-  connectedCallback() {
+  async connectedCallback() {
     super.connectedCallback();
     this._addGlobalKeyListeners();
+    
+    // Initialize plugins
+    try {
+      await pluginIntegration.initialize();
+      this.pluginCommands = pluginIntegration.getAvailableCommands();
+    } catch (error) {
+      console.error('Failed to initialize plugins:', error);
+    }
   }
 
   disconnectedCallback() {
@@ -336,6 +358,11 @@ export class ViewSearch extends LitElement {
       color: rgba(134, 239, 172, 0.9);
     }
 
+    .badge-plugin {
+      background: rgba(168, 85, 247, 0.2);
+      color: rgba(196, 181, 253, 0.9);
+    }
+
     .loading-state,
     .empty-state {
       flex: 1;
@@ -498,6 +525,12 @@ export class ViewSearch extends LitElement {
             >
               Files
             </button>
+            <button
+              class=${classMap({ "filter-btn": true, active: this.searchMode === "plugins" })}
+              @click=${() => this._setSearchMode("plugins")}
+            >
+              Plugins
+            </button>
           </div>
         </div>
 
@@ -556,7 +589,9 @@ export class ViewSearch extends LitElement {
       `;
     }
 
-    const hasResults = this.results.applications.length > 0 || this.results.files.length > 0;
+    const hasResults = this.results.applications.length > 0 || 
+                      this.results.files.length > 0 || 
+                      this._getFilteredPluginCommands().length > 0;
 
     if (!hasResults) {
       return html`
@@ -570,7 +605,11 @@ export class ViewSearch extends LitElement {
     }
 
     return html`
-      <div class="results-container">${this._renderApplications()} ${this._renderFiles()}</div>
+      <div class="results-container">
+        ${this._renderApplications()} 
+        ${this._renderFiles()} 
+        ${this._renderPluginCommands()}
+      </div>
     `;
   }
 
@@ -643,6 +682,151 @@ export class ViewSearch extends LitElement {
     `;
   }
 
+  private _renderPluginCommands() {
+    if (this.searchMode === "apps" || this.searchMode === "files") {
+      return null;
+    }
+
+    const filteredCommands = this._getFilteredPluginCommands();
+    if (filteredCommands.length === 0) {
+      return null;
+    }
+
+    return html`
+      <div class="results-section">
+        <h3 class="section-title">Plugins</h3>
+        ${filteredCommands.map((cmd, index) => this._renderPluginCommandItem(cmd, index))}
+      </div>
+    `;
+  }
+
+  private _renderPluginCommandItem(cmd: PluginCommand, index: number) {
+    const baseIndex = this.results.applications.length + this.results.files.length;
+    const isSelected = baseIndex + index === this.selectedIndex;
+
+    return html`
+      <div
+        class=${classMap({ "result-item": true, selected: isSelected })}
+        @click=${() => this._executePluginCommand(cmd)}
+      >
+        <div class="result-icon">${cmd.command.icon || '🔌'}</div>
+        <div class="result-content">
+          <div class="result-title">${cmd.command.title}</div>
+          <div class="result-path">${cmd.pluginId} • ${cmd.command.description || 'Plugin command'}</div>
+        </div>
+        <span class="result-badge badge-plugin">Plugin</span>
+      </div>
+    `;
+  }
+
+  private _getFilteredPluginCommands(): PluginCommand[] {
+    if (!this.query.trim()) {
+      return this.searchMode === "plugins" ? this.pluginCommands : [];
+    }
+
+    const query = this.query.toLowerCase();
+    return this.pluginCommands.filter(cmd => {
+      const titleMatch = cmd.command.title.toLowerCase().includes(query);
+      const descriptionMatch = cmd.command.description?.toLowerCase().includes(query) ?? false;
+      const keywordsMatch = cmd.command.keywords?.some(keyword => 
+        keyword.toLowerCase().includes(query)
+      ) ?? false;
+      const pluginIdMatch = cmd.pluginId.toLowerCase().includes(query);
+      
+      return titleMatch || descriptionMatch || keywordsMatch || pluginIdMatch;
+    });
+  }
+
+  private async _executePluginCommand(cmd: PluginCommand) {
+    try {
+      this._addToRecentSearches(cmd.command.title);
+      
+      const result = await executePluginCommand(cmd.pluginId, cmd.command.name);
+      
+      if (result && result instanceof HTMLElement) {
+        // If the plugin returned a view, show it
+        this._showPluginView(result, cmd.command.title);
+      }
+      
+      console.log(`Executed plugin command: ${cmd.pluginId}/${cmd.command.name}`);
+    } catch (error) {
+      console.error('Failed to execute plugin command:', error);
+      
+      // Show error toast
+      window.dispatchEvent(new CustomEvent('plugin:toast', {
+        detail: {
+          title: 'Plugin Error',
+          message: `Failed to execute "${cmd.command.title}"`,
+          style: 'failure'
+        }
+      }));
+    }
+  }
+
+  private _showPluginView(view: HTMLElement, title: string) {
+    // Create a modal or container for the plugin view
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    `;
+
+    const container = document.createElement('div');
+    container.style.cssText = `
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    `;
+
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    `;
+    closeBtn.onclick = () => document.body.removeChild(modal);
+
+    container.appendChild(closeBtn);
+    container.appendChild(view);
+    modal.appendChild(container);
+    
+    // Close on background click
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    };
+
+    document.body.appendChild(modal);
+  }
+
   private _getFileName(path: string): string {
     return path.split("/").pop() || path;
   }
@@ -703,7 +887,8 @@ export class ViewSearch extends LitElement {
   }
 
   private _handleKeyDown(e: KeyboardEvent) {
-    const totalResults = this.results.applications.length + this.results.files.length;
+    const pluginResults = this._getFilteredPluginCommands();
+    const totalResults = this.results.applications.length + this.results.files.length + pluginResults.length;
 
     // Handle keyboard shortcuts
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -743,10 +928,18 @@ export class ViewSearch extends LitElement {
       const app = this.results.applications[this.selectedIndex];
       this._openApplication(app);
     } else {
-      const fileIndex = this.selectedIndex - this.results.applications.length;
-      if (fileIndex < this.results.files.length) {
-        const file = this.results.files[fileIndex];
+      const remainingIndex = this.selectedIndex - this.results.applications.length;
+      
+      if (remainingIndex < this.results.files.length) {
+        const file = this.results.files[remainingIndex];
         this._openFile(file);
+      } else {
+        const pluginIndex = remainingIndex - this.results.files.length;
+        const pluginResults = this._getFilteredPluginCommands();
+        if (pluginIndex < pluginResults.length) {
+          const cmd = pluginResults[pluginIndex];
+          this._executePluginCommand(cmd);
+        }
       }
     }
   }

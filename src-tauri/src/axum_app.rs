@@ -10,9 +10,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
-use tokio_stream::wrappers::ReceiverStream;
 use uuid::Uuid;
 
 // A2UI Schema Types

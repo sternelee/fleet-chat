@@ -9,6 +9,7 @@ import './a2ui-renderer.js'
 interface ServerToClientMessage {
   type: string
   data?: any
+  a2ui_message?: any
 }
 
 interface A2UIClientEventMessage {
@@ -355,12 +356,12 @@ export class A2UIChat extends SignalWatcher(LitElement) {
       <div class="message-area">
         ${repeat(
           this.lastMessages,
-          (message, index) => index,
-          (message) => {
+          (_message, index) => index,
+          (_, message) => {
             if (message.type === 'user_message') {
-              return html`<div class="message user-message">${message.data}</div>`
+              return html`<div class="message user-message">${(message as any).data}</div>`
             } else {
-              return html`<div class="message assistant-message">${message.data}</div>`
+              return html`<div class="message assistant-message">${(message as any).data}</div>`
             }
           },
         )}
