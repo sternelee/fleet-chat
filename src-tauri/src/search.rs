@@ -29,6 +29,9 @@ pub struct SearchResult {
 #[cfg(target_os = "macos")]
 fn extract_app_icon(app_path: &str) -> Option<String> {
     use std::fs;
+    use base64::{Engine as _, engine::general_purpose};
+    use std::io::Cursor;
+    use icns::{IconFamily, IconType};
 
     // macOS app bundles have structure: AppName.app/Contents/Resources/AppIcon.icns
     let path = Path::new(app_path);
@@ -71,15 +74,32 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
     };
 
     // Try to find the icon file
-    let icon_path = path.join("Contents/Resources").join(&icon_name);
+    let resources_dir = path.join("Contents/Resources");
+    let icon_path = resources_dir.join(&icon_name);
 
+    // First try the icon specified in Info.plist
     if icon_path.exists() {
-        // Convert .icns to base64 PNG
+        eprintln!("Found icon at: {:?}", icon_path);
         if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
             return Some(icon_data);
+        } else {
+            eprintln!("Failed to convert icon: {:?}", icon_path);
         }
     }
 
+    // Try common icon names if the specified one doesn't work
+    let common_icons = ["AppIcon.icns", "app.icns", "icon.icns", "application.icns"];
+    for icon_name in common_icons.iter() {
+        let test_path = resources_dir.join(icon_name);
+        if test_path.exists() && test_path != icon_path {
+            eprintln!("Trying common icon: {:?}", test_path);
+            if let Ok(icon_data) = convert_icns_to_png(&test_path) {
+                return Some(icon_data);
+            }
+        }
+    }
+
+    eprintln!("No suitable icon found for app: {}", app_path);
     None
 }
 
@@ -87,25 +107,47 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
 fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     use std::fs::File;
     use std::io::Cursor;
+    use base64::{Engine as _, engine::general_purpose};
+    use icns::{IconFamily, IconType};
 
     // Read the .icns file
     let file = File::open(icon_path)?;
-    let icon_family = icns::IconFamily::read(file)?;
+    let icon_family = IconFamily::read(file)
+        .map_err(|e| {
+            eprintln!("Failed to read icon family from {:?}: {}", icon_path, e);
+            e
+        })?;
+
+    eprintln!("Found and reading icon family: {:?}", icon_path);
 
     // Try to get the largest available icon (prefer 512x512 or 256x256)
-    let icon_type = icns::IconType::RGBA32_512x512_2x;
-    let image = if let Ok(img) = icon_family.get_icon_with_type(icon_type) {
-        img
-    } else if let Ok(img) = icon_family.get_icon_with_type(icns::IconType::RGBA32_512x512) {
-        img
-    } else if let Ok(img) = icon_family.get_icon_with_type(icns::IconType::RGBA32_256x256_2x) {
-        img
-    } else if let Ok(img) = icon_family.get_icon_with_type(icns::IconType::RGBA32_256x256) {
-        img
-    } else {
-        // Fall back to any available icon
-        return Err("No suitable icon found in .icns file".into());
-    };
+    let icon_types = [
+        IconType::RGBA32_512x512_2x,
+        IconType::RGBA32_512x512,
+        IconType::RGBA32_256x256_2x,
+        IconType::RGBA32_256x256,
+        IconType::RGBA32_128x128_2x,
+        IconType::RGBA32_128x128,
+        IconType::RGBA32_64x64,
+        IconType::RGBA32_32x32,
+        IconType::RGBA32_16x16,
+    ];
+
+    for icon_type in icon_types.iter() {
+        if let Ok(img) = icon_family.get_icon_with_type(*icon_type) {
+            eprintln!("Successfully extracted icon with type: {:?}", icon_type);
+            return convert_image_to_base64(img);
+        }
+    }
+
+    eprintln!("No suitable icon found in .icns file: {:?}", icon_path);
+    Err("No suitable icon found in .icns file".into())
+}
+
+#[cfg(target_os = "macos")]
+fn convert_image_to_base64(image: icns::Image) -> Result<String, Box<dyn std::error::Error>> {
+    use std::io::Cursor;
+    use base64::{Engine as _, engine::general_purpose};
 
     // Convert to PNG and encode as base64
     let mut png_data = Vec::new();
@@ -113,7 +155,7 @@ fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::E
 
     image.write_png(&mut cursor)?;
 
-    let base64_str = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &png_data);
+    let base64_str = general_purpose::STANDARD.encode(&png_data);
     Ok(format!("data:image/png;base64,{}", base64_str))
 }
 
