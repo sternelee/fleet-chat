@@ -1,9 +1,9 @@
 [package]
 name = "fleet-lit"
-version = "0.0.0"
+version = "0.0.1"
 description = "Experimental Fleet / Trae UI built with Tauri and Lit web components."
-authors = ["Aris Ripandi <aris@duck.com>"]
-repository = "https://github.com/riipandi/fleet-chat"
+authors = ["sternelee <sternelee@gmail.com>"]
+repository = "https://github.com/sternelee/fleet-chat"
 license = "MIT or Apache-2.0"
 rust-version = "1.80"
 edition = "2021"

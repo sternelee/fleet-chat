@@ -29,21 +29,17 @@ pub struct SearchResult {
 #[cfg(target_os = "macos")]
 fn extract_app_icon(app_path: &str) -> Option<String> {
     use std::fs;
-    
-    eprintln!("Extracting icon for app: {}", app_path);
 
     // macOS app bundles have structure: AppName.app/Contents/Resources/AppIcon.icns
     let path = Path::new(app_path);
 
     // Check if this is an app bundle
     if !app_path.ends_with(".app") {
-        eprintln!("Not a .app bundle: {}", app_path);
         return None;
     }
 
     let resources_dir = path.join("Contents/Resources");
     if !resources_dir.exists() {
-        eprintln!("Resources directory not found: {:?}", resources_dir);
         return None;
     }
 
@@ -59,34 +55,23 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
         } else {
             resources_dir.join(format!("{}.icns", icon_name))
         };
-
-        eprintln!("Trying icon path: {:?}", icon_path);
         
         if icon_path.exists() {
-            eprintln!("Icon file exists, attempting conversion: {:?}", icon_path);
             if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
-                eprintln!("Successfully converted icon: {:?}", icon_path);
                 return Some(icon_data);
-            } else {
-                eprintln!("Failed to convert icon: {:?}", icon_path);
             }
-        } else {
-            eprintln!("Icon file not found: {:?}", icon_path);
         }
     }
 
-    // List all files in Resources directory for debugging
+    // List all files in Resources directory for additional icon files
     if let Ok(entries) = fs::read_dir(&resources_dir) {
-        eprintln!("Files in Resources directory:");
         for entry in entries.flatten() {
             let file_name = entry.file_name();
             if let Some(name_str) = file_name.to_str() {
                 if name_str.ends_with(".icns") {
-                    eprintln!("  Found ICNS file: {}", name_str);
                     // Try this file too
                     let icon_path = resources_dir.join(name_str);
                     if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
-                        eprintln!("Successfully converted fallback icon: {:?}", icon_path);
                         return Some(icon_data);
                     }
                 }
@@ -94,7 +79,6 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
         }
     }
 
-    eprintln!("No suitable icon found for app: {}", app_path);
     None
 }
 
@@ -107,13 +91,7 @@ fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::E
 
     // Read the .icns file
     let file = File::open(icon_path)?;
-    let icon_family = IconFamily::read(file)
-        .map_err(|e| {
-            eprintln!("Failed to read icon family from {:?}: {}", icon_path, e);
-            e
-        })?;
-
-    eprintln!("Found and reading icon family: {:?}", icon_path);
+    let icon_family = IconFamily::read(file)?;
 
     // Try to get the largest available icon (prefer 512x512 or 256x256)
     let icon_types = [
@@ -130,12 +108,10 @@ fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::E
 
     for icon_type in icon_types.iter() {
         if let Ok(img) = icon_family.get_icon_with_type(*icon_type) {
-            eprintln!("Successfully extracted icon with type: {:?}", icon_type);
             return convert_image_to_base64(img);
         }
     }
 
-    eprintln!("No suitable icon found in .icns file: {:?}", icon_path);
     Err("No suitable icon found in .icns file".into())
 }
 
@@ -188,24 +164,17 @@ pub async fn search_applications(query: String) -> Result<Vec<Application>, Stri
                 // Extract .app bundle path from executable path
                 // /Applications/WeChat.app/Contents/MacOS/WeChat -> /Applications/WeChat.app
                 if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
-                    format!("{}.app", &exe_path[..bundle_end + 4])
+                    // bundle_end points to the start of ".app/Contents/MacOS/"
+                    // We want to include the .app part but not the rest
+                    exe_path[..bundle_end + 4].to_string() // +4 to include ".app"
                 } else {
-                    exe_path.clone()
+                    exe_path
                 }
             } else {
-                exe_path.clone()
+                exe_path
             };
             
-            eprintln!("Processing app: {} with exe path: {}", app.name, exe_path);
-            eprintln!("Converted to bundle path: {}", app_bundle_path);
-            
             let icon_base64 = extract_app_icon(&app_bundle_path);
-            
-            if icon_base64.is_some() {
-                eprintln!("Successfully extracted icon for: {}", app.name);
-            } else {
-                eprintln!("Failed to extract icon for: {}", app.name);
-            }
 
             Application {
                 name: app.name.clone(),

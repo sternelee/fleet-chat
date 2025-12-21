@@ -1,16 +1,16 @@
 # 🦀 Fleet Lit Tauri
 
-[![GitHub Release](https://img.shields.io/github/v/release/riipandi/fleet-lit-tauri?logo=rust)](https://github.com/riipandi/fleet-lit-tauri/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/sternelee/fleet-lit-tauri?logo=rust)](https://github.com/sternelee/fleet-lit-tauri/releases)
 [![MSRV](https://img.shields.io/badge/rust-v1.80-orange.svg?logo=rust&label=Rust)](https://www.rust-lang.org)
 [![Tauri Version](https://img.shields.io/badge/tauri-v2.5-orange.svg?logo=tauri&label=Tauri)](https://tauri.app)
-[![Dependencies](https://deps.rs/repo/github/riipandi/fleet-lit-tauri/status.svg)](https://deps.rs/repo/github/riipandi/fleet-lit-tauri)
+[![Dependencies](https://deps.rs/repo/github/sternelee/fleet-lit-tauri/status.svg)](https://deps.rs/repo/github/sternelee/fleet-lit-tauri)
 
 > [!WARNING]
 > This project is experimental and may not be stable.
 
 Experimental Fleet / Trae UI built with Tauri and Lit web components.
 
-This project generated from [riipandi/tauri-start-lit](https://github.com/riipandi/tauri-start-lit).
+This project generated from [sternelee/tauri-start-lit](https://github.com/sternelee/tauri-start-lit).
 
 <img src="./assets/images/screenshot.png" alt="banner" width="100%" />
 
@@ -42,6 +42,7 @@ export GEMINI_API_KEY=your-gemini-api-key-here
 ```
 
 **Provider Selection Priority:**
+
 1. OpenAI (if `OPENAI_API_KEY` is set)
 2. Gemini (if `GEMINI_API_KEY` is set and OpenAI key not available)
 
@@ -56,7 +57,7 @@ You can also add these variables to a `.env` file in the root directory. See `.e
 > Warning: "Fleet Lit Tauri" is damaged and can't be opened.
 
 This warning is shown because the build is not signed. Run the following command
- to suppress this warning:
+to suppress this warning:
 
 ```sh
 xattr -r -d com.apple.quarantine "/Applications/Fleet Lit Tauri.app"
@@ -85,4 +86,4 @@ for more information.
 
 ---
 
-<sub>🤫 Psst! If you like my work you can support me via [GitHub sponsors](https://github.com/sponsors/riipandi).</sub>
+<sub>🤫 Psst! If you like my work you can support me via [GitHub sponsors](https://github.com/sponsors/sternelee).</sub>
