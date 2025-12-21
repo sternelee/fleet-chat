@@ -328,11 +328,22 @@ fn apply_data_patches(current: &mut HashMap<String, serde_json::Value>, patches:
         let path_parts: Vec<&str> = patch.path.trim_start_matches('/').split('/').collect();
 
         if path_parts.is_empty() || (path_parts.len() == 1 && path_parts[0].is_empty()) {
-            // Root path "/" - replace entire model
-            *current = match &patch.value {
-                serde_json::Value::Object(map) => map.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
-                _ => HashMap::new(),
-            };
+            // Root path "/" - merge or replace based on value type
+            match &patch.value {
+                serde_json::Value::Object(map) => {
+                    // Merge object properties into current model
+                    for (k, v) in map.iter() {
+                        current.insert(k.clone(), v.clone());
+                    }
+                }
+                _ => {
+                    // For non-object values at root, log warning and skip
+                    eprintln!(
+                        "Warning: Attempted to set non-object value at root path. Skipping patch with value: {:?}",
+                        patch.value
+                    );
+                }
+            }
         } else {
             // Navigate to the target and set value
             set_value_at_path(current, &path_parts, patch.value.clone());
