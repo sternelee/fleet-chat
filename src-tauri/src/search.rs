@@ -125,7 +125,7 @@ fn extract_app_icon(_app_path: &str) -> Option<String> {
 /// Search for applications installed on the system
 #[command]
 pub async fn search_applications(query: String) -> Result<Vec<Application>, String> {
-    use applications::{AppInfoContext, AppTrait};
+    use applications::{AppInfoContext, AppInfo, AppTrait};
 
     let query_lower = query.to_lowercase();
 
@@ -139,13 +139,16 @@ pub async fn search_applications(query: String) -> Result<Vec<Application>, Stri
     // Filter and map to our Application struct
     let mut results: Vec<Application> = apps
         .into_iter()
-        .filter(|app| app.get_name().to_lowercase().contains(&query_lower))
+        .filter(|app| app.name.to_lowercase().contains(&query_lower))
         .map(|app| {
-            let path_str = app.get_path().to_string_lossy().to_string();
+            let path_str = app.app_path_exe
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
             let icon_base64 = extract_app_icon(&path_str);
 
             Application {
-                name: app.get_name().clone(),
+                name: app.name.clone(),
                 path: path_str,
                 icon_path: None,
                 icon_base64,

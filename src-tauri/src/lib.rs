@@ -9,6 +9,7 @@ use axum_app::create_axum_app;
 use std::sync::Arc;
 use tauri::{async_runtime::Mutex, State};
 use tauri_axum::{LocalRequest, LocalResponse};
+use search::{search_applications, search_files, unified_search};
 
 struct AppState {
     router: Arc<Mutex<Router>>,

@@ -11,7 +11,6 @@ use uuid::Uuid;
 use super::provider::{AIProvider, ChatMessage as ProviderChatMessage, ChatRequest, Tool, ToolParameters};
 use super::schema::*;
 
-#[derive(Debug)]
 pub struct A2UIAgent {
     pub client: Client,
     pub provider: Arc<dyn AIProvider>,
@@ -19,6 +18,19 @@ pub struct A2UIAgent {
     pub tools: Vec<A2UITool>,
     pub schema_validator: JSONSchema,
     pub templates: A2UITemplates,
+}
+
+impl std::fmt::Debug for A2UIAgent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("A2UIAgent")
+            .field("client", &self.client)
+            .field("provider", &"<AIProvider>")
+            .field("sessions", &self.sessions)
+            .field("tools", &self.tools)
+            .field("schema_validator", &self.schema_validator)
+            .field("templates", &self.templates)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
