@@ -1,7 +1,7 @@
-import { css, html, LitElement } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import { css, html, LitElement } from "lit";
+import { customElement } from "lit/decorators.js";
 
-@customElement('page-not-found')
+@customElement("page-not-found")
 export class PageNotFound extends LitElement {
   render() {
     return html`
@@ -12,24 +12,22 @@ export class PageNotFound extends LitElement {
           Sorry, the page you are looking for doesn't exist or has been moved.
         </p>
         <div class="action-container">
-          <a href="/" class="back-button" @click=${this._handleHomeClick}>
-            Back to Home
-          </a>
+          <a href="/" class="back-button" @click=${this._handleHomeClick}> Back to Home </a>
         </div>
       </div>
-    `
+    `;
   }
 
   private _handleHomeClick(e: Event) {
-    e.preventDefault()
+    e.preventDefault();
     // Dispatch custom event to be listened by my-app
     this.dispatchEvent(
-      new CustomEvent('navigate', {
+      new CustomEvent("navigate", {
         bubbles: true,
         composed: true,
-        detail: { path: '/' },
+        detail: { path: "/" },
       }),
-    )
+    );
   }
 
   static styles = css`
@@ -107,11 +105,11 @@ export class PageNotFound extends LitElement {
         width: 100%;
       }
     }
-  `
+  `;
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'page-not-found': PageNotFound
+    "page-not-found": PageNotFound;
   }
 }

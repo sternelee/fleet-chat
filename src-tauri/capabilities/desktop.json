@@ -2,5 +2,15 @@
     "identifier": "desktop-capability",
     "platforms": ["macOS", "windows", "linux"],
     "windows": ["main"],
-    "permissions": ["updater:default"]
+    "permissions": [
+        "updater:default",
+        {
+            "identifier": "opener:allow-open-path",
+            "allow": [
+                {
+                    "path": "*/**"
+                }
+            ]
+        }
+    ]
 }

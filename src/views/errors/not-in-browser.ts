@@ -1,13 +1,23 @@
-import { css, html, LitElement } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import { css, html, LitElement } from "lit";
+import { customElement } from "lit/decorators.js";
 
-@customElement('error-browser')
+@customElement("error-browser")
 export class ErrorBrowser extends LitElement {
   render() {
     return html`
       <div class="browser-notice">
         <div class="icon-container">
-          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="64"
+            height="64"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -16,7 +26,17 @@ export class ErrorBrowser extends LitElement {
         <h2>Browser Not Supported</h2>
         <p>This application will not work in Browser.</p>
         <a href="fleet-lit://open" class="app-button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
             <polyline points="15 3 21 3 21 9"></polyline>
             <line x1="10" y1="14" x2="21" y2="3"></line>
@@ -24,7 +44,7 @@ export class ErrorBrowser extends LitElement {
           <span>Open the Fleet Lit Tauri</span>
         </a>
       </div>
-    `
+    `;
   }
 
   static styles = css`
@@ -46,8 +66,14 @@ export class ErrorBrowser extends LitElement {
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .icon-container {
@@ -96,11 +122,11 @@ export class ErrorBrowser extends LitElement {
     .app-button:active {
       transform: translateY(0);
     }
-  `
+  `;
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'error-browser': ErrorBrowser
+    "error-browser": ErrorBrowser;
   }
 }

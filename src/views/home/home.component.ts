@@ -1,14 +1,14 @@
-import { invoke } from '@tauri-apps/api/core'
-import { css, html, LitElement } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
-import tauriLogo from '~/assets/images/tauri.svg'
-import typescriptLogo from '~/assets/images/typescript.svg'
-import viteLogo from '~/assets/images/vite.svg'
+import { invoke } from "@tauri-apps/api/core";
+import { css, html, LitElement } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import tauriLogo from "~/assets/images/tauri.svg";
+import typescriptLogo from "~/assets/images/typescript.svg";
+import viteLogo from "~/assets/images/vite.svg";
 
-@customElement('view-home')
+@customElement("view-home")
 export class ViewHome extends LitElement {
-  @state() private greetMsg = ''
-  @state() private inputValue = ''
+  @state() private greetMsg = "";
+  @state() private inputValue = "";
 
   render() {
     return html`
@@ -21,11 +21,7 @@ export class ViewHome extends LitElement {
             <img src=${tauriLogo} class="logo tauri" alt="Tauri logo" />
           </a>
           <a href="https://www.typescriptlang.org/docs" target="_blank" class="logo-link">
-            <img
-              src=${typescriptLogo}
-              class="logo typescript"
-              alt="typescript logo"
-            />
+            <img src=${typescriptLogo} class="logo typescript" alt="typescript logo" />
           </a>
         </div>
 
@@ -44,30 +40,25 @@ export class ViewHome extends LitElement {
             @input=${this._handleInput}
             class="input"
           />
-          <my-button
-            size="medium"
-            variant="primary"
-            @:click=${this._greet}
-            part="button"
-          >
+          <my-button size="medium" variant="primary" @:click=${this._greet} part="button">
             Greet
           </my-button>
         </div>
 
         <p id="greet-msg" class="greet-message">${this.greetMsg}</p>
       </div>
-    `
+    `;
   }
 
   private _handleInput(e: Event) {
-    this.inputValue = (e.target as HTMLInputElement).value
+    this.inputValue = (e.target as HTMLInputElement).value;
   }
 
   private async _greet() {
     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    this.greetMsg = await invoke('greet', {
+    this.greetMsg = await invoke("greet", {
       name: this.inputValue,
-    })
+    });
   }
 
   static styles = css`
@@ -200,11 +191,11 @@ export class ViewHome extends LitElement {
         flex-direction: column;
       }
     }
-  `
+  `;
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'view-home': ViewHome
+    "view-home": ViewHome;
   }
 }

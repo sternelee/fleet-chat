@@ -1,36 +1,37 @@
-import { invoke } from '@tauri-apps/api/core'
-import { css, html, LitElement } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
-import { classMap } from 'lit/directives/class-map.js'
+import { invoke } from "@tauri-apps/api/core";
+import { css, html, LitElement } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 
 interface Application {
-  name: string
-  path: string
-  icon_path?: string
-  icon_base64?: string
+  name: string;
+  path: string;
+  icon_path?: string;
+  icon_base64?: string;
 }
 
 interface FileMatch {
-  path: string
-  line_number?: number
-  line_content?: string
-  match_type: string
+  path: string;
+  line_number?: number;
+  line_content?: string;
+  match_type: string;
 }
 
 interface SearchResult {
-  applications: Application[]
-  files: FileMatch[]
+  applications: Application[];
+  files: FileMatch[];
 }
 
-@customElement('view-search')
+@customElement("view-search")
 export class ViewSearch extends LitElement {
-  @state() private query = ''
-  @state() private results: SearchResult = { applications: [], files: [] }
-  @state() private loading = false
-  @state() private selectedIndex = 0
-  @state() private searchMode: 'all' | 'apps' | 'files' = 'all'
+  @state() private query = "";
+  @state() private results: SearchResult = { applications: [], files: [] };
+  @state() private loading = false;
+  @state() private selectedIndex = 0;
+  @state() private searchMode: "all" | "apps" | "files" = "all";
 
-  private searchDebounceTimer: number | null = null
+  private searchDebounceTimer: number | null = null;
 
   static styles = css`
     :host {
@@ -214,14 +215,14 @@ export class ViewSearch extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-family: 'Monaco', 'Menlo', monospace;
+      font-family: "Monaco", "Menlo", monospace;
     }
 
     .result-line {
       font-size: 12px;
       color: #9ca3af;
       margin-top: 4px;
-      font-family: 'Monaco', 'Menlo', monospace;
+      font-family: "Monaco", "Menlo", monospace;
     }
 
     .result-badge {
@@ -280,18 +281,18 @@ export class ViewSearch extends LitElement {
       background: white;
       border: 1px solid #e5e7eb;
       border-radius: 4px;
-      font-family: 'Monaco', 'Menlo', monospace;
+      font-family: "Monaco", "Menlo", monospace;
       font-size: 12px;
       margin: 0 2px;
     }
-  `
+  `;
 
   render() {
     return html`
       <div class="search-container">
         <div class="search-header">
           <h1 class="search-title">🔍 Search</h1>
-          
+
           <div class="search-input-wrapper">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -314,20 +315,20 @@ export class ViewSearch extends LitElement {
 
           <div class="search-filters">
             <button
-              class=${classMap({ 'filter-btn': true, active: this.searchMode === 'all' })}
-              @click=${() => this._setSearchMode('all')}
+              class=${classMap({ "filter-btn": true, active: this.searchMode === "all" })}
+              @click=${() => this._setSearchMode("all")}
             >
               All
             </button>
             <button
-              class=${classMap({ 'filter-btn': true, active: this.searchMode === 'apps' })}
-              @click=${() => this._setSearchMode('apps')}
+              class=${classMap({ "filter-btn": true, active: this.searchMode === "apps" })}
+              @click=${() => this._setSearchMode("apps")}
             >
               Applications
             </button>
             <button
-              class=${classMap({ 'filter-btn': true, active: this.searchMode === 'files' })}
-              @click=${() => this._setSearchMode('files')}
+              class=${classMap({ "filter-btn": true, active: this.searchMode === "files" })}
+              @click=${() => this._setSearchMode("files")}
             >
               Files
             </button>
@@ -338,11 +339,10 @@ export class ViewSearch extends LitElement {
 
         <div class="keyboard-hint">
           <kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd> to navigate •
-          <kbd class="kbd">↵</kbd> to open •
-          <kbd class="kbd">Esc</kbd> to clear
+          <kbd class="kbd">↵</kbd> to open • <kbd class="kbd">Esc</kbd> to clear
         </div>
       </div>
-    `
+    `;
   }
 
   private _renderResults() {
@@ -352,7 +352,7 @@ export class ViewSearch extends LitElement {
           <div class="empty-icon">⏳</div>
           <div class="empty-text">Searching...</div>
         </div>
-      `
+      `;
     }
 
     if (!this.query) {
@@ -361,11 +361,10 @@ export class ViewSearch extends LitElement {
           <div class="empty-icon">🔍</div>
           <div class="empty-text">Type to search for applications and files</div>
         </div>
-      `
+      `;
     }
 
-    const hasResults =
-      this.results.applications.length > 0 || this.results.files.length > 0
+    const hasResults = this.results.applications.length > 0 || this.results.files.length > 0;
 
     if (!hasResults) {
       return html`
@@ -373,34 +372,30 @@ export class ViewSearch extends LitElement {
           <div class="empty-icon">😔</div>
           <div class="empty-text">No results found for "${this.query}"</div>
         </div>
-      `
+      `;
     }
 
     return html`
-      <div class="results-container">
-        ${this._renderApplications()} ${this._renderFiles()}
-      </div>
-    `
+      <div class="results-container">${this._renderApplications()} ${this._renderFiles()}</div>
+    `;
   }
 
   private _renderApplications() {
-    if (this.searchMode === 'files' || this.results.applications.length === 0) {
-      return null
+    if (this.searchMode === "files" || this.results.applications.length === 0) {
+      return null;
     }
 
     return html`
       <div class="results-section">
         <h3 class="section-title">Applications</h3>
-        ${this.results.applications.map((app, index) =>
-          this._renderApplicationItem(app, index),
-        )}
+        ${this.results.applications.map((app, index) => this._renderApplicationItem(app, index))}
       </div>
-    `
+    `;
   }
 
   private _renderFiles() {
-    if (this.searchMode === 'apps' || this.results.files.length === 0) {
-      return null
+    if (this.searchMode === "apps" || this.results.files.length === 0) {
+      return null;
     }
 
     return html`
@@ -410,18 +405,18 @@ export class ViewSearch extends LitElement {
           this._renderFileItem(file, this.results.applications.length + index),
         )}
       </div>
-    `
+    `;
   }
 
   private _renderApplicationItem(app: Application, index: number) {
-    const isSelected = index === this.selectedIndex
+    const isSelected = index === this.selectedIndex;
     const iconContent = app.icon_base64
       ? html`<img src="${app.icon_base64}" alt="${app.name}" />`
-      : html`${app.name.charAt(0).toUpperCase()}`
-    
+      : html`${app.name.charAt(0).toUpperCase()}`;
+
     return html`
       <div
-        class=${classMap({ 'result-item': true, selected: isSelected })}
+        class=${classMap({ "result-item": true, selected: isSelected })}
         @click=${() => this._openApplication(app)}
       >
         <div class="result-icon">${iconContent}</div>
@@ -431,14 +426,14 @@ export class ViewSearch extends LitElement {
         </div>
         <span class="result-badge badge-app">App</span>
       </div>
-    `
+    `;
   }
 
   private _renderFileItem(file: FileMatch, index: number) {
-    const isSelected = index === this.selectedIndex
+    const isSelected = index === this.selectedIndex;
     return html`
       <div
-        class=${classMap({ 'result-item': true, selected: isSelected })}
+        class=${classMap({ "result-item": true, selected: isSelected })}
         @click=${() => this._openFile(file)}
       >
         <div class="result-icon">📄</div>
@@ -446,109 +441,107 @@ export class ViewSearch extends LitElement {
           <div class="result-title">${this._getFileName(file.path)}</div>
           <div class="result-path">${file.path}</div>
           ${file.line_content
-            ? html`<div class="result-line">
-                Line ${file.line_number}: ${file.line_content}
-              </div>`
+            ? html`<div class="result-line">Line ${file.line_number}: ${file.line_content}</div>`
             : null}
         </div>
         <span class="result-badge badge-file">File</span>
       </div>
-    `
+    `;
   }
 
   private _getFileName(path: string): string {
-    return path.split('/').pop() || path
+    return path.split("/").pop() || path;
   }
 
   private async _handleInput(e: Event) {
-    const target = e.target as HTMLInputElement
-    this.query = target.value
+    const target = e.target as HTMLInputElement;
+    this.query = target.value;
 
     // Clear previous timer
     if (this.searchDebounceTimer) {
-      clearTimeout(this.searchDebounceTimer)
+      clearTimeout(this.searchDebounceTimer);
     }
 
     // Debounce search
     this.searchDebounceTimer = window.setTimeout(() => {
-      this._performSearch()
-    }, 300)
+      this._performSearch();
+    }, 300);
   }
 
   private async _performSearch() {
     if (!this.query.trim()) {
-      this.results = { applications: [], files: [] }
-      this.selectedIndex = 0
-      return
+      this.results = { applications: [], files: [] };
+      this.selectedIndex = 0;
+      return;
     }
 
-    this.loading = true
+    this.loading = true;
 
     try {
-      const includeFiles = this.searchMode === 'all' || this.searchMode === 'files'
-      const result = await invoke<SearchResult>('unified_search', {
+      const includeFiles = this.searchMode === "all" || this.searchMode === "files";
+      const result = await invoke<SearchResult>("unified_search", {
         query: this.query,
         searchPath: null,
         includeFiles,
-      })
+      });
 
       // Filter results based on search mode
-      if (this.searchMode === 'apps') {
-        this.results = { applications: result.applications, files: [] }
-      } else if (this.searchMode === 'files') {
-        this.results = { applications: [], files: result.files }
+      if (this.searchMode === "apps") {
+        this.results = { applications: result.applications, files: [] };
+      } else if (this.searchMode === "files") {
+        this.results = { applications: [], files: result.files };
       } else {
-        this.results = result
+        this.results = result;
       }
 
-      this.selectedIndex = 0
+      this.selectedIndex = 0;
     } catch (error) {
-      console.error('Search error:', error)
-      this.results = { applications: [], files: [] }
+      console.error("Search error:", error);
+      this.results = { applications: [], files: [] };
     } finally {
-      this.loading = false
+      this.loading = false;
     }
   }
 
-  private _setSearchMode(mode: 'all' | 'apps' | 'files') {
-    this.searchMode = mode
-    this._performSearch()
+  private _setSearchMode(mode: "all" | "apps" | "files") {
+    this.searchMode = mode;
+    this._performSearch();
   }
 
   private _handleKeyDown(e: KeyboardEvent) {
-    const totalResults = this.results.applications.length + this.results.files.length
+    const totalResults = this.results.applications.length + this.results.files.length;
 
     switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        this.selectedIndex = Math.min(this.selectedIndex + 1, totalResults - 1)
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        this.selectedIndex = Math.max(this.selectedIndex - 1, 0)
-        break
-      case 'Enter':
-        e.preventDefault()
-        this._openSelected()
-        break
-      case 'Escape':
-        e.preventDefault()
-        this.query = ''
-        this.results = { applications: [], files: [] }
-        this.selectedIndex = 0
-        break
+      case "ArrowDown":
+        e.preventDefault();
+        this.selectedIndex = Math.min(this.selectedIndex + 1, totalResults - 1);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+        break;
+      case "Enter":
+        e.preventDefault();
+        this._openSelected();
+        break;
+      case "Escape":
+        e.preventDefault();
+        this.query = "";
+        this.results = { applications: [], files: [] };
+        this.selectedIndex = 0;
+        break;
     }
   }
 
   private _openSelected() {
     if (this.selectedIndex < this.results.applications.length) {
-      const app = this.results.applications[this.selectedIndex]
-      this._openApplication(app)
+      const app = this.results.applications[this.selectedIndex];
+      this._openApplication(app);
     } else {
-      const fileIndex = this.selectedIndex - this.results.applications.length
+      const fileIndex = this.selectedIndex - this.results.applications.length;
       if (fileIndex < this.results.files.length) {
-        const file = this.results.files[fileIndex]
-        this._openFile(file)
+        const file = this.results.files[fileIndex];
+        this._openFile(file);
       }
     }
   }
@@ -556,28 +549,26 @@ export class ViewSearch extends LitElement {
   private async _openApplication(app: Application) {
     try {
       // Use Tauri opener plugin to launch the application
-      const { open } = await import('@tauri-apps/plugin-opener')
-      await open(app.path)
-      console.log('Opened application:', app.name)
+      await openPath(app.path);
+      console.log("Opened application:", app.name);
     } catch (error) {
-      console.error('Failed to open application:', error)
+      console.error("Failed to open application:", error);
     }
   }
 
   private async _openFile(file: FileMatch) {
     try {
       // Use Tauri opener plugin to open the file with default application
-      const { open } = await import('@tauri-apps/plugin-opener')
-      await open(file.path)
-      console.log('Opened file:', file.path)
+      await openPath(file.path);
+      console.log("Opened file:", file.path);
     } catch (error) {
-      console.error('Failed to open file:', error)
+      console.error("Failed to open file:", error);
     }
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'view-search': ViewSearch
+    "view-search": ViewSearch;
   }
 }
