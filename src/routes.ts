@@ -1,57 +1,56 @@
-import { Routes } from '@lit-labs/router'
-import { css, html, LitElement } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import { Routes } from "@lit-labs/router";
+import { css, html, LitElement } from "lit";
+import { customElement } from "lit/decorators.js";
 
 // Polyfills URLPattern to handle better borwsers compatibility.
 // @see: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern#browser_compatibility
 // @ts-expect-error: Property 'UrlPattern' does not exist
-import 'urlpattern-polyfill'
+import "urlpattern-polyfill";
 
-@customElement('my-app')
+@customElement("my-app")
 export class MyApp extends LitElement {
   private _routes = new Routes(
     this,
     [
       {
-        path: '/',
-        render: () =>
-          html`
-            <root-layout @navigate=${this._onNavigate}>
-              <view-home></view-home>
-            </root-layout>
-          `,
+        path: "/",
+        render: () => html`
+          <root-layout @navigate=${this._onNavigate}>
+            <view-home></view-home>
+          </root-layout>
+        `,
       },
       {
-        path: '/search',
+        path: "/search",
         render: () => html`
-					<root-layout @navigate=${this._onNavigate}>
-						<view-search></view-search>
-					</root-layout>
-				`,
+          <root-layout @navigate=${this._onNavigate}>
+            <view-search></view-search>
+          </root-layout>
+        `,
       },
       {
-        path: '/projects',
+        path: "/projects",
         render: () => html`
-					<root-layout @navigate=${this._onNavigate}>
-						<h1>Projects</h1>
-					</root-layout>
-				`,
+          <root-layout @navigate=${this._onNavigate}>
+            <h1>Projects</h1>
+          </root-layout>
+        `,
       },
       {
-        path: '/about',
+        path: "/about",
         render: () => html`
-					<root-layout @navigate=${this._onNavigate}>
-						<h1>About</h1>
-					</root-layout>
-				`,
+          <root-layout @navigate=${this._onNavigate}>
+            <h1>About</h1>
+          </root-layout>
+        `,
       },
       {
-        path: '/chat',
+        path: "/chat",
         render: () => html`
-					<root-layout @navigate=${this._onNavigate}>
-						<a2ui-chat></a2ui-chat>
-					</root-layout>
-				`,
+          <root-layout @navigate=${this._onNavigate}>
+            <a2ui-chat></a2ui-chat>
+          </root-layout>
+        `,
       },
     ],
     {
@@ -59,41 +58,41 @@ export class MyApp extends LitElement {
         render: () => html` <page-not-found @navigate=${this._onNavigate}></page-not-found>`,
       },
     },
-  )
+  );
 
   render() {
     // Make sure the app is only rendered in Tauri environment.
     // If __TAURI__ doesn't exist, render the error browser view.
-    return import.meta.env.PROD && !('__TAURI__' in window)
+    return import.meta.env.PROD && !("__TAURI__" in window)
       ? html`<error-browser></error-browser>`
-      : this._routes.outlet()
+      : this._routes.outlet();
   }
 
   private _onNavigate(e: CustomEvent) {
-    const path = e.detail.path
-    this._routes.goto(path)
-    window.history.pushState(null, '', path)
+    const path = e.detail.path;
+    this._routes.goto(path);
+    window.history.pushState(null, "", path);
   }
 
   connectedCallback() {
-    super.connectedCallback()
+    super.connectedCallback();
 
     // Handle the back/forward browser navigation
-    window.addEventListener('popstate', () => this.requestUpdate())
+    window.addEventListener("popstate", () => this.requestUpdate());
 
     // Make sure the initial route is correctly rendered.
     // If the URL is currently empty or /, point to the home route.
-    if (window.location.pathname === '/' || window.location.pathname === '') {
-      this._routes.goto('/chat')
+    if (window.location.pathname === "/" || window.location.pathname === "") {
+      this._routes.goto("/search");
     } else {
       // If other urls, navigate to the URL
-      this._routes.goto(window.location.pathname)
+      this._routes.goto(window.location.pathname);
     }
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback()
-    window.removeEventListener('popstate', () => this.requestUpdate())
+    super.disconnectedCallback();
+    window.removeEventListener("popstate", () => this.requestUpdate());
   }
 
   static styles = css`
@@ -104,11 +103,11 @@ export class MyApp extends LitElement {
       color: var(--color-foreground);
       font-family: var(--font-sans);
     }
-  `
+  `;
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'my-app': MyApp
+    "my-app": MyApp;
   }
 }

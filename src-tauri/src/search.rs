@@ -29,72 +29,67 @@ pub struct SearchResult {
 #[cfg(target_os = "macos")]
 fn extract_app_icon(app_path: &str) -> Option<String> {
     use std::fs;
-    use base64::{Engine as _, engine::general_purpose};
-    use std::io::Cursor;
-    use icns::{IconFamily, IconType};
+    
+    eprintln!("Extracting icon for app: {}", app_path);
 
     // macOS app bundles have structure: AppName.app/Contents/Resources/AppIcon.icns
     let path = Path::new(app_path);
 
     // Check if this is an app bundle
     if !app_path.ends_with(".app") {
+        eprintln!("Not a .app bundle: {}", app_path);
         return None;
     }
 
-    // Look for Info.plist to get the icon file name
-    let info_plist = path.join("Contents/Info.plist");
-    if !info_plist.exists() {
-        return None;
-    }
-
-    // Try to read the plist and extract icon file name
-    let icon_file = if let Ok(content) = fs::read_to_string(&info_plist) {
-        // Simple parsing - look for CFBundleIconFile
-        content
-            .lines()
-            .skip_while(|line| !line.contains("CFBundleIconFile"))
-            .nth(1)
-            .and_then(|line| {
-                line.trim()
-                    .trim_start_matches("<string>")
-                    .trim_end_matches("</string>")
-                    .trim()
-                    .to_string()
-                    .into()
-            })
-    } else {
-        None
-    };
-
-    let icon_name = icon_file.unwrap_or_else(|| "AppIcon".to_string());
-    let icon_name = if icon_name.ends_with(".icns") {
-        icon_name
-    } else {
-        format!("{}.icns", icon_name)
-    };
-
-    // Try to find the icon file
     let resources_dir = path.join("Contents/Resources");
-    let icon_path = resources_dir.join(&icon_name);
+    if !resources_dir.exists() {
+        eprintln!("Resources directory not found: {:?}", resources_dir);
+        return None;
+    }
 
-    // First try the icon specified in Info.plist
-    if icon_path.exists() {
-        eprintln!("Found icon at: {:?}", icon_path);
-        if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
-            return Some(icon_data);
+    // Try common icon names
+    let common_icons = [
+        "AppIcon.icns", "app.icns", "icon.icns", "application.icns",
+        "AppIcon", "app", "icon", "application"
+    ];
+
+    for icon_name in common_icons.iter() {
+        let icon_path = if icon_name.ends_with(".icns") {
+            resources_dir.join(icon_name)
         } else {
-            eprintln!("Failed to convert icon: {:?}", icon_path);
+            resources_dir.join(format!("{}.icns", icon_name))
+        };
+
+        eprintln!("Trying icon path: {:?}", icon_path);
+        
+        if icon_path.exists() {
+            eprintln!("Icon file exists, attempting conversion: {:?}", icon_path);
+            if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
+                eprintln!("Successfully converted icon: {:?}", icon_path);
+                return Some(icon_data);
+            } else {
+                eprintln!("Failed to convert icon: {:?}", icon_path);
+            }
+        } else {
+            eprintln!("Icon file not found: {:?}", icon_path);
         }
     }
 
-    // Try common icon names if the specified one doesn't work
-    let common_icons = ["AppIcon.icns", "app.icns", "icon.icns", "application.icns"];
-    for icon_name in common_icons.iter() {
-        let test_path = resources_dir.join(icon_name);
-        if test_path.exists() && test_path != icon_path {
-            eprintln!("Trying common icon: {:?}", test_path);
-            if let Ok(icon_data) = convert_icns_to_png(&test_path) {
-                return Some(icon_data);
+    // List all files in Resources directory for debugging
+    if let Ok(entries) = fs::read_dir(&resources_dir) {
+        eprintln!("Files in Resources directory:");
+        for entry in entries.flatten() {
+            let file_name = entry.file_name();
+            if let Some(name_str) = file_name.to_str() {
+                if name_str.ends_with(".icns") {
+                    eprintln!("  Found ICNS file: {}", name_str);
+                    // Try this file too
+                    let icon_path = resources_dir.join(name_str);
+                    if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
+                        eprintln!("Successfully converted fallback icon: {:?}", icon_path);
+                        return Some(icon_data);
+                    }
+                }
             }
         }
     }
@@ -183,15 +178,38 @@ pub async fn search_applications(query: String) -> Result<Vec<Application>, Stri
         .into_iter()
         .filter(|app| app.name.to_lowercase().contains(&query_lower))
         .map(|app| {
-            let path_str = app.app_path_exe
+            let exe_path = app.app_path_exe
                 .as_ref()
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_else(|| "Unknown".to_string());
-            let icon_base64 = extract_app_icon(&path_str);
+            
+            // Convert executable path to .app bundle root path
+            let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
+                // Extract .app bundle path from executable path
+                // /Applications/WeChat.app/Contents/MacOS/WeChat -> /Applications/WeChat.app
+                if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
+                    format!("{}.app", &exe_path[..bundle_end + 4])
+                } else {
+                    exe_path.clone()
+                }
+            } else {
+                exe_path.clone()
+            };
+            
+            eprintln!("Processing app: {} with exe path: {}", app.name, exe_path);
+            eprintln!("Converted to bundle path: {}", app_bundle_path);
+            
+            let icon_base64 = extract_app_icon(&app_bundle_path);
+            
+            if icon_base64.is_some() {
+                eprintln!("Successfully extracted icon for: {}", app.name);
+            } else {
+                eprintln!("Failed to extract icon for: {}", app.name);
+            }
 
             Application {
                 name: app.name.clone(),
-                path: path_str,
+                path: app_bundle_path,
                 icon_path: None,
                 icon_base64,
             }
