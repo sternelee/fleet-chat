@@ -28,6 +28,9 @@ tauri = { version = "2", features = [
   "macos-private-api",
   "tray-icon",
   "devtools",
+  "protocol-asset",
+  "image-ico",
+  "image-png",
 ] }
 tauri-plugin-dialog = "2"
 tauri-plugin-http = "2"
