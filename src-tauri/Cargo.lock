@@ -1754,7 +1754,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "fleet-lit"
+name = "fleet-chat"
 version = "0.0.1"
 dependencies = [
  "applications",

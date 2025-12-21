@@ -11,8 +11,8 @@
                 <string>com.ripandis.fleet-chat</string>
                 <key>CFBundleURLSchemes</key>
                 <array>
-                    <!-- Register deep link: fleet-lit:// -->
-                    <string>fleet-lit</string>
+                    <!-- Register deep link: fleet-chat:// -->
+                    <string>fleet-chat</string>
                 </array>
             </dict>
         </array>

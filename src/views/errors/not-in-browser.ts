@@ -25,7 +25,7 @@ export class ErrorBrowser extends LitElement {
         </div>
         <h2>Browser Not Supported</h2>
         <p>This application will not work in Browser.</p>
-        <a href="fleet-lit://open" class="app-button">
+        <a href="fleet-chat://open" class="app-button">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"

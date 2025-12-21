@@ -1,5 +1,5 @@
 [package]
-name = "fleet-lit"
+name = "fleet-chat"
 version = "0.0.1"
 description = "Experimental Fleet / Trae UI built with Tauri and Lit web components."
 authors = ["sternelee <sternelee@gmail.com>"]
