@@ -4,7 +4,6 @@ import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { animate, fadeIn, slideDown } from "@lit-labs/motion";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 
 interface Application {
@@ -50,16 +49,16 @@ export class ViewSearch extends LitElement {
   }
 
   private _addGlobalKeyListeners() {
-    document.addEventListener('keydown', this._globalKeyHandler);
+    document.addEventListener("keydown", this._globalKeyHandler);
   }
 
   private _removeGlobalKeyListeners() {
-    document.removeEventListener('keydown', this._globalKeyHandler);
+    document.removeEventListener("keydown", this._globalKeyHandler);
   }
 
   private _globalKeyHandler = (e: KeyboardEvent) => {
     // Handle Cmd/Ctrl + K globally
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
       e.preventDefault();
       this._toggleVisibility();
     }
@@ -114,8 +113,9 @@ export class ViewSearch extends LitElement {
     .search-input-wrapper:focus-within {
       background: rgba(255, 255, 255, 0.12);
       border-color: rgba(102, 126, 234, 0.5);
-      box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.3),
-                  0 8px 32px rgba(0, 0, 0, 0.12);
+      box-shadow:
+        0 0 0 1px rgba(102, 126, 234, 0.3),
+        0 8px 32px rgba(0, 0, 0, 0.12);
     }
 
     .search-input-wrapper {
@@ -141,7 +141,7 @@ export class ViewSearch extends LitElement {
       color: rgba(255, 255, 255, 0.9);
       border: none;
       outline: none;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-weight: 400;
     }
 
@@ -165,7 +165,7 @@ export class ViewSearch extends LitElement {
       font-size: 12px;
       font-weight: 500;
       transition: all 0.15s ease;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     .filter-btn:hover {
@@ -229,7 +229,7 @@ export class ViewSearch extends LitElement {
     }
 
     .result-item::before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 0;
@@ -306,14 +306,14 @@ export class ViewSearch extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+      font-family: "SF Mono", "Monaco", "Menlo", monospace;
     }
 
     .result-line {
       font-size: 11px;
       color: rgba(255, 255, 255, 0.4);
       margin-top: 2px;
-      font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+      font-family: "SF Mono", "Monaco", "Menlo", monospace;
     }
 
     .result-badge {
@@ -377,7 +377,7 @@ export class ViewSearch extends LitElement {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 4px;
-      font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+      font-family: "SF Mono", "Monaco", "Menlo", monospace;
       font-size: 10px;
       margin: 0 2px;
       color: rgba(255, 255, 255, 0.8);
@@ -402,6 +402,10 @@ export class ViewSearch extends LitElement {
     }
 
     /* Animation classes */
+    .results-wrapper {
+      animation: fadeIn 0.2s ease-out;
+    }
+
     .fade-in {
       animation: fadeIn 0.2s ease-out;
     }
@@ -425,6 +429,22 @@ export class ViewSearch extends LitElement {
       from {
         opacity: 0;
         transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .result-item {
+      animation: slideIn 0.3s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
       }
       to {
         opacity: 1;
@@ -481,7 +501,7 @@ export class ViewSearch extends LitElement {
           </div>
         </div>
 
-        ${animate(this._renderResults(), fadeIn)}
+        <div class="results-wrapper">${this._renderResults()}</div>
 
         ${this._renderKeyboardHint()}
       </div>
@@ -504,9 +524,7 @@ export class ViewSearch extends LitElement {
           <div class="empty-state">
             <div class="empty-icon">🔍</div>
             <div class="empty-text">Type to search for applications and files</div>
-            <div class="keyboard-hint">
-              Press <kbd class="kbd">⌘K</kbd> to toggle search
-            </div>
+            <div class="keyboard-hint">Press <kbd class="kbd">⌘K</kbd> to toggle search</div>
           </div>
         </div>
       `;
@@ -517,8 +535,10 @@ export class ViewSearch extends LitElement {
         <div class="results-container">
           <div class="results-section">
             <h3 class="section-title">Recent Searches</h3>
-            ${repeat(this.recentSearches, (search) => search, (search, index) =>
-              html`
+            ${repeat(
+              this.recentSearches,
+              (search) => search,
+              (search, index) => html`
                 <div
                   class="result-item"
                   @click=${() => this._selectRecentSearch(search)}
@@ -529,7 +549,7 @@ export class ViewSearch extends LitElement {
                     <div class="result-title">${search}</div>
                   </div>
                 </div>
-              `
+              `,
             )}
           </div>
         </div>
@@ -550,9 +570,7 @@ export class ViewSearch extends LitElement {
     }
 
     return html`
-      <div class="results-container">
-        ${this._renderApplications()} ${this._renderFiles()}
-      </div>
+      <div class="results-container">${this._renderApplications()} ${this._renderFiles()}</div>
     `;
   }
 
@@ -688,7 +706,7 @@ export class ViewSearch extends LitElement {
     const totalResults = this.results.applications.length + this.results.files.length;
 
     // Handle keyboard shortcuts
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
       e.preventDefault();
       this._toggleVisibility();
       return;
@@ -730,16 +748,6 @@ export class ViewSearch extends LitElement {
         const file = this.results.files[fileIndex];
         this._openFile(file);
       }
-    }
-  }
-
-  private async _openApplication(app: Application) {
-    try {
-      // Use Tauri opener plugin to launch the application
-      await openPath(app.path);
-      console.log("Opened application:", app.name);
-    } catch (error) {
-      console.error("Failed to open application:", error);
     }
   }
 
@@ -797,7 +805,7 @@ export class ViewSearch extends LitElement {
       this.selectedIndex = 0;
       // Focus the input after a short delay
       setTimeout(() => {
-        const input = this.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+        const input = this.shadowRoot?.querySelector(".search-input") as HTMLInputElement;
         if (input) {
           input.focus();
         }
@@ -807,13 +815,13 @@ export class ViewSearch extends LitElement {
 
   private _addToRecentSearches(query: string) {
     if (!query.trim()) return;
-    
+
     // Remove if already exists
-    this.recentSearches = this.recentSearches.filter(search => search !== query);
-    
+    this.recentSearches = this.recentSearches.filter((search) => search !== query);
+
     // Add to beginning
     this.recentSearches.unshift(query);
-    
+
     // Keep only last 5 searches
     this.recentSearches = this.recentSearches.slice(0, 5);
   }
@@ -829,8 +837,8 @@ export class ViewSearch extends LitElement {
 
   private _formatPath(path: string): string {
     // Shorten path for better display
-    if (path.startsWith('/Users/')) {
-      return path.replace('/Users/', '~/');
+    if (path.startsWith("/Users/")) {
+      return path.replace("/Users/", "~/");
     }
     return path;
   }
