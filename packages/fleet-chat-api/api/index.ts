@@ -8,32 +8,29 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getApplications } from "./applications.js";
 
-// Navigation functions
-export function useNavigation() {
-  return {
-    push: async (component: any) => {
-      await invoke("push_navigation", { component });
-    },
-    pop: async () => {
-      await invoke("pop_navigation");
-    },
-    popToRoot: async (type?: "immediate" | "animated") => {
-      await invoke("pop_to_root", { type: type || "immediate" });
-    },
-  };
-}
-
-export async function push(component: any): Promise<void> {
-  await invoke("push_navigation", { component });
-}
-
-export async function pop(): Promise<void> {
-  await invoke("pop_navigation");
-}
-
-export async function popToRoot(type?: "immediate" | "animated"): Promise<void> {
-  await invoke("pop_to_root", { type: type || "immediate" });
-}
+// Enhanced Navigation system - re-export from navigation module
+export {
+  useNavigation,
+  useNavigationState,
+  useCurrentComponent,
+  useCanGoBack,
+  useCanGoForward,
+  useNavigationListener,
+  useBackAction,
+  useNavigationDepth,
+  navigationManager,
+  navigationStore,
+  push,
+  pop,
+  popToRoot,
+  replace,
+  clear,
+  attachKeyboardNavigation,
+  type NavigationContext,
+  type NavigationState,
+  type NavigationItem,
+  type NavigationOptions,
+} from "./navigation.js";
 
 // System operations
 export async function open(url: string): Promise<void> {
@@ -108,4 +105,11 @@ export enum LaunchType {
 
 // Export applications
 export { getApplications };
+
+// Export new APIs
+export * from "./command.js";
+export * from "./keyboard.js";
+export * from "./window-management.js";
+export * from "./form.js";
+export * from "./action.js";
 

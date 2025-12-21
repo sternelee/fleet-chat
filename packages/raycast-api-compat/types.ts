@@ -135,10 +135,43 @@ export interface IconLike {
   tintColor?: ColorLike;
 }
 
-// Navigation
+// Enhanced Navigation
 export interface NavigationOptions {
+  title?: string;
+  props?: Record<string, any>;
+  animated?: boolean;
+  replace?: boolean;
   popToRoot?: boolean;
   showDetail?: boolean;
+}
+
+export interface NavigationState {
+  stack: NavigationItem[];
+  currentIndex: number;
+  isTransitioning: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
+export interface NavigationItem {
+  id: string;
+  component: HTMLElement | null;
+  title?: string;
+  props?: Record<string, any>;
+  timestamp: number;
+}
+
+export interface NavigationContext {
+  state: NavigationState;
+  push: (component: HTMLElement, options?: NavigationOptions) => Promise<void>;
+  pop: () => Promise<void>;
+  popToRoot: (type?: "immediate" | "animated") => Promise<void>;
+  replace: (component: HTMLElement, options?: NavigationOptions) => Promise<void>;
+  clear: () => Promise<void>;
+  canGoBack: () => boolean;
+  canGoForward: () => boolean;
+  getCurrentComponent: () => HTMLElement | null;
+  getCurrentTitle: () => string;
 }
 
 // Cache

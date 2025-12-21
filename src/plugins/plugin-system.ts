@@ -73,10 +73,17 @@ export interface PluginAPI {
   Form: typeof import("./ui/components/fc-form").FCForm;
   Action: typeof import("./ui/components/fc-action").FCAction;
   ActionPanel: typeof import("./ui/components/fc-action").FCActionPanel;
+  MenuBar: typeof import("./ui/components/fc-menu-bar").FCMenuBar;
+  Dropdown: typeof import("./ui/components/fc-dropdown").FCDropdown;
 
-  // Navigation
-  pop: () => void;
-  push: (view: HTMLElement) => void;
+  // Enhanced Navigation
+  pop: () => Promise<void>;
+  push: (view: HTMLElement, options?: import("@fleet-chat/api").NavigationOptions) => Promise<void>;
+  replace: (view: HTMLElement, options?: import("@fleet-chat/api").NavigationOptions) => Promise<void>;
+  popToRoot: (type?: "immediate" | "animated") => Promise<void>;
+  clear: () => Promise<void>;
+  useNavigation: () => import("@fleet-chat/api").NavigationContext;
+  useNavigationState: () => import("@fleet-chat/api").NavigationState;
   open: (url: string) => Promise<void>;
   closeMainWindow: () => Promise<void>;
 
@@ -214,8 +221,13 @@ export interface RaycastAPI {
   showHUD: (message: string) => Promise<void>;
   open: (url: string) => Promise<void>;
   closeMainWindow: () => Promise<void>;
-  pop: () => void;
-  push: (view: HTMLElement) => void;
+  pop: () => Promise<void>;
+  push: (view: HTMLElement, options?: NavigationOptions) => Promise<void>;
+  replace: (view: HTMLElement, options?: NavigationOptions) => Promise<void>;
+  popToRoot: (type?: "immediate" | "animated") => Promise<void>;
+  clear: () => Promise<void>;
+  useNavigation: () => NavigationContext;
+  useNavigationState: () => NavigationState;
   LocalStorage: any;
   Cache: any;
   Clipboard: any;

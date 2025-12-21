@@ -8,11 +8,27 @@
 // Core UI Components - Raycast compatible
 export { List, Grid, Detail } from "@fleet-chat/api";
 
-// Navigation and Window Management
+// Advanced UI Components  
+export { Form } from "@fleet-chat/api";
+export { Action } from "@fleet-chat/api";
+
+// Window Management and System APIs
+export { WindowManagement } from "@fleet-chat/api";
+
+// Enhanced Navigation and Window Management
 export {
   useNavigation,
+  useNavigationState,
+  useCurrentComponent,
+  useCanGoBack,
+  useCanGoForward,
+  useNavigationListener,
+  useBackAction,
+  useNavigationDepth,
   pop,
   push,
+  replace,
+  clear,
   open,
   closeMainWindow,
   showHUD,
@@ -20,6 +36,8 @@ export {
   getSelectedText,
   popToRoot,
   updateCommandMetadata,
+  navigationManager,
+  attachKeyboardNavigation,
 } from "@fleet-chat/api";
 
 // Data Storage
@@ -75,5 +93,9 @@ export type {
   DetailProps,
   FormProps,
   KeyModifier,
+  NavigationOptions,
+  NavigationState,
+  NavigationItem,
+  NavigationContext,
 } from "./types.js";
 

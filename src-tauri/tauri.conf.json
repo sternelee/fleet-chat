@@ -1,8 +1,8 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
-    "identifier": "com.ripandis.fleet-chat",
-    "productName": "Fleet Lit Tauri",
-    "version": "0.0.0",
+    "identifier": "com.sternelee.fleet-chat",
+    "productName": "FleetAI",
+    "version": "0.0.1",
     "build": {
         "beforeDevCommand": "pnpm dev:ui",
         "beforeBuildCommand": "pnpm build:ui",
