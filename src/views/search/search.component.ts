@@ -7,6 +7,7 @@ interface Application {
   name: string
   path: string
   icon_path?: string
+  icon_base64?: string
 }
 
 interface FileMatch {
@@ -183,6 +184,13 @@ export class ViewSearch extends LitElement {
       font-weight: 600;
       font-size: 18px;
       flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .result-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     .result-content {
@@ -407,12 +415,16 @@ export class ViewSearch extends LitElement {
 
   private _renderApplicationItem(app: Application, index: number) {
     const isSelected = index === this.selectedIndex
+    const iconContent = app.icon_base64
+      ? html`<img src="${app.icon_base64}" alt="${app.name}" />`
+      : html`${app.name.charAt(0).toUpperCase()}`
+    
     return html`
       <div
         class=${classMap({ 'result-item': true, selected: isSelected })}
         @click=${() => this._openApplication(app)}
       >
-        <div class="result-icon">${app.name.charAt(0).toUpperCase()}</div>
+        <div class="result-icon">${iconContent}</div>
         <div class="result-content">
           <div class="result-title">${app.name}</div>
           <div class="result-path">${app.path}</div>

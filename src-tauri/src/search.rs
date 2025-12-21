@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -8,6 +8,8 @@ pub struct Application {
     pub path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icon_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon_base64: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,6 +26,102 @@ pub struct SearchResult {
     pub files: Vec<FileMatch>,
 }
 
+#[cfg(target_os = "macos")]
+fn extract_app_icon(app_path: &str) -> Option<String> {
+    use std::fs;
+
+    // macOS app bundles have structure: AppName.app/Contents/Resources/AppIcon.icns
+    let path = Path::new(app_path);
+
+    // Check if this is an app bundle
+    if !app_path.ends_with(".app") {
+        return None;
+    }
+
+    // Look for Info.plist to get the icon file name
+    let info_plist = path.join("Contents/Info.plist");
+    if !info_plist.exists() {
+        return None;
+    }
+
+    // Try to read the plist and extract icon file name
+    let icon_file = if let Ok(content) = fs::read_to_string(&info_plist) {
+        // Simple parsing - look for CFBundleIconFile
+        content
+            .lines()
+            .skip_while(|line| !line.contains("CFBundleIconFile"))
+            .nth(1)
+            .and_then(|line| {
+                line.trim()
+                    .trim_start_matches("<string>")
+                    .trim_end_matches("</string>")
+                    .trim()
+                    .to_string()
+                    .into()
+            })
+    } else {
+        None
+    };
+
+    let icon_name = icon_file.unwrap_or_else(|| "AppIcon".to_string());
+    let icon_name = if icon_name.ends_with(".icns") {
+        icon_name
+    } else {
+        format!("{}.icns", icon_name)
+    };
+
+    // Try to find the icon file
+    let icon_path = path.join("Contents/Resources").join(&icon_name);
+
+    if icon_path.exists() {
+        // Convert .icns to base64 PNG
+        if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
+            return Some(icon_data);
+        }
+    }
+
+    None
+}
+
+#[cfg(target_os = "macos")]
+fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+    use std::fs::File;
+    use std::io::Cursor;
+
+    // Read the .icns file
+    let file = File::open(icon_path)?;
+    let icon_family = icns::IconFamily::read(file)?;
+
+    // Try to get the largest available icon (prefer 512x512 or 256x256)
+    let icon_type = icns::IconType::RGBA32_512x512_2x;
+    let image = if let Ok(img) = icon_family.get_icon_with_type(icon_type) {
+        img
+    } else if let Ok(img) = icon_family.get_icon_with_type(icns::IconType::RGBA32_512x512) {
+        img
+    } else if let Ok(img) = icon_family.get_icon_with_type(icns::IconType::RGBA32_256x256_2x) {
+        img
+    } else if let Ok(img) = icon_family.get_icon_with_type(icns::IconType::RGBA32_256x256) {
+        img
+    } else {
+        // Fall back to any available icon
+        return Err("No suitable icon found in .icns file".into());
+    };
+
+    // Convert to PNG and encode as base64
+    let mut png_data = Vec::new();
+    let mut cursor = Cursor::new(&mut png_data);
+
+    image.write_png(&mut cursor)?;
+
+    let base64_str = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &png_data);
+    Ok(format!("data:image/png;base64,{}", base64_str))
+}
+
+#[cfg(not(target_os = "macos"))]
+fn extract_app_icon(_app_path: &str) -> Option<String> {
+    None
+}
+
 /// Search for applications installed on the system
 #[command]
 pub async fn search_applications(query: String) -> Result<Vec<Application>, String> {
@@ -36,10 +134,16 @@ pub async fn search_applications(query: String) -> Result<Vec<Application>, Stri
     let mut results: Vec<Application> = apps
         .into_iter()
         .filter(|app| app.name.to_lowercase().contains(&query_lower))
-        .map(|app| Application {
-            name: app.name.clone(),
-            path: app.path.to_string_lossy().to_string(),
-            icon_path: None, // Applications crate doesn't provide icons directly
+        .map(|app| {
+            let path_str = app.path.to_string_lossy().to_string();
+            let icon_base64 = extract_app_icon(&path_str);
+
+            Application {
+                name: app.name.clone(),
+                path: path_str,
+                icon_path: None,
+                icon_base64,
+            }
         })
         .collect();
 

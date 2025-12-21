@@ -47,6 +47,7 @@ serde_json = "1.0.140"
 applications = "0.1.5"
 ignore = "0.4"
 walkdir = "2.4"
+base64 = "0.22"
 
 axum = "0.8.4"
 thiserror = "2.0.16"
@@ -65,6 +66,8 @@ async-trait = "0.1"
 # Used to call the macOS native API
 [target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.26.0"
+icns = "0.3"
+image = "0.25"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2.7.1"
