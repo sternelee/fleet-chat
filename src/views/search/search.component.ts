@@ -555,9 +555,9 @@ export class ViewSearch extends LitElement {
 
   private async _openApplication(app: Application) {
     try {
-      // Use Tauri shell plugin to open the application
-      const { Command } = await import('@tauri-apps/plugin-shell')
-      await Command.create('open', [app.path]).execute()
+      // Use Tauri opener plugin to launch the application
+      const { open } = await import('@tauri-apps/plugin-opener')
+      await open(app.path)
       console.log('Opened application:', app.name)
     } catch (error) {
       console.error('Failed to open application:', error)
@@ -566,9 +566,9 @@ export class ViewSearch extends LitElement {
 
   private async _openFile(file: FileMatch) {
     try {
-      // Use Tauri shell plugin to open the file with default application
-      const { Command } = await import('@tauri-apps/plugin-shell')
-      await Command.create('open', [file.path]).execute()
+      // Use Tauri opener plugin to open the file with default application
+      const { open } = await import('@tauri-apps/plugin-opener')
+      await open(file.path)
       console.log('Opened file:', file.path)
     } catch (error) {
       console.error('Failed to open file:', error)
