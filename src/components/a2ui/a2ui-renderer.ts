@@ -15,7 +15,12 @@ interface SurfaceUpdate {
 }
 
 interface DataModelUpdate {
-  contents: any[]
+  patches: DataPatch[]
+}
+
+interface DataPatch {
+  path: string
+  value: any
 }
 
 interface BeginRendering {
@@ -338,8 +343,8 @@ export class A2UIRenderer extends LitElement {
           })
           break
         case 'dataModelUpdate':
-          message.dataModelUpdate.contents.forEach((content) => {
-            this.updateDataModel(content)
+          message.dataModelUpdate.patches.forEach((patch) => {
+            this.applyDataPatch(patch)
           })
           break
         case 'beginRendering':
@@ -352,6 +357,46 @@ export class A2UIRenderer extends LitElement {
     }
   }
 
+  private applyDataPatch(patch: DataPatch) {
+    // Parse JSON Pointer path (RFC 6901)
+    const pathParts = patch.path.split('/').slice(1) // Remove leading empty string from split
+
+    if (pathParts.length === 0) {
+      // Root path "/" - merge object properties
+      if (typeof patch.value === 'object' && patch.value !== null && !Array.isArray(patch.value)) {
+        this.dataModel = { ...this.dataModel, ...patch.value }
+      } else {
+        console.warn('Attempted to set non-object value at root path, skipping')
+      }
+    } else {
+      // Navigate to target and set value
+      this.setValueAtPath(this.dataModel, pathParts, patch.value)
+      // Trigger re-render by creating a new object reference
+      this.dataModel = { ...this.dataModel }
+    }
+  }
+
+  private setValueAtPath(obj: any, pathParts: string[], value: any) {
+    if (pathParts.length === 0) return
+
+    if (pathParts.length === 1) {
+      // Final key, set the value
+      obj[pathParts[0]] = value
+    } else {
+      // Navigate deeper
+      const key = pathParts[0]
+      const remaining = pathParts.slice(1)
+
+      // Create nested object if it doesn't exist
+      if (!obj[key] || typeof obj[key] !== 'object') {
+        obj[key] = {}
+      }
+
+      this.setValueAtPath(obj[key], remaining, value)
+    }
+  }
+
+  // Legacy method - kept for backward compatibility but no longer used
   private updateDataModel(content: any) {
     if (content.key && content.valueMap) {
       this.dataModel = {
@@ -361,6 +406,7 @@ export class A2UIRenderer extends LitElement {
     }
   }
 
+  // Legacy method - kept for backward compatibility but no longer used
   private valueMapToObject(valueMap: any[]): any {
     const obj: any = {}
     valueMap.forEach((item) => {
