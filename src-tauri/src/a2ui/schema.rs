@@ -29,8 +29,13 @@ pub struct SurfaceUpdate {
 pub struct DataModelUpdate {
     #[serde(rename = "surfaceId")]
     pub surface_id: String,
-    pub path: Option<String>,
-    pub contents: Vec<DataContent>,
+    pub patches: Vec<DataPatch>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataPatch {
+    pub path: String,
+    pub value: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,29 +166,5 @@ pub struct TabItem {
     pub child: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DataContent {
-    pub key: String,
-    #[serde(rename = "valueMap")]
-    pub value_map: Option<Vec<ValueMapEntry>>,
-    #[serde(rename = "valueString")]
-    pub value_string: Option<String>,
-    #[serde(rename = "valueNumber")]
-    pub value_number: Option<f64>,
-    #[serde(rename = "valueBoolean")]
-    pub value_boolean: Option<bool>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValueMapEntry {
-    pub key: String,
-    #[serde(rename = "valueString")]
-    pub value_string: Option<String>,
-    #[serde(rename = "valueNumber")]
-    pub value_number: Option<f64>,
-    #[serde(rename = "valueBoolean")]
-    pub value_boolean: Option<bool>,
-    #[serde(rename = "valueMap")]
-    pub value_map: Option<Vec<ValueMapEntry>>,
-}
-
+// Legacy structures kept for backward compatibility reference
+// These are no longer used in favor of the standard patches format

@@ -1,6 +1,9 @@
 use tauri::{App, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri::{LogicalPosition, TitleBarStyle};
 
+#[cfg(target_os = "macos")]
+use tauri_nspanel::ManagerExt;
+
 /// Sets up the main application window with platform-specific configurations
 pub fn setup_window(app: &App) -> Result<WebviewWindow, Box<dyn std::error::Error>> {
     // Create a window builder with the default URL
@@ -33,6 +36,12 @@ pub fn setup_window(app: &App) -> Result<WebviewWindow, Box<dyn std::error::Erro
     // Configure macOS specific settings
     if let Err(e) = configure_macos_window(&window) {
         eprintln!("Error configuring macOS window: {}", e);
+    }
+
+    // Apply NSPanel enhancements for macOS
+    #[cfg(target_os = "macos")]
+    if let Err(e) = apply_nspanel_enhancements(app, &window) {
+        eprintln!("Error applying NSPanel enhancements: {}", e);
     }
 
     Ok(window)
@@ -106,5 +115,50 @@ fn configure_macos_window(window: &tauri::WebviewWindow) -> Result<(), Box<dyn s
 
 #[cfg(not(target_os = "macos"))]
 fn configure_macos_window(_window: &tauri::WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+// Apply NSPanel enhancements for better macOS window behavior
+#[cfg(target_os = "macos")]
+fn apply_nspanel_enhancements(
+    app: &tauri::App,
+    window: &tauri::WebviewWindow,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use tauri_nspanel::{
+        cocoa::appkit::{NSWindow, NSWindowLevel},
+        objc::{runtime::Object, *},
+        WebviewWindowExt,
+    };
+
+    // Get the panel from the window
+    let panel = window.to_panel()?;
+
+    unsafe {
+        let ns_panel: *mut Object = panel.ns_panel()?;
+
+        // Set window level to normal (not floating) for standard behavior
+        // NSNormalWindowLevel = 0, NSFloatingWindowLevel = 3
+        let _: () = msg_send![ns_panel, setLevel: 0 as i64];
+
+        // Enable window animations for smoother transitions
+        let _: () = msg_send![ns_panel, setAnimationBehavior: 2 as i64]; // NSWindowAnimationBehaviorDocumentWindow
+
+        // Make panel become key window when activated
+        let _: () = msg_send![ns_panel, setBecomesKeyOnlyIfNeeded: false];
+
+        // Enable collection behavior for better multi-desktop support
+        // NSWindowCollectionBehaviorManaged (1 << 2) | NSWindowCollectionBehaviorParticipatesInCycle (1 << 5)
+        let collection_behavior = (1 << 2) | (1 << 5);
+        let _: () = msg_send![ns_panel, setCollectionBehavior: collection_behavior];
+    }
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn apply_nspanel_enhancements(
+    _app: &tauri::App,
+    _window: &tauri::WebviewWindow,
+) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }

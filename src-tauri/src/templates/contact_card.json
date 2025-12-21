@@ -421,39 +421,38 @@
     {
         "dataModelUpdate": {
             "surfaceId": "contact-card",
-            "path": "/",
-            "contents": [
+            "patches": [
                 {
-                    "key": "name",
-                    "valueString": ""
+                    "path": "/name",
+                    "value": ""
                 },
                 {
-                    "key": "title",
-                    "valueString": ""
+                    "path": "/title",
+                    "value": ""
                 },
                 {
-                    "key": "team",
-                    "valueString": ""
+                    "path": "/team",
+                    "value": ""
                 },
                 {
-                    "key": "location",
-                    "valueString": ""
+                    "path": "/location",
+                    "value": ""
                 },
                 {
-                    "key": "email",
-                    "valueString": ""
+                    "path": "/email",
+                    "value": ""
                 },
                 {
-                    "key": "mobile",
-                    "valueString": ""
+                    "path": "/mobile",
+                    "value": ""
                 },
                 {
-                    "key": "calendar",
-                    "valueString": ""
+                    "path": "/calendar",
+                    "value": ""
                 },
                 {
-                    "key": "imageUrl",
-                    "valueString": ""
+                    "path": "/imageUrl",
+                    "value": ""
                 }
             ]
         }

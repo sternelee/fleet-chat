@@ -58,8 +58,11 @@ pnpm tauri <command>  # Run any Tauri CLI command
 - **Language**: Rust for native performance and system integration
 - **Web Server**: Axum HTTP server providing RESTful APIs and A2UI backend services
 - **AI Integration**: 
-  - Gemini AI agent for intelligent UI generation (gemini_agent.rs)
+  - Multi-provider AI agent system supporting OpenAI and Google Gemini
   - A2UI (Agent-to-UI) backend service following Google ADK architecture (a2ui_agent.rs)
+  - Provider abstraction layer with pluggable AI backends (provider.rs)
+  - OpenAI provider: GPT-4, GPT-3.5-turbo support
+  - Gemini provider: Gemini 2.5 Flash support
   - JSON schema validation for UI responses
   - Session management and conversation state tracking
 - **Plugins**: Multiple Tauri plugins (dialog, http, log, notification, etc.)
@@ -118,9 +121,10 @@ The application features a flexible, state-persistent panel system:
 - CSP disabled for development (can be enabled for production)
 
 ### A2UI Backend Development
-- A2UI (Agent-to-UI) framework integrated in `src-tauri/src/a2ui_agent.rs`
+- A2UI (Agent-to-UI) framework integrated in `src-tauri/src/a2ui/agent.rs`
 - Follows Google ADK (Agent Development Kit) architecture patterns
-- Gemini AI integration for intelligent UI generation via `gemini_agent.rs`
+- Multi-provider AI integration via abstraction layer in `src-tauri/src/a2ui/provider.rs`
+- Supports OpenAI (GPT-4) and Google Gemini (2.5 Flash) providers
 - RESTful API endpoints served via Axum in `axum_app.rs`
 - JSON schema validation ensures A2UI message compliance
 - Session management with conversation context tracking
@@ -129,8 +133,9 @@ The application features a flexible, state-persistent panel system:
 
 ### Key Backend Dependencies
 - `axum` - Web framework for HTTP server
-- `reqwest` - HTTP client for Gemini API calls
+- `reqwest` - HTTP client for AI API calls (OpenAI, Gemini)
 - `jsonschema` - JSON schema validation
+- `async-trait` - Async trait support for provider abstraction
 - `uuid` - Session ID generation
 - `chrono` - Timestamp handling for session management
 
@@ -139,17 +144,29 @@ The application features a flexible, state-persistent panel system:
 ### Core Rust Modules (`src-tauri/src/`)
 - **lib.rs** - Main Tauri application entry point and plugin setup
 - **axum_app.rs** - Axum web server with A2UI RESTful API endpoints
-- **a2ui_agent.rs** - A2UI backend service implementing Google ADK patterns
-- **gemini_agent.rs** - Gemini AI client for intelligent UI generation
+- **a2ui/agent.rs** - A2UI backend service implementing Google ADK patterns
+- **a2ui/provider.rs** - AI provider abstraction layer (OpenAI, Gemini)
+- **a2ui/schema.rs** - A2UI message schema definitions
+- **gemini_agent.rs** - Legacy Gemini AI client (being phased out)
 - **tauri_axum.rs** - Bridge between Tauri and Axum for local HTTP requests
 - **window.rs** - macOS-specific window styling and customization
 
 ### Key A2UI Components
 - **A2UIAgent** - Core agent with session management and tool calling
+- **AIProvider trait** - Abstract interface for AI providers
+- **OpenAIProvider** - OpenAI/GPT integration implementation
+- **GeminiProvider** - Google Gemini integration implementation
 - **A2UIResponse** - Structured responses with JSON schema validation
 - **Tool execution** - Built-in tools for contact search, data retrieval
 - **Prompt engineering** - Context-aware UI generation with examples
 - **Response validation** - Multi-pass validation with retry mechanisms
+
+### AI Provider Configuration
+The system supports multiple AI providers through environment variables:
+- `OPENAI_API_KEY` - For OpenAI/GPT models (checked first)
+- `GEMINI_API_KEY` - For Google Gemini models (fallback)
+- Provider selection is automatic based on available API keys
+- Default models: GPT-4 for OpenAI, Gemini 2.5 Flash for Gemini
 
 ## Testing
 

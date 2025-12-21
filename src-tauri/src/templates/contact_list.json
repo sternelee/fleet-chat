@@ -161,15 +161,14 @@
     {
         "dataModelUpdate": {
             "surfaceId": "contact-list",
-            "path": "/",
-            "contents": [
+            "patches": [
                 {
-                    "key": "searchPrompt",
-                    "valueString": ""
+                    "path": "/searchPrompt",
+                    "value": ""
                 },
                 {
-                    "key": "contacts",
-                    "valueMap": []
+                    "path": "/contacts",
+                    "value": []
                 }
             ]
         }

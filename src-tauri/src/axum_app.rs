@@ -1,4 +1,5 @@
 use crate::a2ui::agent::{A2UIAgent, GeneratedResponse};
+use crate::a2ui::provider::{AIProvider, GeminiProvider, OpenAIProvider};
 use axum::{
     extract::{Path, State},
     http::{self},
@@ -207,31 +208,9 @@ pub struct SurfaceUpdate {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DataModelEntry {
-    pub key: String,
-    #[serde(flatten)]
-    pub value: DataValue,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum DataValue {
-    #[serde(rename = "valueString")]
-    String(String),
-    #[serde(rename = "valueNumber")]
-    Number(f64),
-    #[serde(rename = "valueBoolean")]
-    Boolean(bool),
-    #[serde(rename = "valueMap")]
-    Map(Vec<DataMapEntry>),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DataMapEntry {
-    pub key: String,
-    #[serde(flatten)]
-    pub value: DataValue,
+pub struct DataPatch {
+    pub path: String,
+    pub value: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -239,8 +218,7 @@ pub struct DataMapEntry {
 pub struct DataModelUpdate {
     #[serde(rename = "surfaceId")]
     pub surface_id: String,
-    pub path: Option<String>,
-    pub contents: Vec<DataModelEntry>,
+    pub patches: Vec<DataPatch>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -295,11 +273,19 @@ impl AppState {
     }
 
     fn create_a2ui_agent() -> Option<Arc<A2UIAgent>> {
-        // Try to get API key from environment variable
-        std::env::var("GEMINI_API_KEY")
-            .ok()
-            .and_then(|api_key| A2UIAgent::new(api_key).ok())
-            .map(Arc::new)
+        // Try OpenAI first, then fall back to Gemini
+        if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
+            let provider = Arc::new(OpenAIProvider::new(api_key)) as Arc<dyn AIProvider>;
+            return A2UIAgent::new(provider).ok().map(Arc::new);
+        }
+
+        // Fall back to Gemini if OpenAI key not found
+        if let Ok(api_key) = std::env::var("GEMINI_API_KEY") {
+            let provider = Arc::new(GeminiProvider::new(api_key)) as Arc<dyn AIProvider>;
+            return A2UIAgent::new(provider).ok().map(Arc::new);
+        }
+
+        None
     }
 }
 
@@ -324,8 +310,7 @@ pub struct UpdateComponentRequest {
 pub struct UpdateDataModelRequest {
     #[serde(rename = "surfaceId")]
     pub surface_id: String,
-    pub path: Option<String>,
-    pub contents: Vec<DataModelEntry>,
+    pub patches: Vec<DataPatch>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -337,48 +322,58 @@ pub struct UserActionRequest {
 
 // Utility Functions
 
-fn merge_data_model(current: &mut HashMap<String, serde_json::Value>, path: Option<&str>, contents: &[DataModelEntry]) {
-    for entry in contents {
-        let value = match &entry.value {
-            DataValue::String(s) => serde_json::Value::String(s.clone()),
-            DataValue::Number(n) => {
-                serde_json::Value::Number(serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0)))
-            }
-            DataValue::Boolean(b) => serde_json::Value::Bool(*b),
-            DataValue::Map(map_entries) => {
-                let mut map = serde_json::Map::new();
-                for map_entry in map_entries {
-                    let map_value = match &map_entry.value {
-                        DataValue::String(s) => serde_json::Value::String(s.clone()),
-                        DataValue::Number(n) => serde_json::Value::Number(
-                            serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0)),
-                        ),
-                        DataValue::Boolean(b) => serde_json::Value::Bool(*b),
-                        DataValue::Map(_) => serde_json::Value::Object(serde_json::Map::new()),
-                    };
-                    map.insert(map_entry.key.clone(), map_value);
+fn apply_data_patches(current: &mut HashMap<String, serde_json::Value>, patches: &[DataPatch]) {
+    for patch in patches {
+        // Parse JSON Pointer path (RFC 6901)
+        let path_parts: Vec<&str> = patch.path.trim_start_matches('/').split('/').collect();
+
+        if path_parts.is_empty() || (path_parts.len() == 1 && path_parts[0].is_empty()) {
+            // Root path "/" - merge or replace based on value type
+            match &patch.value {
+                serde_json::Value::Object(map) => {
+                    // Merge object properties into current model
+                    for (k, v) in map.iter() {
+                        current.insert(k.clone(), v.clone());
+                    }
                 }
-                serde_json::Value::Object(map)
-            }
-        };
-
-        match path {
-            Some("/") | None => {
-                current.insert(entry.key.clone(), value);
-            }
-            Some(p) => {
-                // Navigate to the nested path and update
-                let parts: Vec<&str> = p.trim_start_matches('/').split('/').filter(|s| !s.is_empty()).collect();
-
-                if parts.is_empty() {
-                    current.insert(entry.key.clone(), value);
-                } else {
-                    // For simplicity in this implementation, just store the value directly
-                    // A more complex implementation would create nested objects
-                    let nested_key = format!("{}/{}", parts.join("/"), entry.key);
-                    current.insert(nested_key, value);
+                _ => {
+                    // For non-object values at root, log warning and skip
+                    eprintln!(
+                        "Warning: Attempted to set non-object value at root path. Skipping patch with value: {:?}",
+                        patch.value
+                    );
                 }
             }
+        } else {
+            // Navigate to the target and set value
+            set_value_at_path(current, &path_parts, patch.value.clone());
+        }
+    }
+}
+
+fn set_value_at_path(current: &mut HashMap<String, serde_json::Value>, path_parts: &[&str], value: serde_json::Value) {
+    if path_parts.is_empty() {
+        return;
+    }
+
+    if path_parts.len() == 1 {
+        // Final key, set the value
+        current.insert(path_parts[0].to_string(), value);
+    } else {
+        // Navigate deeper
+        let key = path_parts[0];
+        let remaining = &path_parts[1..];
+
+        // Get or create nested object
+        let nested = current
+            .entry(key.to_string())
+            .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+
+        if let serde_json::Value::Object(nested_map) = nested {
+            let mut nested_hash: HashMap<String, serde_json::Value> =
+                nested_map.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+            set_value_at_path(&mut nested_hash, remaining, value);
+            *nested_map = nested_hash.into_iter().collect();
         }
     }
 }
@@ -438,12 +433,11 @@ async fn update_data_model(State(state): State<AppState>, Json(request): Json<Up
     let mut surfaces = state.surfaces.lock().unwrap();
 
     if let Some(surface) = surfaces.get_mut(&request.surface_id) {
-        merge_data_model(&mut surface.data_model, request.path.as_deref(), &request.contents);
+        apply_data_patches(&mut surface.data_model, &request.patches);
 
         let message = A2UIMessage::DataModelUpdate(DataModelUpdate {
             surface_id: request.surface_id.clone(),
-            path: request.path,
-            contents: request.contents,
+            patches: request.patches,
         });
 
         Json(json!({
@@ -594,39 +588,19 @@ pub fn create_contact_list_example(contacts: &[serde_json::Value]) -> Vec<A2UIMe
         components,
     }));
 
-    // Data model update
-    let contents = vec![DataModelEntry {
-        key: "contacts".to_string(),
-        value: DataValue::Map(
-            contacts
-                .iter()
-                .enumerate()
-                .map(|(i, contact)| DataMapEntry {
-                    key: format!("contact{}", i),
-                    value: DataValue::Map(vec![
-                        DataMapEntry {
-                            key: "name".to_string(),
-                            value: DataValue::String(contact["name"].as_str().unwrap_or("").to_string()),
-                        },
-                        DataMapEntry {
-                            key: "email".to_string(),
-                            value: DataValue::String(contact["email"].as_str().unwrap_or("").to_string()),
-                        },
-                        DataMapEntry {
-                            key: "title".to_string(),
-                            value: DataValue::String(contact["title"].as_str().unwrap_or("").to_string()),
-                        },
-                    ]),
-                })
-                .collect(),
-        ),
-    }];
+    // Data model update using patches format
+    let patches = vec![
+        DataPatch {
+            path: "/searchPrompt".to_string(),
+            value: json!(""),
+        },
+        DataPatch {
+            path: "/contacts".to_string(),
+            value: json!(contacts),
+        },
+    ];
 
-    messages.push(A2UIMessage::DataModelUpdate(DataModelUpdate {
-        surface_id,
-        path: Some("/".to_string()),
-        contents,
-    }));
+    messages.push(A2UIMessage::DataModelUpdate(DataModelUpdate { surface_id, patches }));
 
     messages
 }
@@ -726,36 +700,29 @@ pub fn create_contact_card_example(contact: &serde_json::Value) -> Vec<A2UIMessa
         components,
     }));
 
-    // Data model update
-    let contents = vec![
-        DataModelEntry {
-            key: "name".to_string(),
-            value: DataValue::String(contact["name"].as_str().unwrap_or("").to_string()),
+    // Data model update using patches format
+    let patches = vec![
+        DataPatch {
+            path: "/name".to_string(),
+            value: json!(contact["name"].as_str().unwrap_or("")),
         },
-        DataModelEntry {
-            key: "title".to_string(),
-            value: DataValue::String(contact["title"].as_str().unwrap_or("").to_string()),
+        DataPatch {
+            path: "/title".to_string(),
+            value: json!(contact["title"].as_str().unwrap_or("")),
         },
-        DataModelEntry {
-            key: "email".to_string(),
-            value: DataValue::String(contact["email"].as_str().unwrap_or("").to_string()),
+        DataPatch {
+            path: "/email".to_string(),
+            value: json!(contact["email"].as_str().unwrap_or("")),
         },
-        DataModelEntry {
-            key: "imageUrl".to_string(),
-            value: DataValue::String(
-                contact["imageUrl"]
-                    .as_str()
-                    .unwrap_or("https://via.placeholder.com/150")
-                    .to_string(),
-            ),
+        DataPatch {
+            path: "/imageUrl".to_string(),
+            value: json!(contact["imageUrl"]
+                .as_str()
+                .unwrap_or("https://via.placeholder.com/150")),
         },
     ];
 
-    messages.push(A2UIMessage::DataModelUpdate(DataModelUpdate {
-        surface_id,
-        path: Some("/".to_string()),
-        contents,
-    }));
+    messages.push(A2UIMessage::DataModelUpdate(DataModelUpdate { surface_id, patches }));
 
     messages
 }

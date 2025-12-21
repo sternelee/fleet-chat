@@ -1,6 +1,7 @@
 mod a2ui;
 mod axum_app;
 mod gemini_agent;
+mod search;
 mod tauri_axum;
 mod window;
 use axum::Router;
@@ -55,7 +56,13 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![greet, local_app_request])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            local_app_request,
+            search_applications,
+            search_files,
+            unified_search
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

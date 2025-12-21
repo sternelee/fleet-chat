@@ -43,6 +43,12 @@ tauri-plugin-shell = "2.2.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 
+# Application search and file search
+applications = "0.3.1"
+ignore = "0.4"
+walkdir = "2.4"
+base64 = "0.22"
+
 axum = "0.8.4"
 thiserror = "2.0.16"
 tower-service = "0.3.3"
@@ -55,10 +61,14 @@ chrono = { version = "0.4", features = ["serde"] }
 # AI/LLM dependencies
 reqwest = { version = "0.12", features = ["json"] }
 jsonschema = { version = "0.18" }
+async-trait = "0.1"
 
 # Used to call the macOS native API
 [target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.26.0"
+icns = "0.3"
+image = "0.25"
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2.7.1"
