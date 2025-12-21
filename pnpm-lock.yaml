@@ -74,6 +74,9 @@ importers:
       nanostores:
         specifier: ^1.1.0
         version: 1.1.0
+      unzipit:
+        specifier: ^1.4.3
+        version: 1.4.3
       urlpattern-polyfill:
         specifier: ^10.1.0
         version: 10.1.0
@@ -1349,6 +1352,10 @@ packages:
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
+  unzipit@1.4.3:
+    resolution: {integrity: sha512-gsq2PdJIWWGhx5kcdWStvNWit9FVdTewm4SEG7gFskWs+XCVaULt9+BwuoBtJiRE8eo3L1IPAOrbByNLtLtIlg==}
+    engines: {node: '>=12'}
+
   update-browserslist-db@1.2.3:
     resolution: {integrity: sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==}
     hasBin: true
@@ -1357,6 +1364,9 @@ packages:
 
   urlpattern-polyfill@10.1.0:
     resolution: {integrity: sha512-IGjKp/o0NL3Bso1PymYURCJxMPNAf/ILOpendP9f5B6e1rTJgdgiOvgfoT8VxCAdY+Wisb9uhGaJJf3yZ2V9nw==}
+
+  uzip-module@1.0.3:
+    resolution: {integrity: sha512-AMqwWZaknLM77G+VPYNZLEruMGWGzyigPK3/Whg99B3S6vGHuqsyl5ZrOv1UUF3paGK1U6PM0cnayioaryg/fA==}
 
   vite-plugin-lit-lightningcss@0.0.3:
     resolution: {integrity: sha512-J890DsEBo08FNGbvDC/uX8ghAa7JkCEyrKnd5YYiKAUUXXOjcqDojCvdsvJ+AvPgwt4Szvr94bb87A1Jmvqf2w==}
@@ -2503,6 +2513,10 @@ snapshots:
 
   undici-types@7.16.0: {}
 
+  unzipit@1.4.3:
+    dependencies:
+      uzip-module: 1.0.3
+
   update-browserslist-db@1.2.3(browserslist@4.28.1):
     dependencies:
       browserslist: 4.28.1
@@ -2510,6 +2524,8 @@ snapshots:
       picocolors: 1.1.1
 
   urlpattern-polyfill@10.1.0: {}
+
+  uzip-module@1.0.3: {}
 
   vite-plugin-lit-lightningcss@0.0.3(rollup@4.53.5):
     dependencies:

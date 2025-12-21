@@ -1,6 +1,7 @@
 import { Routes } from "@lit-labs/router";
 import { css, html, LitElement } from "lit";
 import { customElement } from "lit/decorators.js";
+import "./components/global-drop-handler.js";
 
 // Polyfills URLPattern to handle better borwsers compatibility.
 // @see: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern#browser_compatibility
@@ -63,9 +64,14 @@ export class MyApp extends LitElement {
   render() {
     // Make sure the app is only rendered in Tauri environment.
     // If __TAURI__ doesn't exist, render the error browser view.
-    return import.meta.env.PROD && !("__TAURI__" in window)
+    const appContent = import.meta.env.PROD && !("__TAURI__" in window)
       ? html`<error-browser></error-browser>`
       : this._routes.outlet();
+
+    return html`
+      ${appContent}
+      <global-drop-handler></global-drop-handler>
+    `;
   }
 
   private _onNavigate(e: CustomEvent) {

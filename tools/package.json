@@ -4,14 +4,22 @@
     "description": "Development tools for Fleet Chat plugins",
     "type": "module",
     "bin": {
-        "fleet-plugin": "plugin-cli.js"
+        "fleet-plugin": "plugin-cli.js",
+        "fleet-pack": "plugin-packer.js"
     },
     "scripts": {
         "lint": "eslint . --fix",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "build:packer": "tsc plugin-packer.ts --target es2020 --module esnext --outDir ."
+    },
+    "dependencies": {
+        "commander": "^11.0.0",
+        "archiver": "^5.3.1",
+        "unzipit": "^2.4.4"
     },
     "devDependencies": {
         "@types/node": "^24.5.2",
+        "@types/archiver": "^5.3.1",
         "eslint": "^9.0.0",
         "typescript": "^5.9.2"
     },

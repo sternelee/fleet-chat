@@ -78,3 +78,4 @@ terraform.tfvars*
 target/
 src-tauri/gen/
 src/libs/bindings.ts
+/plugins

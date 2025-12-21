@@ -59,6 +59,11 @@ export class PluginManager extends EventEmitter {
       // Load built-in plugins
       await this.loadBuiltinPlugins();
 
+      // Load packaged plugins using PluginLoader
+      const { PluginLoader } = await import('./plugin-loader');
+      const pluginLoader = new PluginLoader(this);
+      await pluginLoader.loadAllPlugins();
+
       // Scan and load external plugins
       if (this.config.pluginPaths.length > 0) {
         await this.scanPlugins();
@@ -919,6 +924,77 @@ export class PluginManager extends EventEmitter {
    */
   getPluginState(pluginId: string): PluginState | undefined {
     return this.registry.plugins.get(pluginId);
+  }
+
+  /**
+   * Register a plugin from a package
+   */
+  async registerPlugin(plugin: Plugin): Promise<void> {
+    const pluginId = plugin.id || plugin.manifest.name;
+
+    // Check if plugin already exists
+    if (this.registry.plugins.has(pluginId)) {
+      console.warn(`Plugin ${pluginId} is already registered`);
+      return;
+    }
+
+    // Create plugin state
+    const state: PluginState = {
+      id: pluginId,
+      manifest: plugin.manifest,
+      status: "loaded",
+      loadTime: Date.now(),
+      usageCount: 0,
+    };
+
+    this.registry.plugins.set(pluginId, state);
+
+    // Register commands
+    if (plugin.manifest.commands) {
+      this.registerCommands(pluginId, plugin.manifest.commands);
+    }
+
+    // Initialize plugin if it has an initialize method
+    if (plugin.initialize) {
+      const context = this.createPluginContext(pluginId, plugin.manifest);
+      try {
+        await plugin.initialize(context, this.api);
+      } catch (error) {
+        console.error(`Failed to initialize plugin ${pluginId}:`, error);
+        state.status = "error";
+        state.errors = [error instanceof Error ? error.message : String(error)];
+        throw error;
+      }
+    }
+
+    this.emit("pluginRegistered", { pluginId, plugin });
+  }
+
+  /**
+   * Unregister a plugin
+   */
+  async unregisterPlugin(pluginId: string): Promise<void> {
+    const state = this.registry.plugins.get(pluginId);
+    if (!state) {
+      throw new Error(`Plugin ${pluginId} not found`);
+    }
+
+    // Remove commands
+    const commandsToRemove: string[] = [];
+    this.registry.commands.forEach((value, key) => {
+      if (value.pluginId === pluginId) {
+        commandsToRemove.push(key);
+      }
+    });
+
+    commandsToRemove.forEach((key) => {
+      this.registry.commands.delete(key);
+    });
+
+    // Remove from registry
+    this.registry.plugins.delete(pluginId);
+
+    this.emit("pluginUnregistered", { pluginId });
   }
 
   /**
