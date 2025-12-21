@@ -679,12 +679,15 @@ export class PluginManager extends EventEmitter {
 
       worker.worker.addEventListener("message", messageHandler);
 
-      // Send plugin loading message
+      // Send plugin loading message with plugin code
+      const pluginCode = (pluginState as any).code;
       worker.worker.postMessage({
         type: "loadPlugin",
         data: {
           pluginId,
           sourcePath: pluginState.sourcePath || "",
+          manifest: pluginState.manifest,
+          code: pluginCode,
         },
       });
     });
@@ -946,6 +949,11 @@ export class PluginManager extends EventEmitter {
       loadTime: Date.now(),
       usageCount: 0,
     };
+
+    // Store plugin code if available
+    if ((plugin as any).code) {
+      (state as any).code = (plugin as any).code;
+    }
 
     this.registry.plugins.set(pluginId, state);
 

@@ -22,6 +22,7 @@
 
 // Store loaded plugin modules
 const loadedPlugins = new Map();
+const loadedPluginData = new Map(); // Store plugin code and manifest
 let currentApi = null;
 
 /**
@@ -218,7 +219,49 @@ async function loadPluginModule(pluginId, sourcePath) {
       };
     }
 
-    throw new Error(`Unknown plugin: ${pluginId}`);
+    // Check if we have stored plugin data
+      const pluginData = loadedPluginData.get(pluginId);
+      if (pluginData && pluginData.manifest && pluginData.manifest.commands) {
+        console.log(`[Worker] Loading plugin ${pluginId} from stored data`);
+
+        // Create a simple mock module for the plugin
+        const mockModule = {
+          default: async (_props) => {
+            return createMockReactElement(
+              "div",
+              {
+                style: "padding: 20px; font-family: system-ui;",
+              },
+              createMockReactElement("h2", {}, `Plugin ${pluginId} Loaded!`),
+              createMockReactElement("p", {}, `Plugin has ${Object.keys(pluginData.code || {}).length} source files`),
+              createMockReactElement("p", {}, "This is a placeholder UI. Full plugin execution coming soon!"),
+              createMockReactElement("pre", {
+                style: "background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; overflow: auto;",
+                children: JSON.stringify(pluginData.manifest, null, 2)
+              }, "Manifest: " + JSON.stringify(pluginData.manifest, null, 2))
+            );
+          },
+        };
+
+        // Register commands from manifest
+        pluginData.manifest.commands.forEach((cmd) => {
+          mockModule[cmd.name] = async () => {
+            return createMockReactElement(
+              "div",
+              {
+                style: "padding: 20px; font-family: system-ui;",
+              },
+              createMockReactElement("h3", {}, `Command: ${cmd.title}`),
+              createMockReactElement("p", {}, cmd.description || "No description"),
+              createMockReactElement("p", { style: "color: #666; font-size: 14px;" }, `Mode: ${cmd.mode}`)
+            );
+          };
+        });
+
+        return mockModule;
+      }
+
+      throw new Error(`Unknown plugin: ${pluginId}`);
   } catch (error) {
     console.error(`Failed to load plugin module: ${pluginId}`, error);
     throw error;
@@ -248,6 +291,15 @@ self.onmessage = async (event) => {
         break;
 
       case "loadPlugin":
+        // Store plugin data if provided
+        if (data.code || data.manifest) {
+          console.log(`[Worker] Loading plugin ${data.pluginId} with code and manifest`);
+          loadedPluginData.set(data.pluginId, {
+            code: data.code,
+            manifest: data.manifest
+          });
+        }
+
         const plugin = await loadPluginModule(data.pluginId, data.sourcePath);
         loadedPlugins.set(data.pluginId, plugin);
 

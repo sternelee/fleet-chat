@@ -55,11 +55,25 @@ export class ViewSearch extends LitElement {
   async connectedCallback() {
     super.connectedCallback();
     this._addGlobalKeyListeners();
-    
+
     // Initialize plugins
     try {
       await pluginIntegration.initialize();
       this.pluginCommands = pluginIntegration.getAvailableCommands();
+
+      // Listen for plugin registration events to refresh commands
+      const pluginManager = pluginIntegration.getPluginManager();
+      pluginManager.on('pluginRegistered', () => {
+        console.log('Plugin registered, refreshing commands...');
+        this.pluginCommands = pluginIntegration.getAvailableCommands();
+        this.requestUpdate();
+      });
+
+      pluginManager.on('pluginUnregistered', () => {
+        console.log('Plugin unregistered, refreshing commands...');
+        this.pluginCommands = pluginIntegration.getAvailableCommands();
+        this.requestUpdate();
+      });
     } catch (error) {
       console.error('Failed to initialize plugins:', error);
     }
@@ -1183,6 +1197,13 @@ export class ViewSearch extends LitElement {
         try {
           await pluginLoader.loadPluginFromFile(file);
           this._showUploadStatus(`✅ 成功加载插件: ${file.name}`, 'success');
+
+          // Debug: Refresh plugin commands and show count
+          this.pluginCommands = pluginIntegration.getAvailableCommands();
+          console.log(`Plugin commands after upload:`, this.pluginCommands.length, this.pluginCommands);
+
+          // Force UI update
+          this.requestUpdate();
         } catch (error) {
           console.error('插件加载失败:', error);
           this._showUploadStatus(`❌ 加载 ${file.name} 失败: ${error.message}`, 'error');
