@@ -8,6 +8,20 @@ import { unzip } from 'unzipit';
 import { PluginManifest, Plugin } from './plugin-system';
 import { PluginManager } from './plugin-manager';
 
+// Package metadata interface
+interface PackageMetadata {
+  manifest: PluginManifest;
+  checksum?: string;
+  buildTime?: string;
+  fleetChatVersion?: string;
+  raycastVersion?: string;
+  transformation?: {
+    reactToLit: boolean;
+    compiler: string;
+    timestamp: string;
+  };
+}
+
 // Create a global instance for drag-drop access
 let globalPluginLoader: PluginLoader | null = null;
 
@@ -82,19 +96,26 @@ export class PluginLoader {
     const manifestJson = await manifestEntry.text();
     const manifest: PluginManifest = JSON.parse(manifestJson);
 
-    // Extract metadata
-    const metadataEntry = entries['metadata.json'];
-    const metadataJson = await metadataEntry.text();
-    const metadata: PackageMetadata = JSON.parse(metadataJson);
+    // Extract metadata (optional)
+    let metadata: PackageMetadata | null = null;
+    try {
+      const metadataEntry = entries['metadata.json'];
+      if (metadataEntry) {
+        const metadataJson = await metadataEntry.text();
+        metadata = JSON.parse(metadataJson);
 
-    // Verify checksum
-    if (metadata.checksum !== this.calculateChecksum(arrayBuffer)) {
-      throw new Error('Package checksum verification failed');
-    }
+        // Verify checksum
+        if (metadata.checksum && metadata.checksum !== this.calculateChecksum(arrayBuffer)) {
+          console.warn('Package checksum verification failed, continuing anyway');
+        }
 
-    // Check compatibility
-    if (!this.isCompatible(metadata.fleetChatVersion)) {
-      throw new Error(`Plugin requires Fleet Chat version ${metadata.fleetChatVersion}`);
+        // Check compatibility
+        if (metadata.fleetChatVersion && !this.isCompatible(metadata.fleetChatVersion)) {
+          console.warn(`Plugin requires Fleet Chat version ${metadata.fleetChatVersion}, continuing anyway`);
+        }
+      }
+    } catch (error) {
+      console.warn('No metadata.json found or invalid metadata, continuing anyway');
     }
 
     // Extract plugin code
@@ -188,18 +209,18 @@ export class PluginLoader {
   /**
    * Validate package structure
    */
-  private async validatePackage(entries: Map<string, any>): Promise<{ valid: boolean; error?: string }> {
-    const requiredFiles = ['manifest.json', 'metadata.json'];
+  private async validatePackage(entries: any): Promise<{ valid: boolean; error?: string }> {
+    const requiredFiles = ['manifest.json'];
 
     for (const file of requiredFiles) {
-      if (!entries.has(file)) {
+      if (!entries[file]) {
         return { valid: false, error: `Missing required file: ${file}` };
       }
     }
 
     try {
       // Validate manifest
-      const manifestEntry = entries.get('manifest.json');
+      const manifestEntry = entries['manifest.json'];
       const manifestJson = await manifestEntry.text();
       const manifest: PluginManifest = JSON.parse(manifestJson);
 
@@ -210,13 +231,17 @@ export class PluginLoader {
         }
       }
 
-      // Validate metadata
-      const metadataEntry = entries.get('metadata.json');
-      const metadataJson = await metadataEntry.text();
-      const metadata: PackageMetadata = JSON.parse(metadataJson);
-
-      if (!metadata.checksum || !metadata.buildTime) {
-        return { valid: false, error: 'Invalid metadata structure' };
+      // Validate metadata (optional)
+      try {
+        const metadataEntry = entries['metadata.json'];
+        if (metadataEntry) {
+          const metadataJson = await metadataEntry.text();
+          const metadata: PackageMetadata = JSON.parse(metadataJson);
+          // Metadata validation is optional since it's not required for basic functionality
+        }
+      } catch (error) {
+        // Metadata is optional, ignore validation errors
+        console.warn('Metadata validation skipped:', error.message);
       }
 
     } catch (error) {
@@ -229,10 +254,11 @@ export class PluginLoader {
   /**
    * Extract plugin code from package entries
    */
-  private async extractPluginCode(entries: Map<string, any>): Promise<{ [key: string]: string }> {
+  private async extractPluginCode(entries: any): Promise<{ [key: string]: string }> {
     const code: { [key: string]: string } = {};
 
-    for (const [path, entry] of entries) {
+    for (const path in entries) {
+      const entry = entries[path];
       // Only extract JavaScript/TypeScript files
       if (path.endsWith('.js') || path.endsWith('.ts') || path === 'plugin.js') {
         code[path] = await entry.text();

@@ -1,27 +1,38 @@
 {
     "name": "@fleet-chat/tools",
-    "version": "1.0.0",
-    "description": "Development tools for Fleet Chat plugins",
+    "version": "2.0.0",
+    "description": "Development tools for Fleet Chat plugins with React-to-Lit conversion",
     "type": "module",
     "bin": {
         "fleet-plugin": "plugin-cli.js",
-        "fleet-pack": "plugin-packer.js"
+        "fleet-pack": "plugin-packer.js",
+        "fleet-pack-enhanced": "enhanced-plugin-packer.js"
     },
     "scripts": {
         "lint": "eslint . --fix",
         "typecheck": "tsc --noEmit",
-        "build:packer": "tsc plugin-packer.ts --target es2020 --module esnext --outDir ."
+        "build:packer": "tsc plugin-packer.ts --target es2020 --module esnext --outDir .",
+        "build:enhanced": "tsc enhanced-plugin-packer.ts --target es2020 --module esnext --outDir .",
+        "build:all": "npm run build:packer && npm run build:enhanced"
     },
     "dependencies": {
         "commander": "^11.0.0",
         "archiver": "^5.3.1",
-        "unzipit": "^2.4.4"
+        "unzipit": "^2.4.4",
+        "jszip": "^3.10.1",
+        "@lit/react": "^1.0.8",
+        "@lit-labs/react-renderer": "^1.0.5",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "@types/react": "^19.0.10"
     },
     "devDependencies": {
         "@types/node": "^24.5.2",
         "@types/archiver": "^5.3.1",
+        "@types/jszip": "^3.4.1",
         "eslint": "^9.0.0",
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "ts-node": "^10.9.1"
     },
     "private": true,
     "author": "Fleet Chat",

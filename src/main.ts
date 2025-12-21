@@ -24,18 +24,37 @@ import { initializePlugins, pluginIntegration } from "./plugins/plugin-integrati
 import { PluginLoader } from "./plugins/plugin-loader";
 
 // Initialize plugins and create global plugin loader
-initializePlugins().then(() => {
-  console.log("🔌 Plugin system initialized");
+async function initializePluginSystem() {
+  try {
+    console.log("🔌 Initializing plugin system...");
 
-  // Create global plugin loader for drag-drop functionality
-  const pluginManager = pluginIntegration.getPluginManager();
-  const globalLoader = new PluginLoader(pluginManager);
+    // Initialize plugin integration
+    await initializePlugins();
+    console.log("✅ Plugin integration initialized");
 
-  // Make available globally for the drop handler
-  (window as any).pluginManager = pluginManager;
-  (window as any).pluginLoader = globalLoader;
+    // Get plugin manager
+    const pluginManager = pluginIntegration.getPluginManager();
+    console.log("✅ Plugin manager obtained");
 
-  console.log("🎯 Global plugin loader created for drag-drop");
-}).catch(error => {
-  console.error("❌ Failed to initialize plugin system:", error);
-});
+    // Create global plugin loader for drag-drop functionality
+    const globalLoader = new PluginLoader(pluginManager);
+    console.log("✅ Global plugin loader created");
+
+    // Make available globally for the drop handler
+    (window as any).pluginManager = pluginManager;
+    (window as any).pluginLoader = globalLoader;
+
+    console.log("🎯 Plugin system ready for drag-drop functionality");
+
+    // Dispatch event to notify that plugin system is ready
+    window.dispatchEvent(new CustomEvent('plugin-system-ready', {
+      detail: { pluginManager, globalLoader }
+    }));
+
+  } catch (error) {
+    console.error("❌ Failed to initialize plugin system:", error);
+  }
+}
+
+// Initialize plugin system
+initializePluginSystem();

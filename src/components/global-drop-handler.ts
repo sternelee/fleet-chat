@@ -178,12 +178,26 @@ export class GlobalDropHandler extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.setupGlobalDragListeners();
+
+    // Wait for plugin system to be ready
+    if ((window as any).pluginLoader) {
+      console.log('🎯 Plugin loader already available, setting up listeners...');
+      this.setupGlobalDragListeners();
+    } else {
+      console.log('⏳ Waiting for plugin system to be ready...');
+      window.addEventListener('plugin-system-ready', this.handlePluginSystemReady.bind(this));
+    }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener('plugin-system-ready', this.handlePluginSystemReady.bind(this));
     this.removeGlobalDragListeners();
+  }
+
+  private handlePluginSystemReady(e: CustomEvent) {
+    console.log('✅ Plugin system ready, setting up drag listeners...');
+    this.setupGlobalDragListeners();
   }
 
   private setupGlobalDragListeners() {
@@ -324,47 +338,84 @@ export class GlobalDropHandler extends LitElement {
     try {
       console.log('🔧 Initializing plugin handler...');
 
-      // Import the plugin loader
-      const { getGlobalPluginLoader } = await import('../plugins/plugin-loader.js');
+      // First try to use the window.pluginLoader directly
+      const pluginLoader = (window as any).pluginLoader;
 
-      // Get the global plugin loader instance
-      const pluginLoader = getGlobalPluginLoader();
-
-      if (pluginLoader) {
-        console.log('✅ Found global plugin loader');
-        // Create a handler that processes an array of files
+      if (pluginLoader && typeof pluginLoader.loadPluginFromFile === 'function') {
+        console.log('✅ Found window.pluginLoader');
         this.fileDropHandler = async (files: File[]) => {
-          console.log(`📦 Processing ${files.length} files with global plugin loader`);
+          console.log(`📦 Processing ${files.length} files with window.pluginLoader`);
 
           for (const file of files) {
-            await pluginLoader.loadPluginFromFile(file);
+            try {
+              await pluginLoader.loadPluginFromFile(file);
+              console.log(`✅ Successfully processed ${file.name}`);
+            } catch (error) {
+              console.error(`❌ Failed to process ${file.name}:`, error);
+              this.errorFiles.add(file.name);
+            }
           }
         };
         console.log('✅ Plugin handler initialized successfully');
       } else {
-        console.log('⚠️ No global plugin loader found, checking for window.pluginManager...');
+        console.log('⚠️ No window.pluginLoader found, trying fallbacks...');
 
-        // Fallback to window.pluginManager if available
-        const pluginManager = (window as any).pluginManager;
-        if (pluginManager) {
-          console.log('✅ Using window.pluginManager fallback');
-          const { PluginLoader } = await import('../plugins/plugin-loader.js');
-          const loader = new PluginLoader(pluginManager);
+        // Fallback to getGlobalPluginLoader
+        try {
+          const { getGlobalPluginLoader } = await import('../plugins/plugin-loader.js');
+          const globalLoader = getGlobalPluginLoader();
 
-          this.fileDropHandler = async (files: File[]) => {
-            console.log(`📦 Processing ${files.length} files with fallback loader`);
+          if (globalLoader) {
+            console.log('✅ Found global plugin loader via getGlobalPluginLoader');
+            this.fileDropHandler = async (files: File[]) => {
+              console.log(`📦 Processing ${files.length} files with global loader`);
 
-            for (const file of files) {
-              await loader.loadPluginFromFile(file);
+              for (const file of files) {
+                await globalLoader.loadPluginFromFile(file);
+              }
+            };
+          } else {
+            // Final fallback to window.pluginManager
+            const pluginManager = (window as any).pluginManager;
+            if (pluginManager) {
+              console.log('✅ Using window.pluginManager fallback');
+              const { PluginLoader } = await import('../plugins/plugin-loader.js');
+              const loader = new PluginLoader(pluginManager);
+
+              this.fileDropHandler = async (files: File[]) => {
+                console.log(`📦 Processing ${files.length} files with fallback loader`);
+
+                for (const file of files) {
+                  await loader.loadPluginFromFile(file);
+                }
+              };
+            } else {
+              console.log('❌ No plugin manager available at all');
+              // Create a mock handler for testing
+              this.fileDropHandler = async (files: File[]) => {
+                console.log(`🧪 Mock processing ${files.length} files:`, files.map(f => f.name));
+                alert(`插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map(f => f.name).join('\n')}`);
+              };
             }
+          }
+        } catch (importError) {
+          console.error('❌ Failed to import plugin loader:', importError);
+          // Create mock handler
+          this.fileDropHandler = async (files: File[]) => {
+            console.log(`🧪 Mock processing ${files.length} files:`, files.map(f => f.name));
+            alert(`插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map(f => f.name).join('\n')}`);
           };
-          console.log('✅ Fallback plugin handler initialized');
-        } else {
-          console.log('❌ No plugin manager available');
         }
       }
+
+      console.log('🎯 Plugin handler setup complete');
     } catch (error) {
       console.error('❌ Failed to initialize plugin handler:', error);
+      // Create mock handler as last resort
+      this.fileDropHandler = async (files: File[]) => {
+        console.log(`🧪 Mock processing ${files.length} files:`, files.map(f => f.name));
+        alert(`插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map(f => f.name).join('\n')}`);
+      };
     }
   }
 

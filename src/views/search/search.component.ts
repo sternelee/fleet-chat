@@ -478,6 +478,78 @@ export class ViewSearch extends LitElement {
         transform: translateY(0);
       }
     }
+
+    /* Plugin Upload Styles */
+    .plugin-upload-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .plugin-upload-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.8), rgba(95, 99, 250, 0.8));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .plugin-upload-btn:hover {
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.9), rgba(95, 99, 250, 0.9));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .upload-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .plugin-upload-status {
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      text-align: center;
+      max-width: 400px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      word-break: break-word;
+      white-space: pre-line;
+    }
+
+    .plugin-upload-status:not(:empty) {
+      opacity: 1;
+    }
+
+    .plugin-upload-status.loading {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .plugin-upload-status.success {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .plugin-upload-status.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
   `;
 
   render() {
@@ -536,6 +608,7 @@ export class ViewSearch extends LitElement {
 
         <div class="results-wrapper">${this._renderResults()}</div>
 
+        ${this._renderPluginUploadButton()}
         ${this._renderKeyboardHint()}
       </div>
     `;
@@ -1046,6 +1119,110 @@ export class ViewSearch extends LitElement {
       `;
     }
     return null;
+  }
+
+  private _renderPluginUploadButton() {
+    return html`
+      <div class="plugin-upload-section">
+        <input
+          type="file"
+          id="plugin-file-input"
+          accept=".fcp"
+          multiple
+          style="display: none;"
+          @change=${this._handlePluginFileSelect}
+        />
+        <button
+          class="plugin-upload-btn"
+          @click=${() => this.shadowRoot?.getElementById('plugin-file-input')?.click()}
+        >
+          <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            ></path>
+          </svg>
+          📦 Upload Plugin (.fcp)
+        </button>
+        <div class="plugin-upload-status" id="upload-status"></div>
+      </div>
+    `;
+  }
+
+  private async _handlePluginFileSelect(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+
+    if (files.length === 0) {
+      return;
+    }
+
+    // 过滤 .fcp 文件
+    const fcpFiles = files.filter(file => file.name.endsWith('.fcp'));
+
+    if (fcpFiles.length === 0) {
+      this._showUploadStatus('❌ 请选择 .fcp 插件文件', 'error');
+      return;
+    }
+
+    this._showUploadStatus(`📦 处理 ${fcpFiles.length} 个插件文件...`, 'loading');
+
+    try {
+      // 尝试加载插件
+      const pluginLoader = (window as any).pluginLoader;
+
+      if (!pluginLoader) {
+        console.warn('插件加载器未初始化，创建模拟加载...');
+        this._simulatePluginLoading(fcpFiles);
+        return;
+      }
+
+      for (const file of fcpFiles) {
+        try {
+          await pluginLoader.loadPluginFromFile(file);
+          this._showUploadStatus(`✅ 成功加载插件: ${file.name}`, 'success');
+        } catch (error) {
+          console.error('插件加载失败:', error);
+          this._showUploadStatus(`❌ 加载 ${file.name} 失败: ${error.message}`, 'error');
+        }
+      }
+    } catch (error) {
+      console.error('插件处理失败:', error);
+      this._showUploadStatus(`❌ 插件处理失败: ${error.message}`, 'error');
+    }
+
+    // 清空输入
+    input.value = '';
+  }
+
+  private _simulatePluginLoading(files: File[]) {
+    console.log('🧪 模拟加载插件:', files.map(f => f.name));
+
+    setTimeout(() => {
+      this._showUploadStatus(
+        `✅ 模拟加载完成: ${files.map(f => f.name).join(', ')}\n` +
+        `💡 实际插件加载需要完整的插件系统支持`,
+        'success'
+      );
+    }, 1000);
+  }
+
+  private _showUploadStatus(message: string, type: 'loading' | 'success' | 'error') {
+    const statusEl = this.shadowRoot?.getElementById('upload-status');
+    if (!statusEl) return;
+
+    statusEl.textContent = message;
+    statusEl.className = `plugin-upload-status ${type}`;
+
+    // 3秒后自动清空状态消息（除了加载状态）
+    if (type !== 'loading') {
+      setTimeout(() => {
+        statusEl.textContent = '';
+        statusEl.className = 'plugin-upload-status';
+      }, 3000);
+    }
   }
 }
 
