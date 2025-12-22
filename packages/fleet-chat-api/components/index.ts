@@ -29,16 +29,35 @@ export type {
   ActionPanelItemProps
 } from './Action.js';
 
-// Re-export from other component files (when they exist)
+// Re-export from other component files
 import { FCDetail } from './Detail.js';
 import { FCGrid } from './Grid.js';
+import { FCMenuBarExtra, FCMenuBarExtraItem } from './MenuBarExtra.js';
+import { FCForm, FCFormField } from './Form.js';
 
 // Raycast compatibility exports
 export const Detail = FCDetail;
 export const Grid = FCGrid;
+export const MenuBarExtra = FCMenuBarExtra;
+export const Form = FCForm;
+export const FormField = FCFormField;
 
-// Future components to be added:
-// export { FCForm, Form } from './Form.js';
-// export { FCDropdown, Dropdown } from './Dropdown.js';
-// export { FCMenuBar, MenuBar } from './MenuBar.js';
-// export { FCMenuBarExtra, MenuBarExtra } from './MenuBarExtra.js';
+// Export Form component variants
+export { FCFormTextarea, FCFormCheckbox, FCFormDropdown } from './Form.js';
+export const Textarea = FCFormTextarea;
+export const Checkbox = FCFormCheckbox;
+export const Dropdown = FCFormDropdown;
+
+// Export MenuBarExtra components
+export const MenuBarExtraItem = FCMenuBarExtraItem;
+
+// Export types
+export type {
+  MenuBarExtraProps,
+  MenuBarExtraItemProps
+} from './MenuBarExtra.js';
+
+export type {
+  FormProps,
+  FormFieldProps
+} from './Form.js';
