@@ -6,9 +6,38 @@
 import type {
   PluginContext,
   PluginAPI,
-  RaycastAPI,
   PluginManifest,
-} from "../plugins/plugin-system";
+} from "../../packages/fleet-chat-api/plugins/core/types.js";
+
+// Define RaycastAPI interface locally since it's not in the central API
+interface RaycastAPI {
+  List: any;
+  Grid: any;
+  Detail: any;
+  Form: any;
+  Action: any;
+  ActionPanel: any;
+  showToast: (options: any) => Promise<void>;
+  showHUD: (message: string) => Promise<void>;
+  open: (url: string) => Promise<void>;
+  closeMainWindow: () => Promise<void>;
+  getApplications: () => Promise<any[]>;
+  openApplication: (path: string) => Promise<void>;
+  pop: () => Promise<void>;
+  push: (view: HTMLElement, options?: any) => Promise<void>;
+  replace: (view: HTMLElement, options?: any) => Promise<void>;
+  popToRoot: (type?: "immediate" | "animated") => Promise<void>;
+  clear: () => Promise<void>;
+  useNavigation: () => any;
+  useNavigationState: () => any;
+  LocalStorage: any;
+  Cache: any;
+  Clipboard: any;
+  environment: {
+    supportsArguments: boolean;
+    theme: "light" | "dark";
+  };
+}
 
 // Global plugin context and API
 declare global {
@@ -19,7 +48,7 @@ declare global {
 
 interface WorkerMessage {
   type: string;
-  data: any;
+  data?: any;
 }
 
 /**
@@ -307,8 +336,15 @@ class PluginWorker {
       // Navigation
       pop: () => this.callMainAPI("pop"),
       push: (view: HTMLElement) => this.callMainAPI("push", { view }),
+      replace: (view: HTMLElement, options?: any) => this.callMainAPI("replace", { view, options }),
+      popToRoot: (type?: "immediate" | "animated") => this.callMainAPI("popToRoot", { type }),
+      clear: () => this.callMainAPI("clear"),
       open: (url: string) => this.callMainAPI("open", { url }),
       closeMainWindow: () => this.callMainAPI("closeMainWindow"),
+
+      // Navigation hooks
+      useNavigation: () => ({} as any),
+      useNavigationState: () => ({} as any),
 
       // System APIs
       showToast: (options: any) => this.callMainAPI("showToast", { options }),
@@ -456,6 +492,23 @@ class PluginWorker {
       type: "log",
       data: { message, level },
     });
+  }
+
+  /**
+   * Load plugin from data
+   */
+  private async loadPlugin(data: any): Promise<void> {
+    console.log("Loading plugin:", data);
+    // Store plugin data for later use
+    this.currentPlugin = data;
+  }
+
+  /**
+   * Unload current plugin
+   */
+  private async unloadPlugin(): Promise<void> {
+    console.log("Unloading plugin");
+    this.currentPlugin = null;
   }
 }
 

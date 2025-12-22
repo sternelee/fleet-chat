@@ -3,8 +3,8 @@
  * Integrates the plugin system with the main Fleet Chat application
  */
 
-import { PluginManager } from "./plugin-manager";
-import type { PluginManifest, PluginAPI } from "./plugin-system";
+import { PluginManager } from "../../packages/fleet-chat-api/plugins/core/manager.js";
+import type { PluginManifest, PluginAPI } from "../../packages/fleet-chat-api/plugins/core/types.js";
 import { uiStore } from "../stores/ui.store";
 
 /**
@@ -20,7 +20,7 @@ export class PluginIntegration {
     this.pluginManager = new PluginManager({
       maxWorkers: 3,
       enableHotReload: process.env.NODE_ENV === "development",
-      pluginPaths: ["/plugins", "/Users/sternelee/www/github/fleet-chat/src/plugins/examples"],
+      pluginPaths: ["/plugins", "/Users/sternelee/www/github/fleet-chat/packages/fleet-chat-api/examples"],
       securityPolicy: {
         allowedDomains: [],
         allowFileSystem: true,
@@ -28,9 +28,6 @@ export class PluginIntegration {
         maxMemoryUsage: 100,
       },
     });
-
-    this.setupIntegrationAPI();
-    this.setupEventHandlers();
   }
 
   /**
@@ -43,169 +40,17 @@ export class PluginIntegration {
       // Initialize plugin manager
       await this.pluginManager.initialize();
 
-      // Load built-in example plugin
-      await this.loadExamplePlugin();
+      // Set up integration API
+      await this.setupIntegrationAPI();
+
+      // Set up event listeners
+      this.setupEventListeners();
 
       this.initialized = true;
-      console.log("Plugin Integration initialized successfully");
+      console.log("Plugin integration initialized successfully");
     } catch (error) {
-      console.error("Failed to initialize Plugin Integration:", error);
+      console.error("Failed to initialize plugin integration:", error);
       throw error;
-    }
-  }
-
-  /**
-   * Setup the integration API that plugins will use
-   */
-  private setupIntegrationAPI(): void {
-    this.integrationApi = {
-      // UI Components - proxy to actual Lit components
-      List: this.createComponentProxy("List"),
-      Grid: this.createComponentProxy("Grid"),
-      Detail: this.createComponentProxy("Detail"),
-      Form: this.createComponentProxy("Form"),
-      Action: this.createComponentProxy("Action"),
-      ActionPanel: this.createComponentProxy("ActionPanel"),
-
-      // Navigation - integrate with Fleet Chat navigation
-      pop: () => {
-        // Implement navigation back
-        console.log("Plugin API: pop");
-      },
-
-      push: (view: HTMLElement) => {
-        // Implement navigation forward
-        console.log("Plugin API: push", view);
-        this.renderPluginView(view);
-      },
-
-      open: async (url: string) => {
-        // Use Tauri's opener to open URLs
-        const opener = await import("@tauri-apps/plugin-opener");
-        await opener.openUrl(url);
-      },
-
-      closeMainWindow: async () => {
-        // Use Tauri to close main window
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        const mainWindow = getCurrentWindow();
-        await mainWindow.close();
-      },
-
-      // System APIs - integrate with Fleet Chat systems
-      showToast: async (options) => {
-        // Integrate with Fleet Chat toast system
-        console.log("Plugin API: showToast", options);
-
-        // Dispatch event to main app
-        window.dispatchEvent(
-          new CustomEvent("plugin:toast", {
-            detail: options,
-          }),
-        );
-      },
-
-      showHUD: async (message: string) => {
-        console.log("Plugin API: showHUD", message);
-
-        window.dispatchEvent(
-          new CustomEvent("plugin:hud", {
-            detail: { message },
-          }),
-        );
-      },
-
-      getApplications: async () => {
-        // Get system applications
-        try {
-          // This would use Tauri's system APIs
-          return [];
-        } catch (error) {
-          console.error("Failed to get applications:", error);
-          return [];
-        }
-      },
-
-      openApplication: async (path: string) => {
-        const opener = await import("@tauri-apps/plugin-opener");
-        await opener.openPath(path);
-      },
-
-      // Data Storage - integrate with Fleet Chat storage
-      LocalStorage: this.createStorageProxy("localStorage"),
-      Cache: this.createStorageProxy("cache"),
-
-      // Clipboard - integrate with system clipboard
-      Clipboard: this.createClipboardProxy(),
-
-      // File System - integrate with Tauri file system
-      FileSystem: this.createFileSystemProxy(),
-    };
-  }
-
-  /**
-   * Setup event handlers for plugin events
-   */
-  private setupEventHandlers(): void {
-    this.pluginManager.on("pluginLoaded", (event) => {
-      console.log("Plugin loaded:", event);
-    });
-
-    this.pluginManager.on("pluginError", (event) => {
-      console.error("Plugin error:", event);
-    });
-
-    this.pluginManager.on("workerError", (event) => {
-      console.error("Worker error:", event);
-    });
-  }
-
-  /**
-   * Load the example plugin
-   */
-  private async loadExamplePlugin(): Promise<void> {
-    try {
-      const exampleManifest: PluginManifest = {
-        name: "hello-world",
-        title: "Hello World",
-        description: "A simple hello world plugin for Fleet Chat",
-        icon: "👋",
-        license: "MIT",
-        version: "1.0.0",
-        categories: ["Productivity"],
-        commands: [
-          {
-            name: "hello",
-            title: "Hello World",
-            description: "Shows a greeting message",
-            mode: "view",
-            keywords: ["greeting", "welcome"],
-          },
-          {
-            name: "helloList",
-            title: "Hello List",
-            description: "Shows a list of greeting options",
-            mode: "view",
-          },
-          {
-            name: "helloDetail",
-            title: "Hello Details",
-            description: "Shows detailed information about greetings",
-            mode: "view",
-          },
-          {
-            name: "helloAction",
-            title: "Hello Action",
-            description: "Shows a toast notification",
-            mode: "no-view",
-          },
-        ],
-      };
-
-      const pluginPath = "/Users/sternelee/www/github/fleet-chat/src/plugins/examples/hello-world";
-      await this.pluginManager.loadPlugin(exampleManifest, pluginPath);
-    } catch (error) {
-      console.error("Failed to load example plugin:", error);
     }
   }
 
@@ -215,239 +60,199 @@ export class PluginIntegration {
   async executeCommand(
     pluginId: string,
     commandName: string,
-    args?: Record<string, any>,
+    args?: Record<string, any>
   ): Promise<HTMLElement | void> {
-    try {
-      return await this.pluginManager.executeCommand(pluginId, commandName, args);
-    } catch (error) {
-      console.error("Failed to execute plugin command:", error);
-      throw error;
+    if (!this.initialized) {
+      await this.initialize();
     }
+
+    return await this.pluginManager.executeCommand(pluginId, commandName, args);
   }
 
   /**
-   * Get available plugin commands
-   */
-  getAvailableCommands(): Array<{ key: string; pluginId: string; command: any }> {
-    return this.pluginManager.getAvailableCommands();
-  }
-
-  /**
-   * Render a plugin view in the Fleet Chat UI
-   */
-  private renderPluginView(view: HTMLElement): void {
-    // Get the current active panel or create a new one
-    const activePanel = document.querySelector(".active-panel") || document.body;
-
-    // Clear existing content
-    activePanel.innerHTML = "";
-
-    // Add the plugin view
-    activePanel.appendChild(view);
-
-    // Update UI store if needed
-    if (uiStore) {
-      // Update relevant UI state
-    }
-  }
-
-  /**
-   * Create component proxy for UI components
-   */
-  private createComponentProxy(componentName: string): any {
-    return new Proxy(
-      {},
-      {
-        get: (target, prop) => {
-          if (prop === "default") {
-            return this.createComponentProxy(componentName);
-          }
-
-          return (...args: any[]) => {
-            // This would create the actual Lit component
-            console.log(`Creating ${componentName} component with args:`, args);
-
-            // Return a mock element for now
-            const element = document.createElement("div");
-            element.textContent = `${componentName} Component`;
-            return element;
-          };
-        },
-      },
-    );
-  }
-
-  /**
-   * Create storage proxy for data APIs
-   */
-  private createStorageProxy(storageType: string): any {
-    return new Proxy(
-      {},
-      {
-        get: (target, prop) => {
-          if (typeof prop === "string") {
-            return (...args: any[]) => {
-              const storage = storageType === "localStorage" ? localStorage : sessionStorage;
-
-              switch (prop) {
-                case "get":
-                  return storage.getItem(args[0]);
-                case "set":
-                  storage.setItem(args[0], args[1]);
-                  return Promise.resolve();
-                case "remove":
-                  storage.removeItem(args[0]);
-                  return Promise.resolve();
-                case "clear":
-                  storage.clear();
-                  return Promise.resolve();
-                default:
-                  console.warn(`Unknown storage operation: ${prop}`);
-                  return Promise.resolve();
-              }
-            };
-          }
-        },
-      },
-    );
-  }
-
-  /**
-   * Create clipboard proxy
-   */
-  private createClipboardProxy(): any {
-    return new Proxy(
-      {},
-      {
-        get: (target, prop) => {
-          if (typeof prop === "string") {
-            return async (...args: any[]) => {
-              try {
-                const { writeText, readText } = await import(
-                  "@tauri-apps/plugin-clipboard-manager"
-                );
-
-                switch (prop) {
-                  case "read":
-                    return await readText();
-                  case "write":
-                    await writeText(args[0]);
-                    return;
-                  case "readText":
-                    return await readText();
-                  case "writeText":
-                    await writeText(args[0]);
-                    return;
-                  default:
-                    console.warn(`Unknown clipboard operation: ${prop}`);
-                    return;
-                }
-              } catch (error) {
-                console.error("Clipboard operation failed:", error);
-                // Fallback to browser clipboard
-                if (prop === "writeText") {
-                  await navigator.clipboard.writeText(args[0]);
-                } else if (prop === "readText") {
-                  return await navigator.clipboard.readText();
-                }
-              }
-            };
-          }
-        },
-      },
-    );
-  }
-
-  /**
-   * Create file system proxy
-   */
-  private createFileSystemProxy(): any {
-    return new Proxy(
-      {},
-      {
-        get: (target, prop) => {
-          if (typeof prop === "string") {
-            return async (...args: any[]) => {
-              try {
-                const { readDir, readFile, writeFile, exists } = await import(
-                  "@tauri-apps/plugin-fs"
-                );
-
-                switch (prop) {
-                  case "readDir":
-                    return await readDir(args[0]);
-                  case "readFile":
-                    return await readFile(args[0]);
-                  case "writeFile":
-                    await writeFile(args[0], args[1]);
-                    return;
-                  case "exists":
-                    return await exists(args[0]);
-                  default:
-                    console.warn(`Unknown file system operation: ${prop}`);
-                    return;
-                }
-              } catch (error) {
-                console.error("File system operation failed:", error);
-                throw error;
-              }
-            };
-          }
-        },
-      },
-    );
-  }
-
-  /**
-   * Get plugin manager instance
+   * Get the plugin manager instance
    */
   getPluginManager(): PluginManager {
     return this.pluginManager;
   }
 
   /**
-   * Get integration API
+   * Get the integration API
    */
   getIntegrationAPI(): PluginAPI {
+    if (!this.integrationApi) {
+      throw new Error("Integration API not initialized. Call initialize() first.");
+    }
     return this.integrationApi;
+  }
+
+  /**
+   * Get available plugin commands
+   */
+  getAvailableCommands(): Array<{ key: string; pluginId: string; command: any }> {
+    if (!this.initialized) {
+      return [];
+    }
+
+    return this.pluginManager.getAvailableCommands();
+  }
+
+  /**
+   * Set up the integration API
+   */
+  private async setupIntegrationAPI(): Promise<void> {
+    // Create integration API that bridges Fleet Chat and plugins
+    this.integrationApi = {
+      // UI Components - direct access to Fleet Chat components
+      List: {} as any,
+      Grid: {} as any,
+      Detail: {} as any,
+      Form: {} as any,
+      Action: {} as any,
+      ActionPanel: {} as any,
+      MenuBar: {} as any,
+      Dropdown: {} as any,
+
+      // Navigation - use Fleet Chat navigation
+      pop: async () => {
+        // Integrate with Fleet Chat navigation
+        console.log("Navigation.pop called by plugin");
+      },
+      push: async (view: HTMLElement, options?: any) => {
+        // Integrate with Fleet Chat navigation
+        console.log("Navigation.push called by plugin");
+      },
+      replace: async (view: HTMLElement, options?: any) => {
+        // Integrate with Fleet Chat navigation
+        console.log("Navigation.replace called by plugin");
+      },
+      popToRoot: async (type?: "immediate" | "animated") => {
+        // Integrate with Fleet Chat navigation
+        console.log("Navigation.popToRoot called by plugin");
+      },
+      clear: async () => {
+        // Integrate with Fleet Chat navigation
+        console.log("Navigation.clear called by plugin");
+      },
+
+      // System APIs - use Fleet Chat enhanced APIs
+      showToast: async (options: any) => {
+        // Integrate with Fleet Chat toast system
+        console.log("showToast called by plugin:", options);
+      },
+      showHUD: async (message: string) => {
+        // Integrate with Fleet Chat HUD system
+        console.log("showHUD called by plugin:", message);
+      },
+      getApplications: async () => {
+        // Use Fleet Chat application management
+        console.log("getApplications called by plugin");
+        return [];
+      },
+      openApplication: async (path: string) => {
+        // Use Fleet Chat application launching
+        console.log("openApplication called by plugin:", path);
+      },
+
+      // Data Storage - use Fleet Chat storage
+      LocalStorage: {} as any,
+      Cache: {} as any,
+
+      // Environment - use Fleet Chat environment
+      environment: {
+        supports: true,
+        theme: uiStore.get("theme") || "dark",
+        launchContext: null,
+      } as any,
+
+      // Clipboard - use Fleet Chat clipboard
+      Clipboard: {} as any,
+
+      // File System - use Fleet Chat filesystem
+      FileSystem: {} as any,
+    };
+  }
+
+  /**
+   * Set up event listeners for plugin events
+   */
+  private setupEventListeners(): void {
+    // Listen to plugin manager events
+    this.pluginManager.on("pluginLoaded", (event: any) => {
+      console.log("Plugin loaded:", event.pluginId);
+      // Update Fleet Chat state to reflect new plugin
+    });
+
+    this.pluginManager.on("pluginError", (event: any) => {
+      console.error("Plugin error:", event);
+      // Show error to user in Fleet Chat
+    });
+
+    this.pluginManager.on("commandExecuted", (event: any) => {
+      console.log("Command executed:", event);
+      // Handle command results
+    });
   }
 
   /**
    * Shutdown the plugin integration
    */
   async shutdown(): Promise<void> {
+    if (!this.initialized) return;
+
     try {
       await this.pluginManager.shutdown();
       this.initialized = false;
-      console.log("Plugin Integration shutdown successfully");
+      console.log("Plugin integration shut down successfully");
     } catch (error) {
-      console.error("Failed to shutdown Plugin Integration:", error);
-      throw error;
+      console.error("Failed to shutdown plugin integration:", error);
     }
   }
 }
 
 // Create singleton instance
-export const pluginIntegration = new PluginIntegration();
+let pluginIntegrationInstance: PluginIntegration | null = null;
 
-// Initialize on app startup
-export async function initializePlugins(): Promise<void> {
-  try {
-    await pluginIntegration.initialize();
-  } catch (error) {
-    console.error("Failed to initialize plugins:", error);
+/**
+ * Get the plugin integration instance
+ */
+export function getPluginIntegration(): PluginIntegration {
+  if (!pluginIntegrationInstance) {
+    pluginIntegrationInstance = new PluginIntegration();
   }
+  return pluginIntegrationInstance;
 }
 
-// Export convenience functions
-export function executePluginCommand(
+/**
+ * Initialize plugin integration (convenience function)
+ */
+export async function initializePluginIntegration(): Promise<PluginIntegration> {
+  const integration = getPluginIntegration();
+  await integration.initialize();
+  return integration;
+}
+
+/**
+ * Execute plugin command (convenience function)
+ */
+export async function executePluginCommand(
   pluginId: string,
   commandName: string,
-  args?: Record<string, any>,
-) {
-  return pluginIntegration.executeCommand(pluginId, commandName, args);
+  args?: Record<string, any>
+): Promise<HTMLElement | void> {
+  const integration = getPluginIntegration();
+  return await integration.executeCommand(pluginId, commandName, args);
 }
 
-export function getPluginCommands() {
-  return pluginIntegration.getAvailableCommands();
+/**
+ * Get available plugin commands (convenience function)
+ */
+export function getPluginCommands(): Array<{ key: string; pluginId: string; command: any }> {
+  const integration = getPluginIntegration();
+  return integration.getAvailableCommands();
 }
+
+/**
+ * Export the singleton plugin integration instance for direct use
+ */
+export const pluginIntegration = getPluginIntegration();

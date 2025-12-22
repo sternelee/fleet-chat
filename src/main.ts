@@ -20,7 +20,7 @@ import "./layouts/root-layout";
 import "./routes";
 
 // Initialize plugin system
-import { initializePlugins, pluginIntegration } from "./plugins/plugin-integration";
+import { initializePluginIntegration, pluginIntegration } from "./plugins/plugin-integration";
 import { PluginLoader } from "./plugins/plugin-loader";
 
 // Initialize plugins and create global plugin loader
@@ -29,7 +29,7 @@ async function initializePluginSystem() {
     console.log("🔌 Initializing plugin system...");
 
     // Initialize plugin integration
-    await initializePlugins();
+    await initializePluginIntegration();
     console.log("✅ Plugin integration initialized");
 
     // Get plugin manager

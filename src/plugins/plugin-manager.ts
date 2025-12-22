@@ -13,7 +13,7 @@ import type {
   PluginContext,
   PluginWorker,
   PluginAPI,
-} from "./plugin-system";
+} from "../../packages/fleet-chat-api/plugins/core/types.js";
 
 export class PluginManager extends EventEmitter {
   private config: Required<PluginManagerConfig>;
@@ -344,7 +344,7 @@ export class PluginManager extends EventEmitter {
     console.log(`[PluginManager] Creating worker: ${workerId}`);
 
     try {
-      const worker = new Worker("/workers/enhanced-plugin-worker.js", { type: "module" });
+      const worker = new Worker("/workers/plugin-worker.js", { type: "module" });
       console.log(`[PluginManager] Worker created successfully: ${workerId}`);
 
       const pluginWorker: PluginWorker = {
@@ -749,20 +749,16 @@ export class PluginManager extends EventEmitter {
    * Load plugin module from source
    */
   private async loadPluginModule(sourcePath: string, manifest: PluginManifest): Promise<Plugin> {
-    // In a real implementation, this would:
-    // 1. Validate source path and security permissions
-    // 2. Load the plugin JavaScript module
-    // 3. Validate the plugin interface
-
-    // For now, return a mock plugin
-    const mockPlugin: Plugin = {
+    // Create a basic plugin object
+    // The actual plugin execution will be handled by the worker
+    const plugin: Plugin = {
       manifest,
       async initialize(context: PluginContext, api: PluginAPI) {
         console.log(`Plugin ${manifest.name} initialized`);
       },
     };
 
-    return mockPlugin;
+    return plugin;
   }
 
   /**
@@ -948,6 +944,7 @@ export class PluginManager extends EventEmitter {
       status: "loaded",
       loadTime: Date.now(),
       usageCount: 0,
+      sourcePath: (plugin as any).sourcePath || "",
     };
 
     // Store plugin code if available

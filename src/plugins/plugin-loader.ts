@@ -5,8 +5,16 @@
  */
 
 import { unzip } from 'unzipit';
-import { PluginManifest, Plugin } from './plugin-system';
-import { PluginManager } from './plugin-manager';
+import type { PluginManifest, Plugin, PluginState } from "../../packages/fleet-chat-api/plugins/core/types.js";
+import { PluginManager } from "./plugin-manager.js";
+
+// Plugin loader specific interface
+export interface LoadedPlugin {
+  manifest: PluginManifest;
+  plugin: Plugin;
+  path: string;
+  metadata?: PackageMetadata;
+}
 
 // Package metadata interface
 interface PackageMetadata {
@@ -123,6 +131,9 @@ export class PluginLoader {
 
     // Create plugin object
     const plugin = await this.createPluginFromCode(manifest, pluginCode);
+
+    // Set source path for the plugin
+    (plugin as any).sourcePath = source;
 
     // Register with plugin manager
     await this.pluginManager.registerPlugin(plugin);

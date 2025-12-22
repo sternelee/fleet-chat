@@ -17,7 +17,7 @@ export interface FormProps {
 // Stub Form component - actual implementation in UI components
 export const Form = {
   // Placeholder for Form component
-  create: (props: FormProps) => {
+  create: (_props: FormProps) => {
     // This would create a Form component
     return null;
   },

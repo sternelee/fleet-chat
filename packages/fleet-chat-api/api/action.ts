@@ -33,7 +33,7 @@ export interface ActionPanelProps {
 // Stub Action component - actual implementation in UI components
 export const Action = {
   // Placeholder for Action component
-  create: (props: ActionProps) => {
+  create: (_props: ActionProps) => {
     // This would create an Action component
     return null;
   },
@@ -42,7 +42,7 @@ export const Action = {
 // Stub ActionPanel component - actual implementation in UI components
 export const ActionPanel = {
   // Placeholder for ActionPanel component
-  create: (props: ActionPanelProps) => {
+  create: (_props: ActionPanelProps) => {
     // This would create an ActionPanel component
     return null;
   },

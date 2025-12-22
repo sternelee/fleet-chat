@@ -340,7 +340,7 @@ export async function clear(): Promise<void> {
 }
 
 // Keyboard navigation support
-export function attachKeyboardNavigation(): void {
+export function attachKeyboardNavigation(): (() => void) | void {
   if (typeof window === "undefined") return;
 
   const handleKeyDown = (event: KeyboardEvent) => {

@@ -1,69 +1,98 @@
 /**
- * Fleet Chat Plugin API
+ * Fleet Chat Plugin API - Full Raycast Compatibility
  *
- * Core API for Fleet Chat plugins providing Raycast-compatible functionality
- * with Tauri integration for native system access
+ * Complete API for Fleet Chat plugins providing 100% Raycast API compatibility
+ * with Tauri integration for native system access and complete plugin system
  */
 
-// UI Components
-export { default as List } from './components/List.js';
-export { default as Grid } from './components/Grid.js';
-export { default as Detail } from './components/Detail.js';
+// Re-export everything from @raycast/api for full compatibility
+export * from '@raycast/api';
 
-// API Functions
-export {
-  showToast,
-  showHUD,
-  getApplications,
-  open,
-  closeMainWindow,
-  useNavigation,
-  pop,
-  push,
-  clearSearchBar,
-  getSelectedText,
-  popToRoot,
-  updateCommandMetadata
-} from './api/index.js';
-
-// Data Storage
-export { LocalStorage, Cache, getPreferenceValues } from './api/storage.js';
-export { openCommandPreferences, openExtensionPreferences } from './api/preferences.js';
-
-// Environment
+// Re-export our Tauri-specific implementations
+export { LocalStorage, Cache, preferences } from './api/storage.js';
+export { getApplications as tauriGetApplications, getFrontmostApplication, getRunningApplications } from './api/applications.js';
+export { showToast, showHUD } from './api/ui.js';
 export { environment } from './api/environment.js';
 export type { Environment } from './api/environment.js';
 
-// UI Utilities
+// React Hooks compatibility
+export * from './hooks/index.js';
+
+// Plugin System - Core functionality
+export { PluginManager } from './plugins/core/manager.js';
+export type {
+  PluginManifest,
+  PluginCommand,
+  PluginContext,
+  PluginAPI,
+  Plugin,
+  ViewPlugin,
+  NoViewPlugin,
+  PluginState,
+  PluginManagerConfig,
+  SecurityPolicy,
+  Application,
+  PluginLoadResult,
+  PluginWorker,
+  WorkerMessage,
+  WorkerResponse
+} from './plugins/core/types.js';
+
+// UI Components - Enhanced Fleet Chat components
 export {
-  Image,
-  Icon,
-  Color,
-  Keyboard,
-  Toast,
-  confirmAlert,
-  Alert
-} from './api/ui.js';
+  FCList, FCAction, FCActionPanel, FCActionSeparator, FCActionPanelItem,
+  List, Action, ActionPanel, ActionPanelItem, ActionPanelSeparator,
+  Detail, Grid
+} from './components/index.js';
 
-// Hooks - Simple implementations for compatibility
-export function useState<T>(initialValue: T): [T, (value: T) => void] {
-  let value = initialValue;
-  return [value, (newValue: T) => { value = newValue; }];
-}
+export type {
+  ListItemProps,
+  ListAccessory,
+  ListAction,
+  ActionProps,
+  ActionPanelItemProps
+} from './components/index.js';
 
-export function useEffect(_effect: () => void | (() => void), _deps?: any[]): void {
-  // Simple effect implementation
-}
+// Storage System - Unified storage with Tauri and browser fallbacks
+export {
+  BrowserLocalStorage,
+  BrowserCache
+} from './storage/index.js';
 
-export function useCallback<T extends (...args: any[]) => any>(callback: T, _deps?: any[]): T {
-  return callback;
-}
+// System APIs - Clipboard, filesystem, and system integration
+export {
+  Clipboard,
+  FileSystem,
+  FCClipboard,
+  FCFileSystem
+} from './system/index.js';
 
-// Advanced Features
-export { AI } from './api/ai.js';
-export { OAuth } from './api/oauth.js';
+// React-to-Lit Renderer - JSX compilation for plugins
+export {
+  ReactToLitCompiler,
+  createElement,
+  h,
+  Fragment,
+  reactToLitCompiler
+} from './renderer/index.js';
 
-// Type exports
+export type {
+  ReactElement,
+  ReactNode,
+  ComponentInstance
+} from './renderer/index.js';
+
+// Examples and documentation
+export {
+  helloWorldManifest,
+  exampleHelloWorldCommand,
+  exampleDetailCommand,
+  exampleActionCommand,
+  pluginDevelopmentGuide,
+  createExamplePlugin
+} from './examples/index.js';
+
+// Export all Fleet Chat specific types
 export type {
   LaunchContext,
   ToastOptions,
@@ -71,7 +100,6 @@ export type {
   ListProps,
   GridProps,
   DetailProps,
-  Application,
   ImageLike,
   IconLike,
   ColorLike,

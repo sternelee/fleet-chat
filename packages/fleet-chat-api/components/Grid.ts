@@ -291,7 +291,7 @@ export class FCGrid extends LitElement {
     return html`
       <div class="grid-container" @keydown="${this.handleKeyDown}">
         ${this.filtering
-          ? html`
+        ? html`
               <div class="search-bar">
                 <input
                   type="text"
@@ -302,24 +302,24 @@ export class FCGrid extends LitElement {
                 />
               </div>
             `
-          : ""}
+        : ""}
 
         <div class="grid-items">
           ${this.filteredItems.length > 0
-            ? html`
+        ? html`
                 ${repeat(
-                  this.filteredItems,
-                  (item) => item.id,
-                  (item, _index) => html`
+          this.filteredItems,
+          (item) => item.id,
+          (item, _index) => html`
                     <fc-grid-item
                       .item="${item}"
                       .selected="${_index === this.selectedIndex}"
                       @click="${() => this.selectItem(item)}"
                     ></fc-grid-item>
                   `,
-                )}
+        )}
               `
-            : html`
+        : html`
                 <div class="empty-state">
                   <div class="empty-icon">🔍</div>
                   <div class="empty-title">No Results</div>
@@ -375,10 +375,10 @@ export class FCGridItem extends LitElement {
       <div class="grid-item ${this.selected ? "selected" : ""}" @click="${this.handleClick}">
         <div class="grid-item-content">
           ${image
-            ? html` <img src="${image}" alt="${title}" class="item-image" /> `
-            : icon
-              ? html` <div class="item-icon">${icon}</div> `
-              : ""}
+        ? html` <img src="${image}" alt="${title}" class="item-image" /> `
+        : icon
+          ? html` <div class="item-icon">${icon}</div> `
+          : ""}
 
           <div class="item-title">${title}</div>
           ${subtitle ? html` <div class="item-subtitle">${subtitle}</div> ` : ""}
@@ -399,4 +399,3 @@ export class FCGridItem extends LitElement {
 }
 
 export default FCGrid;
-
