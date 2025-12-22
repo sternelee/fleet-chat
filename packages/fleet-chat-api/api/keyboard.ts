@@ -100,4 +100,3 @@ export function shortcutsMatch(a: KeyboardShortcut, b: KeyboardShortcut): boolea
 
   return aModifiers.size === bModifiers.size && [...aModifiers].every((mod) => bModifiers.has(mod));
 }
-

@@ -44,6 +44,13 @@ pnpm update-deps  # Update dependencies using npm-check-updates
 pnpm tauri <command>  # Run any Tauri CLI command
 ```
 
+### Plugin Development
+```bash
+node tools/plugin-cli.js create <plugin-name>    # Create new plugin
+node tools/plugin-cli.js build <plugin-name>     # Build plugin
+node tools/plugin-cli.js list                    # List available plugins
+```
+
 ## Architecture Overview
 
 ### Frontend Architecture (TypeScript/Lit)
@@ -57,7 +64,7 @@ pnpm tauri <command>  # Run any Tauri CLI command
 - **Framework**: Tauri v2 for cross-platform desktop capabilities with integrated Axum web server
 - **Language**: Rust for native performance and system integration
 - **Web Server**: Axum HTTP server providing RESTful APIs and A2UI backend services
-- **AI Integration**: 
+- **AI Integration**:
   - Multi-provider AI agent system supporting OpenAI and Google Gemini
   - A2UI (Agent-to-UI) backend service following Google ADK architecture (a2ui_agent.rs)
   - Provider abstraction layer with pluggable AI backends (provider.rs)

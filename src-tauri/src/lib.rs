@@ -7,7 +7,10 @@ mod tauri_axum;
 mod window;
 use axum::Router;
 use axum_app::create_axum_app;
-use search::{search_applications, search_files, unified_search};
+use search::{
+    search_applications, search_files, unified_search, get_applications, get_frontmost_application,
+    get_running_applications, get_default_application
+};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri::{async_runtime::Mutex, State};
@@ -104,6 +107,10 @@ pub fn run() {
             search_applications,
             search_files,
             unified_search,
+            get_applications,
+            get_frontmost_application,
+            get_running_applications,
+            get_default_application,
             // Plugin system commands
             plugins::load_plugin,
             plugins::unload_plugin,

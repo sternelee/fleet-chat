@@ -327,3 +327,153 @@ pub async fn unified_search(
         files: files?,
     })
 }
+
+/// Get all applications installed on the system
+#[command]
+pub async fn get_applications() -> Result<Vec<Application>, String> {
+    use applications::{AppInfoContext, AppInfo, AppTrait};
+
+    // Create context and refresh apps
+    let mut ctx = AppInfoContext::new(vec![]);
+    ctx.refresh_apps()
+        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
+
+    // Get all applications
+    let apps = ctx.get_all_apps();
+
+    // Convert to our Application struct
+    let results: Vec<Application> = apps
+        .into_iter()
+        .map(|app| {
+            let exe_path = app
+                .app_path_exe
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
+
+            // Convert executable path to .app bundle root path
+            let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
+                if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
+                    exe_path[..bundle_end + 4].to_string()
+                } else {
+                    exe_path
+                }
+            } else {
+                exe_path
+            };
+
+            let icon_base64 = extract_app_icon(&app_bundle_path);
+
+            Application {
+                name: app.name.clone(),
+                path: app_bundle_path,
+                icon_path: None,
+                icon_base64,
+            }
+        })
+        .collect();
+
+    Ok(results)
+}
+
+/// Get the frontmost application
+#[command]
+pub async fn get_frontmost_application() -> Result<Option<Application>, String> {
+    use applications::{AppInfoContext, AppInfo, AppTrait};
+
+    let mut ctx = AppInfoContext::new(vec![]);
+    ctx.refresh_apps()
+        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
+
+    match ctx.get_frontmost_application() {
+        Ok(app) => {
+            let exe_path = app
+                .app_path_exe
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
+
+        let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
+                if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
+                    exe_path[..bundle_end + 4].to_string()
+                } else {
+                    exe_path
+                }
+            } else {
+                exe_path
+            };
+
+            let icon_base64 = extract_app_icon(&app_bundle_path);
+
+            Ok(Some(Application {
+                name: app.name.clone(),
+                path: app_bundle_path,
+                icon_path: None,
+                icon_base64,
+            }))
+        }
+        Err(_) => Ok(None),
+    }
+}
+
+/// Get all running applications
+#[command]
+pub async fn get_running_applications() -> Result<Vec<Application>, String> {
+    use applications::{AppInfoContext, AppInfo, AppTrait};
+
+    let mut ctx = AppInfoContext::new(vec![]);
+    ctx.refresh_apps()
+        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
+
+    let apps = ctx.get_running_apps();
+
+    let results: Vec<Application> = apps
+        .into_iter()
+        .map(|app| {
+            let exe_path = app
+                .app_path_exe
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
+
+            let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
+                if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
+                    exe_path[..bundle_end + 4].to_string()
+                } else {
+                    exe_path
+                }
+            } else {
+                exe_path
+            };
+
+            let icon_base64 = extract_app_icon(&app_bundle_path);
+
+            Application {
+                name: app.name.clone(),
+                path: app_bundle_path,
+                icon_path: None,
+                icon_base64,
+            }
+        })
+        .collect();
+
+    Ok(results)
+}
+
+/// Get default application for file extension
+#[command]
+pub async fn get_default_application(extension: String) -> Result<Option<Application>, String> {
+    use applications::{AppInfoContext, AppInfo, AppTrait};
+
+    let mut ctx = AppInfoContext::new(vec![]);
+    ctx.refresh_apps()
+        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
+
+    // Note: The applications crate doesn't seem to have get_default_app method
+    // This is a placeholder implementation that returns None
+    // In a real implementation, you would need to use platform-specific APIs
+    // to get the default application for a file extension
+    println!("get_default_application called with extension: {}", extension);
+
+    Ok(None)
+}
