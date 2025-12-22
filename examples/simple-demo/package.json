@@ -1,0 +1,15 @@
+{
+  "name": "simple-demo",
+  "version": "1.0.0",
+  "description": "Simple demo plugin for Fleet Chat",
+  "author": "Fleet Chat Team",
+  "commands": [
+    {
+      "name": "default",
+      "title": "Simple Demo",
+      "description": "A simple demonstration of the new plugin system",
+      "mode": "view"
+    }
+  ],
+  "icon": "🚀"
+}

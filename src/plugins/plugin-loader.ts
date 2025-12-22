@@ -99,8 +99,16 @@ export class PluginLoader {
       throw new Error(`Invalid plugin package: ${validation.error}`);
     }
 
-    // Extract manifest
-    const manifestEntry = entries['manifest.json'];
+    // Extract manifest (support both new plugin.json and legacy manifest.json)
+    let manifestEntry = entries['plugin.json'];
+    if (!manifestEntry) {
+      manifestEntry = entries['manifest.json']; // Fallback to legacy format
+    }
+
+    if (!manifestEntry) {
+      throw new Error('No manifest file found in plugin package (expected plugin.json or manifest.json)');
+    }
+
     const manifestJson = await manifestEntry.text();
     const manifest: PluginManifest = JSON.parse(manifestJson);
 

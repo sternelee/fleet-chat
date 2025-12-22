@@ -9,7 +9,7 @@
       "DOM.Iterable"
     ],
     "jsx": "react-jsx",
-    "jsxImportSource": "@fleet-chat/raycast-api-compat",
+    "jsxImportSource": "@fleet-chat/raycast-api",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -27,7 +27,7 @@
         "src/*"
       ],
       "@raycast/api": [
-        "./node_modules/@fleet-chat/raycast-api-compat"
+        "./node_modules/@fleet-chat/raycast-api"
       ],
       "@fleet-chat/api": [
         "./node_modules/@fleet-chat/api"

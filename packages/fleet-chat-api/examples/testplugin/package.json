@@ -10,7 +10,7 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@fleet-chat/raycast-api-compat": "workspace:*"
+        "@fleet-chat/raycast-api": "workspace:*"
     },
     "devDependencies": {
         "@types/node": "^24.5.2",

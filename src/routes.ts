@@ -64,9 +64,10 @@ export class MyApp extends LitElement {
   render() {
     // Make sure the app is only rendered in Tauri environment.
     // If __TAURI__ doesn't exist, render the error browser view.
-    const appContent = import.meta.env.PROD && !("__TAURI__" in window)
-      ? html`<error-browser></error-browser>`
-      : this._routes.outlet();
+    const appContent =
+      import.meta.env.PROD && !("__TAURI__" in window)
+        ? html`<error-browser></error-browser>`
+        : this._routes.outlet();
 
     return html`
       ${appContent}

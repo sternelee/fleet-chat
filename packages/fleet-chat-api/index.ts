@@ -18,6 +18,9 @@ export type { Environment } from './api/environment.js';
 // React Hooks compatibility
 export * from './hooks/index.js';
 
+// Re-export Raycast API compatibility layer
+export * from './raycast-api/index.js';
+
 // Plugin System - Core functionality
 export { PluginManager } from './plugins/core/manager.js';
 export type {

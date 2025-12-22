@@ -9,8 +9,8 @@
             "@fleet-chat/api": [
                 "../../packages/fleet-chat-api"
             ],
-            "@fleet-chat/raycast-api-compat": [
-                "../../packages/raycast-api-compat"
+            "@fleet-chat/raycast-api": [
+                "../../packages/fleet-chat-api/raycast-api"
             ],
             "@fleet-chat/extension-manager": [
                 "../../packages/fleet-chat-extension-manager"

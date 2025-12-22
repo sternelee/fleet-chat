@@ -28,7 +28,7 @@ console.log('🧪 Testing Raycast API imports for Todo List plugin...\n');
 async function testImports() {
   try {
     // Test importing from the compatibility layer
-    const api = await import('./packages/raycast-api-compat/index.js');
+    const api = await import('./packages/fleet-chat-api/index.js');
 
     let successCount = 0;
     let failCount = 0;

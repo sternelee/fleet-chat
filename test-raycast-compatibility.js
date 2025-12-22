@@ -48,7 +48,7 @@ async function testRaycastCompatibility() {
       List, Action, ActionPanel, Color, Icon, MenuBarExtra, Form, Image,
       useNavigation, showToast, Toast, clearSearchBar, confirmAlert, Alert,
       getPreferenceValues, environment, Keyboard
-    } = await import('./packages/raycast-api-compat/index.js');
+    } = await import('./packages/fleet-chat-api/raycast-api/index.ts');
 
     console.log('✅ All required APIs imported successfully');
     results.passed++;
@@ -162,7 +162,7 @@ async function testRaycastCompatibility() {
       createElement: (tag, props, ...children) => ({ tag, props: props || {}, children })
     };
 
-    const { List, Action, ActionPanel } = await import('./packages/raycast-api-compat/react-components.js');
+    const { List, Action, ActionPanel } = await import('./packages/fleet-chat-api/raycast-api/index.ts');
 
     // Test List creation
     const listElement = React.createElement(List, {},

@@ -6,7 +6,7 @@
 // Import React in a compatible way
 // @ts-ignore - React types are provided by the compatibility layer
 import * as React from 'react';
-import { List, Detail, showToast } from '@fleet-chat/raycast-api-compat';
+import { List, Detail, showToast } from '@fleet-chat/raycast-api';
 
 export default async function() {
   // Plugin initialization logic

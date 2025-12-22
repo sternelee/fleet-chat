@@ -17,15 +17,18 @@ const __dirname = dirname(__filename);
 
 const DEFAULT_TEMPLATE = {
   name: 'my-plugin',
+  version: '1.0.0',
   description: 'A Fleet Chat plugin',
+  author: 'Fleet Chat Developer',
   commands: [
     {
-      name: 'hello',
+      name: 'default',
       title: 'Hello World',
       description: 'Shows a greeting message',
       mode: 'view'
     }
-  ]
+  ],
+  icon: '🚀'
 };
 
 function createPlugin(name, options = {}) {
@@ -42,39 +45,21 @@ function createPlugin(name, options = {}) {
   mkdirSync(pluginDir, { recursive: true });
   mkdirSync(join(pluginDir, 'src'), { recursive: true });
 
-  // Generate plugin package.json with manifest for Raycast compatibility
+  // Generate simplified plugin package.json
   const packageJson = {
-    name: `@fleet-chat/plugin-${name}`,
+    name: name,
     version: "1.0.0",
     description: `${name} plugin for Fleet Chat`,
-    type: "module",
-    scripts: {
-      build: "tsc --noEmit",
-      dev: "tsc --noEmit --watch",
-      typecheck: "tsc --noEmit",
-      clean: "rm -rf dist"
-    },
-    dependencies: {
-      "@fleet-chat/raycast-api-compat": "workspace:*"
-    },
-    devDependencies: {
-      "@types/node": "^24.5.2",
-      "typescript": "^5.9.2"
-    },
-    keywords: ["fleet-chat", "plugin", name],
     author: "Fleet Chat Developer",
-    license: "MIT",
-    private: true,
-    // Raycast manifest properties for compatibility
-    $schema: "https://developers.raycast.com/schemas/extension-manifest.json",
-    icon: "⚡",
-    title: name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-    categories: ["Productivity"],
-    commands: DEFAULT_TEMPLATE.commands.map(cmd => ({
-      ...cmd,
-      name: cmd.name.replace('my-plugin', name),
-      title: cmd.title.replace('My Plugin', name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
-    }))
+    commands: [
+      {
+        name: "default",
+        title: name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        description: `${name} plugin functionality`,
+        mode: "view"
+      }
+    ],
+    icon: "🚀"
   };
 
   writeFileSync(
@@ -90,7 +75,7 @@ function createPlugin(name, options = {}) {
       target: "ES2020",
       lib: ["ES2020", "DOM", "DOM.Iterable"],
       jsx: "react-jsx",
-      jsxImportSource: "@fleet-chat/raycast-api-compat",
+      jsxImportSource: "@fleet-chat/raycast-api",
       allowSyntheticDefaultImports: true,
       esModuleInterop: true,
       skipLibCheck: true,
@@ -105,7 +90,7 @@ function createPlugin(name, options = {}) {
       incremental: true,
       paths: {
         "@/*": ["src/*"],
-        "@raycast/api": ["./node_modules/@fleet-chat/raycast-api-compat"],
+        "@raycast/api": ["./node_modules/@fleet-chat/raycast-api"],
         "@fleet-chat/api": ["./node_modules/@fleet-chat/api"]
       }
     },
@@ -118,76 +103,37 @@ function createPlugin(name, options = {}) {
     JSON.stringify(tsconfig, null, 2)
   );
 
-  // Generate example plugin code
+  // Generate example plugin code using new simplified system
   const pluginCode = `/**
  * ${name} Plugin for Fleet Chat
  */
 
-import { List, Detail, ActionPanel, Action, showToast } from '@fleet-chat/raycast-api-compat';
+import React from 'react';
+import { List, ActionPanel, Action, showToast } from '@fleet-chat/raycast-api';
 
-export default async function() {
-  console.log('${name} plugin initialized');
+export default function Command() {
+  return (
+    <List>
+      <List.Item
+        title="Hello from ${name}!"
+        subtitle="This is your Fleet Chat plugin"
+        actions={
+          <ActionPanel>
+            <Action
+              title="Say Hello"
+              onAction={() => {
+                showToast({
+                  title: "Hello!",
+                  message: "Welcome to Fleet Chat plugin development"
+                });
+              }}
+            />
+          </ActionPanel>
+        }
+      />
+    </List>
+  );
 }
-
-/**
- * ${DEFAULT_TEMPLATE.commands[0].title}
- */
-export async function ${DEFAULT_TEMPLATE.commands[0].name}() {
-  const markdownContent = \`# Hello from ${name}! 👋
-
-Welcome to **Fleet Chat** plugin system!
-
-This is your new plugin. Start building amazing functionality!
-
-## Next Steps
-
-1. Edit src/index.ts to add your commands
-2. Run pnpm dev to test your changes
-3. Check the Fleet Chat documentation for more APIs
-4. Build cool stuff! 🚀
-
-## Useful Resources
-
-- [Fleet Chat Plugin Docs](https://github.com/sternelee/fleet-chat/blob/main/PLUGIN_SYSTEM.md)
-- [API Reference](https://github.com/sternelee/fleet-chat/blob/main/packages/fleet-chat-api/)
-- [Plugin Examples](https://github.com/sternelee/fleet-chat/tree/main/src/plugins/examples/)
-
-Have fun building your plugin!\`;
-
-  return {
-    type: 'Detail',
-    props: {
-      markdown: markdownContent
-    }
-  };
-}
-
-export async function ${name.replace(/[^a-zA-Z0-9]/g, '')}List() {
-  const items = [
-    {
-      title: "Item 1",
-      subtitle: "This is the first item",
-      icon: "🎯",
-      keywords: ["first", "example"]
-    },
-    {
-      title: "Item 2",
-      subtitle: "This is the second item",
-      icon: "⚡",
-      keywords: ["second", "example"]
-    }
-  ];
-
-  return {
-    type: 'List',
-    props: {
-      items: items.map((item, index) => ({
-        key: index,
-        title: item.title,
-        subtitle: item.subtitle,
-        icon: item.icon,
-        keywords: item.keywords,
-        actions: {
           type: 'ActionPanel',
           props: {
             actions: [
@@ -290,7 +236,7 @@ pnpm build
 ## API Reference
 
 - [Fleet Chat API Documentation](../../packages/fleet-chat-api/)
-- [Raycast API Compatibility](../../packages/raycast-api-compat/)
+- [Raycast API Compatibility](../../packages/fleet-chat-api/raycast-api/)
 
 ## License
 

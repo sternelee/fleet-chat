@@ -2,7 +2,7 @@
  * testplugin Plugin for Fleet Chat
  */
 
-import { showToast } from '@fleet-chat/raycast-api-compat';
+import { showToast } from '@fleet-chat/raycast-api';
 
 export default async function() {
   console.log('testplugin plugin initialized');

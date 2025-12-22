@@ -47,10 +47,11 @@ async function initializePluginSystem() {
     console.log("🎯 Plugin system ready for drag-drop functionality");
 
     // Dispatch event to notify that plugin system is ready
-    window.dispatchEvent(new CustomEvent('plugin-system-ready', {
-      detail: { pluginManager, globalLoader }
-    }));
-
+    window.dispatchEvent(
+      new CustomEvent("plugin-system-ready", {
+        detail: { pluginManager, globalLoader },
+      }),
+    );
   } catch (error) {
     console.error("❌ Failed to initialize plugin system:", error);
   }

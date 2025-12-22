@@ -7,7 +7,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { randomId } from "@fleet-chat/raycast-api-compat/utils.js";
+import { randomId } from "@fleet-chat/raycast-api/utils.js";
 
 // Message types for extension communication
 export interface ExtensionMessage {
