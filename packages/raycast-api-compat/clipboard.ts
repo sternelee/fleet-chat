@@ -118,4 +118,3 @@ export namespace Clipboard {
     return [await read()];
   }
 }
-

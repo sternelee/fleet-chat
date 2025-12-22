@@ -1,6 +1,6 @@
 /**
  * Fleet Chat Plugin API
- * 
+ *
  * Core API for Fleet Chat plugins providing Raycast-compatible functionality
  * with Tauri integration for native system access
  */
@@ -11,11 +11,11 @@ export { default as Grid } from './components/Grid.js';
 export { default as Detail } from './components/Detail.js';
 
 // API Functions
-export { 
-  showToast, 
-  showHUD, 
-  getApplications, 
-  open, 
+export {
+  showToast,
+  showHUD,
+  getApplications,
+  open,
   closeMainWindow,
   useNavigation,
   pop,
@@ -30,15 +30,15 @@ export {
 export { LocalStorage, Cache, getPreferenceValues } from './api/storage.js';
 export { openCommandPreferences, openExtensionPreferences } from './api/preferences.js';
 
-// Environment  
+// Environment
 export { environment } from './api/environment.js';
 export type { Environment } from './api/environment.js';
 
 // UI Utilities
-export { 
-  Image, 
-  Icon, 
-  Color, 
+export {
+  Image,
+  Icon,
+  Color,
   Keyboard,
   Toast,
   confirmAlert,
