@@ -45,8 +45,14 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
 
     // Try common icon names
     let common_icons = [
-        "AppIcon.icns", "app.icns", "icon.icns", "application.icns",
-        "AppIcon", "app", "icon", "application"
+        "AppIcon.icns",
+        "app.icns",
+        "icon.icns",
+        "application.icns",
+        "AppIcon",
+        "app",
+        "icon",
+        "application",
     ];
 
     for icon_name in common_icons.iter() {
@@ -55,7 +61,7 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
         } else {
             resources_dir.join(format!("{}.icns", icon_name))
         };
-        
+
         if icon_path.exists() {
             if let Ok(icon_data) = convert_icns_to_png(&icon_path) {
                 return Some(icon_data);
@@ -84,10 +90,10 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
 
 #[cfg(target_os = "macos")]
 fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+    use base64::{engine::general_purpose, Engine as _};
+    use icns::{IconFamily, IconType};
     use std::fs::File;
     use std::io::Cursor;
-    use base64::{Engine as _, engine::general_purpose};
-    use icns::{IconFamily, IconType};
 
     // Read the .icns file
     let file = File::open(icon_path)?;
@@ -117,8 +123,8 @@ fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::E
 
 #[cfg(target_os = "macos")]
 fn convert_image_to_base64(image: icns::Image) -> Result<String, Box<dyn std::error::Error>> {
+    use base64::{engine::general_purpose, Engine as _};
     use std::io::Cursor;
-    use base64::{Engine as _, engine::general_purpose};
 
     // Convert to PNG and encode as base64
     let mut png_data = Vec::new();
@@ -138,13 +144,14 @@ fn extract_app_icon(_app_path: &str) -> Option<String> {
 /// Search for applications installed on the system
 #[command]
 pub async fn search_applications(query: String) -> Result<Vec<Application>, String> {
-    use applications::{AppInfoContext, AppInfo, AppTrait};
+    use applications::{AppInfo, AppInfoContext, AppTrait};
 
     let query_lower = query.to_lowercase();
 
     // Create context and refresh apps
     let mut ctx = AppInfoContext::new(vec![]);
-    ctx.refresh_apps().map_err(|e| format!("Failed to refresh applications: {}", e))?;
+    ctx.refresh_apps()
+        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
 
     // Get all applications
     let apps = ctx.get_all_apps();
@@ -154,11 +161,12 @@ pub async fn search_applications(query: String) -> Result<Vec<Application>, Stri
         .into_iter()
         .filter(|app| app.name.to_lowercase().contains(&query_lower))
         .map(|app| {
-            let exe_path = app.app_path_exe
+            let exe_path = app
+                .app_path_exe
                 .as_ref()
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_else(|| "Unknown".to_string());
-            
+
             // Convert executable path to .app bundle root path
             let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
                 // Extract .app bundle path from executable path
@@ -173,7 +181,7 @@ pub async fn search_applications(query: String) -> Result<Vec<Application>, Stri
             } else {
                 exe_path
             };
-            
+
             let icon_base64 = extract_app_icon(&app_bundle_path);
 
             Application {

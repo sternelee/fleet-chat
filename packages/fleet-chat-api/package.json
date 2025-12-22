@@ -1,44 +1,44 @@
 {
-  "name": "@fleet-chat/api",
-  "version": "1.0.0",
-  "description": "Fleet Chat Plugin API",
-  "main": "index.ts",
-  "type": "module",
-  "exports": {
-    ".": "./index.ts",
-    "./components/*": "./components/*.ts",
-    "./api/*": "./api/*.ts",
-    "./hooks/*": "./hooks/*.ts",
-    "./types/*": "./types/*.ts"
-  },
-  "files": [
-    "index.ts",
-    "api/",
-    "components/",
-    "hooks/",
-    "types/",
-    "README.md"
-  ],
-  "scripts": {
-    "build": "tsc --noEmit",
-    "dev": "tsc --noEmit --watch",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2.9.1",
-    "@tauri-apps/plugin-clipboard-manager": "^2.0.0",
-    "@tauri-apps/plugin-fs": "^2.0.0",
-    "@tauri-apps/plugin-shell": "^2.3.3",
-    "lit": "^3.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^24.5.2",
-    "typescript": "^5.9.2"
-  },
-  "publishConfig": {
-    "access": "restricted"
-  },
-  "author": "Fleet Chat",
-  "license": "MIT"
+    "name": "@fleet-chat/api",
+    "version": "1.0.0",
+    "description": "Fleet Chat Plugin API",
+    "main": "index.ts",
+    "type": "module",
+    "exports": {
+        ".": "./index.ts",
+        "./components/*": "./components/*.ts",
+        "./api/*": "./api/*.ts",
+        "./hooks/*": "./hooks/*.ts",
+        "./types/*": "./types/*.ts"
+    },
+    "files": [
+        "index.ts",
+        "api/",
+        "components/",
+        "hooks/",
+        "types/",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "tsc --noEmit",
+        "dev": "tsc --noEmit --watch",
+        "typecheck": "tsc --noEmit",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@tauri-apps/api": "^2.9.1",
+        "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
+        "@tauri-apps/plugin-fs": "^2.4.4",
+        "@tauri-apps/plugin-shell": "^2.3.3",
+        "lit": "^3.3.1"
+    },
+    "devDependencies": {
+        "@types/node": "^24.5.2",
+        "typescript": "^5.9.2"
+    },
+    "publishConfig": {
+        "access": "restricted"
+    },
+    "author": "Fleet Chat",
+    "license": "MIT"
 }

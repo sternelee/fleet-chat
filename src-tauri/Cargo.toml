@@ -33,7 +33,7 @@ tauri = { version = "2", features = [
   "image-png",
 ] }
 tauri-plugin-dialog = "2"
-tauri-plugin-http = "2"
+tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
 tauri-plugin-log = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
@@ -74,6 +74,15 @@ chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 jsonschema = { version = "0.18" }
 async-trait = "0.1"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-localhost = "2"
+tauri-plugin-persisted-scope = "2"
+tauri-plugin-sql = "2"
+tauri-plugin-store = "2"
+tauri-plugin-stronghold = "2"
+tauri-plugin-upload = "2"
+tauri-plugin-websocket = "2"
 
 # Used to call the macOS native API
 [target."cfg(target_os = \"macos\")".dependencies]
@@ -82,7 +91,12 @@ icns = "0.3"
 image = "0.25"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-autostart = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
+tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
+tauri-plugin-window-state = "2"
 
 [dev-dependencies]
 tauri = { version = "2", features = ["test"] }
@@ -98,7 +112,7 @@ tower-service = "0.3.3"
 [profile.release]
 codegen-units = 128 # Allows LLVM to perform better optimization, reduce number of codegen units to increase optimizations.
 lto = true          # Enables link-time-optimizations. LTO can produce better optimized code, at the cost of longer linking time.
-opt-level = 1       # Use slightly better optimizations. Use "s" if you prefer smaller binaries.
+opt-level = 3       # Use slightly better optimizations. Use "s" if you prefer smaller binaries.
 panic = "abort"     # Higher performance by disabling panic handlers.
 debug = false       # Disable debug on production build.
 strip = true        # Ensures debug symbols are removed.

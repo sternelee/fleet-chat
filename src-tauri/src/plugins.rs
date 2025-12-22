@@ -1,9 +1,8 @@
 /**
  * Plugins module for Fleet Chat
- * 
+ *
  * Provides Tauri commands and backend support for the plugin system
  */
-
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -54,7 +53,7 @@ pub async fn load_plugin(
     plugin_path: String,
 ) -> Result<String, String> {
     let plugin_id = extract_plugin_id(&plugin_path)?;
-    
+
     // Initialize extension manager if not already done
     let mut extension_manager = state.extension_manager.lock().await;
     if extension_manager.is_none() {
@@ -64,7 +63,9 @@ pub async fn load_plugin(
 
     // Load the plugin
     if let Some(ref manager) = *extension_manager {
-        manager.load_extension(&plugin_path).await
+        manager
+            .load_extension(&plugin_path)
+            .await
             .map_err(|e| format!("Failed to load plugin: {}", e))?;
     }
 
@@ -85,10 +86,7 @@ pub async fn load_plugin(
 }
 
 #[command]
-pub async fn unload_plugin(
-    state: State<'_, PluginManagerState>,
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn unload_plugin(state: State<'_, PluginManagerState>, plugin_id: String) -> Result<(), String> {
     // Remove from plugin state
     let mut plugins = state.plugins.lock().await;
     plugins.remove(&plugin_id);
@@ -96,7 +94,9 @@ pub async fn unload_plugin(
     // Unload from extension manager
     let extension_manager = state.extension_manager.lock().await;
     if let Some(ref manager) = *extension_manager {
-        manager.unload_extension(&plugin_id).await
+        manager
+            .unload_extension(&plugin_id)
+            .await
             .map_err(|e| format!("Failed to unload plugin: {}", e))?;
     }
 
@@ -112,9 +112,12 @@ pub async fn execute_plugin_command(
     context: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     let extension_manager = state.extension_manager.lock().await;
-    
+
     if let Some(ref manager) = *extension_manager {
-        let result = manager.execute_command(&plugin_id, &command_name, context).await.map_err(|e| e.to_string())?;
+        let result = manager
+            .execute_command(&plugin_id, &command_name, context)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(result)
     } else {
         Err("Extension manager not initialized".to_string())
@@ -122,19 +125,15 @@ pub async fn execute_plugin_command(
 }
 
 #[command]
-pub async fn get_loaded_plugins(
-    state: State<'_, PluginManagerState>,
-) -> Result<Vec<PluginInfo>, String> {
+pub async fn get_loaded_plugins(state: State<'_, PluginManagerState>) -> Result<Vec<PluginInfo>, String> {
     let plugins = state.plugins.lock().await;
     Ok(plugins.values().cloned().collect())
 }
 
 #[command]
-pub async fn get_plugin_commands(
-    state: State<'_, PluginManagerState>,
-) -> Result<Vec<(String, PluginCommand)>, String> {
+pub async fn get_plugin_commands(state: State<'_, PluginManagerState>) -> Result<Vec<(String, PluginCommand)>, String> {
     let extension_manager = state.extension_manager.lock().await;
-    
+
     if let Some(ref manager) = *extension_manager {
         let commands = manager.get_all_commands().await.map_err(|e| e.to_string())?;
         Ok(commands)
@@ -144,14 +143,13 @@ pub async fn get_plugin_commands(
 }
 
 #[command]
-pub async fn reload_plugin(
-    state: State<'_, PluginManagerState>,
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn reload_plugin(state: State<'_, PluginManagerState>, plugin_id: String) -> Result<(), String> {
     let extension_manager = state.extension_manager.lock().await;
-    
+
     if let Some(ref manager) = *extension_manager {
-        manager.reload_extension(&plugin_id).await
+        manager
+            .reload_extension(&plugin_id)
+            .await
             .map_err(|e| format!("Failed to reload plugin: {}", e))?;
     }
 
@@ -162,10 +160,9 @@ pub async fn reload_plugin(
 #[command]
 pub async fn read_extension_manifest(path: String) -> Result<String, String> {
     use std::fs;
-    
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read manifest: {}", e))?;
-    
+
+    let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read manifest: {}", e))?;
+
     Ok(content)
 }
 
@@ -175,11 +172,10 @@ pub async fn get_user_extensions_dir() -> Result<String, String> {
         .ok_or("Could not find home directory")?
         .join(".fleet-chat");
     path.push("extensions");
-    
+
     // Create directory if it doesn't exist
-    std::fs::create_dir_all(&path)
-        .map_err(|e| format!("Failed to create extensions directory: {}", e))?;
-    
+    std::fs::create_dir_all(&path).map_err(|e| format!("Failed to create extensions directory: {}", e))?;
+
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -191,7 +187,7 @@ fn extract_plugin_id(plugin_path: &str) -> Result<String, String> {
         .and_then(|name| name.to_str())
         .ok_or("Invalid plugin path")?
         .to_string();
-    
+
     Ok(plugin_id)
 }
 
@@ -215,13 +211,13 @@ pub mod extension_manager {
 
         pub async fn load_extension(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
             let plugin_id = extract_plugin_id(path)?;
-            
+
             // In a real implementation, this would:
             // 1. Load the plugin manifest
             // 2. Create a Web Worker or isolate
             // 3. Load the plugin code
             // 4. Register commands
-            
+
             println!("Loading extension: {}", plugin_id);
             Ok(())
         }
@@ -238,7 +234,7 @@ pub mod extension_manager {
             context: Option<serde_json::Value>,
         ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
             println!("Executing command: {} from plugin: {}", command_name, plugin_id);
-            
+
             // Mock response for now
             Ok(serde_json::json!({
                 "type": "success",
@@ -249,13 +245,13 @@ pub mod extension_manager {
         pub async fn get_all_commands(&self) -> Result<Vec<(String, PluginCommand)>, Box<dyn std::error::Error>> {
             let plugins = self.plugins.lock().await;
             let mut commands = Vec::new();
-            
+
             for (plugin_id, plugin_info) in plugins.iter() {
                 for command in plugin_info.commands.iter() {
                     commands.push((plugin_id.clone(), command.clone()));
                 }
             }
-            
+
             Ok(commands)
         }
 
@@ -270,6 +266,6 @@ pub mod extension_manager {
 pub fn init_plugin_system(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let plugin_state = PluginManagerState::default();
     app.manage(plugin_state);
-    
+
     Ok(())
 }

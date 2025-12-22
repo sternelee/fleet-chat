@@ -9,7 +9,9 @@ use axum::Router;
 use axum_app::create_axum_app;
 use search::{search_applications, search_files, unified_search};
 use std::sync::Arc;
+use tauri::Manager;
 use tauri::{async_runtime::Mutex, State};
+use tauri::{webview::WebviewWindowBuilder, WebviewUrl};
 use tauri_axum::{LocalRequest, LocalResponse};
 
 struct AppState {
@@ -33,25 +35,51 @@ fn greet(name: &str) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let router: Router = create_axum_app();
+    let port: u16 = 9527;
 
     let app_state = AppState {
         router: Arc::new(Mutex::new(router)),
     };
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    {
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {}))
+            .plugin(tauri_plugin_localhost::Builder::new(port).build())
+            .plugin(tauri_plugin_process::init())
+            .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+                let _ = app.get_webview_window("main").expect("no main window").set_focus();
+            }));
+    }
+
+    builder
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_positioner::init())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_oauth::init())
+        .plugin(tauri_plugin_persisted_scope::init())
         .manage(app_state)
-        .setup(|app| {
+        .setup(move |app| {
+            #[cfg(desktop)]
+            {
+                app.handle().plugin(tauri_plugin_positioner::init());
+                tauri::tray::TrayIconBuilder::new()
+                    .on_tray_icon_event(|tray_handle, event| {
+                        tauri_plugin_positioner::on_tray_event(tray_handle.app_handle(), &event);
+                    })
+                    .build(app)?;
+
+                // let url = format!("http://localhost:{}", port).parse().unwrap();
+                // WebviewWindowBuilder::new(app, "main".to_string(), WebviewUrl::External(url))
+                //     .title("Localhost Example")
+                //     .build()?;
+            }
             // Setup the customized main window
             match window::setup_window(app) {
                 Ok(_) => {
