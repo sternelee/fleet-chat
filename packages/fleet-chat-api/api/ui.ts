@@ -224,4 +224,3 @@ export class Toast {
 export async function showHUD(message: string): Promise<void> {
   await invoke("show_hud", { message });
 }
-

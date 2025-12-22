@@ -68,4 +68,3 @@ export async function setPreferenceValue(key: string, value: any): Promise<void>
 export async function resetPreferences(): Promise<void> {
   await invoke("reset_preferences");
 }
-

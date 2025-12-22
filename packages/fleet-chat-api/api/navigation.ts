@@ -385,4 +385,3 @@ export function attachKeyboardNavigation(): void {
 if (typeof window !== "undefined") {
   attachKeyboardNavigation();
 }
-

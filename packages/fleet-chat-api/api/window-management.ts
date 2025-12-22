@@ -172,4 +172,3 @@ export async function getWindows(options: GetWindowsOptions = {}): Promise<Windo
 
   return allWindows;
 }
-

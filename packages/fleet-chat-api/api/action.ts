@@ -48,4 +48,3 @@ export const ActionPanel = {
   },
 };
 export default Action;
-

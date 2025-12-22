@@ -42,4 +42,3 @@ export async function getCommandMetadata(): Promise<CommandMetadata> {
   // For now, return empty object
   return {};
 }
-

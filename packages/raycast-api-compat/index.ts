@@ -5,74 +5,131 @@
  * Plugin developers can use familiar Raycast APIs with Fleet Chat's enhanced features.
  */
 
-// Core UI Components - Raycast compatible
-export { List, Grid, Detail } from "@fleet-chat/api";
-
-// Advanced UI Components  
-export { Form } from "@fleet-chat/api";
-export { Action } from "@fleet-chat/api";
-
-// Window Management and System APIs
-export { WindowManagement } from "@fleet-chat/api";
-
-// Enhanced Navigation and Window Management
+// Core UI Components - Re-export from fleet-chat-api React components
 export {
-  useNavigation,
-  useNavigationState,
-  useCurrentComponent,
-  useCanGoBack,
-  useCanGoForward,
-  useNavigationListener,
-  useBackAction,
-  useNavigationDepth,
-  pop,
-  push,
-  replace,
-  clear,
+  List,
+  Grid,
+  Detail,
+  Form,
+  Action
+} from "./react-components";
+
+// Raycast-specific components
+export { ActionPanel } from "./react-components";
+export { MenuBarExtra } from "./react-components";
+
+// Window Management and System APIs - Re-export from fleet-chat-api
+export {
+  showToast,
+  showHUD,
+  getApplications,
   open,
   closeMainWindow,
-  showHUD,
+  useNavigation,
+  pop,
+  push,
   clearSearchBar,
   getSelectedText,
   popToRoot,
-  updateCommandMetadata,
-  navigationManager,
-  attachKeyboardNavigation,
+  updateCommandMetadata
 } from "@fleet-chat/api";
 
-// Data Storage
-export {
-  LocalStorage,
-  Cache,
-  getPreferenceValues,
-  openCommandPreferences,
-  openExtensionPreferences,
-} from "@fleet-chat/api";
+// Data Storage - Re-export from fleet-chat-api
+export { LocalStorage, Cache, getPreferenceValues } from "@fleet-chat/api";
+export { openCommandPreferences, openExtensionPreferences } from "@fleet-chat/api";
 
-// System Integration
-export {
-  environment,
-} from "@fleet-chat/api";
+// Environment - Re-export from fleet-chat-api
+export { environment } from "@fleet-chat/api";
+export type { Environment } from "@fleet-chat/api";
 
-export { getApplications } from "@fleet-chat/api";
-
-// UI Utilities
+// UI Utilities - Re-export from fleet-chat-api
 export {
-  showToast,
-  Toast,
   Image,
-  ImageLike,
   Icon,
   Color,
-  ColorLike,
   Keyboard,
+  Toast,
+  confirmAlert,
+  Alert
 } from "@fleet-chat/api";
 
-// User Interaction
-export { confirmAlert, Alert } from "@fleet-chat/api";
+// Hooks - Use the implementations from react-components
+export { useState, useEffect, useCallback, useMemo, useRef } from "./react-components";
 
-// Advanced Features
-export { AI, OAuth } from "@fleet-chat/api";
+// Advanced Features - Re-export from fleet-chat-api
+export { AI } from "@fleet-chat/api";
+export { OAuth } from "@fleet-chat/api";
+
+// Types - Define basic types for compatibility
+export type LaunchContext = {
+  command?: string;
+  arguments?: Record<string, any>;
+};
+
+export type ToastOptions = {
+  title: string;
+  message?: string;
+  style?: "success" | "error" | "warning" | "info";
+  duration?: number;
+};
+
+export type ActionPanelProps = {
+  children: any;
+  title?: string;
+  message?: string;
+  icon?: any;
+};
+
+export type ListProps = {
+  children: any;
+  navigationTitle?: string;
+  searchBarPlaceholder?: string;
+  searchText?: string;
+  onSearchTextChange?: (text: string) => void;
+  actions?: any;
+  filtering?: boolean;
+  searchBarAccessory?: any;
+};
+
+export type GridProps = {
+  children: any;
+  columns?: number;
+  aspectRatio?: "16/9" | "4/3" | "1/1";
+  itemSize?: number;
+};
+
+export type DetailProps = {
+  children: any;
+  markdown?: string;
+  metadata?: any;
+};
+
+export type Application = {
+  name: string;
+  path: string;
+  bundleId?: string;
+};
+
+export type ImageLike = string | { source: string };
+
+export type IconLike = string | { source: string };
+
+export type ColorLike = string | {
+  r: number;
+  g: number;
+  b: number;
+  a?: number;
+};
+
+export type KeyboardShortcut = {
+  key: string;
+  modifiers?: string[];
+};
+
+export type NavigationOptions = {
+  pop?: boolean;
+  showDetail?: boolean;
+};
 
 // System-specific APIs with Tauri integration
 export { Clipboard } from "./clipboard.js";

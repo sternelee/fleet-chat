@@ -95,4 +95,3 @@ export class PreferenceManager {
 
 // Create default preference manager
 export const preferences = new PreferenceManager("default");
-

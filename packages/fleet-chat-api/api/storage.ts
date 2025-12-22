@@ -181,4 +181,3 @@ export async function getPreferenceValues<T = Record<string, any>>(): Promise<T>
     return {} as T;
   }
 }
-

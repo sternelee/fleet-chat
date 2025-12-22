@@ -6,7 +6,9 @@
  */
 
 import React from 'react';
-import { LitElement, html, css } from 'lit';
+
+// Create basic React-compatible components that map to our Lit elements
+// These will be converted to actual Lit components by our React-to-Lit converter
 
 // Basic React-compatible components
 export const List: React.FC<{
@@ -40,67 +42,75 @@ export const List: React.FC<{
   }, children);
 };
 
-export const ListItem: React.FC<{
+// Attach ListItem and Section as properties
+(List as any).Item = React.forwardRef<any, {
   title: string;
   subtitle?: string;
   accessories?: React.ReactNode[];
   actions?: React.ReactNode;
   icon?: any;
   onAction?: () => void;
-}> = ({ title, subtitle, accessories, actions, icon, onAction }) => {
+}>(({ title, subtitle, accessories, icon, onAction }, _ref) => {
   return React.createElement('fleet-list-item', {
     title,
     subtitle,
-    accessories,
-    actions,
     icon,
     onAction
-  });
+  }, accessories);
+});
+
+(List as any).Section = ({ title, children }: { title?: string; children: React.ReactNode }) => {
+  return React.createElement('fleet-list-section', {
+    title
+  }, children);
 };
 
-export const ActionPanel: React.FC<{
+export const Grid: React.FC<{
   children: React.ReactNode;
-}> = ({ children }) => {
-  return React.createElement('fleet-action-panel', null, children);
+  columns?: number;
+  aspectRatio?: string;
+  itemSize?: number;
+}> = ({ children, columns, aspectRatio, itemSize }) => {
+  return React.createElement('fleet-grid', {
+    columns,
+    aspectRatio,
+    itemSize
+  }, children);
 };
 
-export const Action: React.FC<{
+(Grid as any).Item = React.forwardRef<any, {
   title: string;
-  onAction?: () => void;
-  shortcut?: any;
+  subtitle?: string;
+  content?: React.ReactNode;
   icon?: any;
-}> = ({ title, onAction, shortcut, icon }) => {
-  return React.createElement('fleet-action', {
+  actions?: React.ReactNode;
+}>(({ title, subtitle, content, icon, actions }, _ref) => {
+  return React.createElement('fleet-grid-item', {
     title,
-    onAction,
-    shortcut,
+    subtitle,
     icon
-  });
-};
+  }, content || actions);
+});
 
 export const Detail: React.FC<{
   markdown?: string;
-  metadata?: Array<{ label: string; text: string }>;
-  actions?: React.ReactNode;
-}> = ({ markdown, metadata, actions }) => {
+  metadata?: any;
+  children?: React.ReactNode;
+}> = ({ markdown, metadata, children }) => {
   return React.createElement('fleet-detail', {
     markdown,
-    metadata,
-    actions
-  });
+    metadata
+  }, children);
 };
 
 export const Form: React.FC<{
-  actions?: React.ReactNode;
-  validation?: (values: any) => string | undefined;
-  onSubmit?: (values: any) => void;
   children: React.ReactNode;
-}> = ({ actions, validation, onSubmit, children }) => {
+  actions?: React.ReactNode;
+  onSubmit?: (values: any) => void;
+}> = ({ children, actions, onSubmit }) => {
   return React.createElement('fleet-form', {
-    actions,
-    validation,
     onSubmit
-  }, children);
+  }, children, actions);
 };
 
 export const FormTextField: React.FC<{
@@ -110,14 +120,16 @@ export const FormTextField: React.FC<{
   defaultValue?: string;
   info?: string;
   error?: string;
-}> = ({ id, title, placeholder, defaultValue, info, error }) => {
+  required?: boolean;
+}> = ({ id, title, placeholder, defaultValue, info, error, required }) => {
   return React.createElement('fleet-form-text-field', {
     id,
     title,
     placeholder,
     defaultValue,
     info,
-    error
+    error,
+    required
   });
 };
 
@@ -128,14 +140,16 @@ export const FormTextArea: React.FC<{
   defaultValue?: string;
   info?: string;
   error?: string;
-}> = ({ id, title, placeholder, defaultValue, info, error }) => {
-  return React.createElement('fleet-form-textarea', {
+  required?: boolean;
+}> = ({ id, title, placeholder, defaultValue, info, error, required }) => {
+  return React.createElement('fleet-form-text-area', {
     id,
     title,
     placeholder,
     defaultValue,
     info,
-    error
+    error,
+    required
   });
 };
 
@@ -144,12 +158,14 @@ export const FormCheckbox: React.FC<{
   label?: string;
   defaultValue?: boolean;
   info?: string;
-}> = ({ id, label, defaultValue, info }) => {
+  required?: boolean;
+}> = ({ id, label, defaultValue, info, required }) => {
   return React.createElement('fleet-form-checkbox', {
     id,
     label,
     defaultValue,
-    info
+    info,
+    required
   });
 };
 
@@ -185,342 +201,292 @@ export const FormDateField: React.FC<{
   });
 };
 
-export const FormSeparator: React.FC = () => {
-  return React.createElement('fleet-form-separator');
-};
-
-// Icon component
-export const Icon: React.FC<{
-  source: string;
-  tintColor?: string;
-}> = ({ source, tintColor }) => {
-  return React.createElement('fleet-icon', {
-    source,
-    tintColor
+// Action component
+export const Action: React.FC<{
+  title: string;
+  subtitle?: string;
+  icon?: any;
+  shortcut?: string;
+  onAction?: () => void | Promise<void>;
+  style?: string;
+}> = ({ title, subtitle, icon, shortcut, onAction, style }) => {
+  return React.createElement('fleet-action', {
+    title,
+    subtitle,
+    icon,
+    shortcut,
+    onAction,
+    style
   });
 };
 
-// Image component
-export const Image: React.FC<{
-  source: string;
-  fallback?: string;
-  alt?: string;
-}> = ({ source, fallback, alt }) => {
-  return React.createElement('fleet-image', {
-    source,
-    fallback,
-    alt
-  });
+// Image and Icon utilities
+export const Image = ({ source, alt, ...props }: any) => {
+  if (typeof source === 'string') {
+    return React.createElement('img', { src: source, alt: alt || '', ...props });
+  }
+  return React.createElement('fleet-image', { source, alt: alt || '', ...props });
 };
 
-// Keyboard shortcuts
-export const Keyboard: React.FC<{
-  shortcut: any;
-}> = ({ shortcut }) => {
-  return React.createElement('fleet-keyboard', {
-    shortcut
-  });
+export const Icon = ({ source, ...props }: any) => {
+  if (typeof source === 'string' && source.length === 1) {
+    // Simple emoji icon
+    return React.createElement('span', { className: 'icon', ...props }, source);
+  }
+  return React.createElement('fleet-icon', { source, ...props });
 };
 
-// Color utilities
+// Color constants
 export const Color = {
+  PrimaryText: '#000000',
+  SecondaryText: '#666666',
   Red: '#ff0000',
   Green: '#00ff00',
   Blue: '#0000ff',
   Yellow: '#ffff00',
-  Orange: '#ff8800',
-  Purple: '#8800ff',
-  Pink: '#ff0088',
-  PrimaryText: '#000000',
-  SecondaryText: '#666666',
-  Gray: '#888888',
-  LightGray: '#cccccc',
-  White: '#ffffff',
-  Black: '#000000',
-  Transparent: 'transparent',
-  CreateColor: (red: number, green: number, blue: number, alpha?: number) =>
-    `rgba(${red}, ${green}, ${blue}, ${alpha || 1})`,
+  Purple: '#800080',
+  Orange: '#ffa500',
+  Pink: '#ffc0cb',
+  Brown: '#964b00',
+  Cyan: '#00ffff',
+  Magenta: '#ff00ff',
+  Lime: '#00ff00',
+  Indigo: '#4b0082',
+  Teal: '#008080',
+  Gray: '#808080'
 };
 
-// Toast utilities
+// Keyboard shortcuts
+export const Keyboard = {
+  Shortcuts: {
+    Enter: 'Enter',
+    Escape: 'Escape',
+    Space: 'Space',
+    Tab: 'Tab',
+    ArrowUp: 'ArrowUp',
+    ArrowDown: 'ArrowDown',
+    ArrowLeft: 'ArrowLeft',
+    ArrowRight: 'ArrowRight',
+    Cmd: 'Cmd',
+    Ctrl: 'Ctrl',
+    Alt: 'Alt',
+    Shift: 'Shift'
+  }
+};
+
+// Toast system
 export const Toast = {
+  show: async (options: { title: string; message?: string; style?: string }) => {
+    // Simple implementation - in real Fleet Chat this would use the Tauri API
+    console.log('Toast:', options);
+    return Promise.resolve();
+  },
   Style: {
     Success: 'success',
     Failure: 'failure',
-    Animation: 'animation',
+    Warning: 'warning',
+    Info: 'info'
   },
+  Animation: {
+    Dots: 'dots',
+    Pulsing: 'pulsing',
+    Bounce: 'bounce'
+  }
 };
 
-export const showToast = async (options: {
-  style?: string;
-  title: string;
-  message?: string;
-  primaryAction?: {
-    title: string;
-    onAction?: () => void;
-  };
-}) => {
-  // This will be converted to use Fleet Chat's toast system
-  console.log('Toast:', options);
-
-  // Dispatch event for Fleet Chat to handle
-  window.dispatchEvent(new CustomEvent('show-toast', {
-    detail: options
-  }));
+// Alert system
+export const Alert = {
+  show: async (options: { title: string; message?: string; primaryAction?: any; secondaryAction?: any }) => {
+    console.log('Alert:', options);
+    return Promise.resolve(true);
+  },
+  Action: {
+    OK: 'ok',
+    Cancel: 'cancel',
+    Yes: 'yes',
+    No: 'no'
+  }
 };
 
-// Navigation utilities
+export const confirmAlert = Alert.show;
+
+// Navigation hook (simplified)
 export const useNavigation = () => {
-  // Returns navigation utilities that will be converted to Lit
   return {
-    push: (component: React.ReactNode) => {
-      console.log('Navigation push:', component);
-    },
-    pop: () => {
-      console.log('Navigation pop');
-    },
-    replace: (component: React.ReactNode) => {
-      console.log('Navigation replace:', component);
-    },
-    popToRoot: () => {
-      console.log('Navigation pop to root');
-    },
+    pop: () => {},
+    push: (_view: any) => {},
+    replace: (_view: any) => {}
   };
 };
 
-export const getPreferenceValues = <T = any>() => {
-  // Returns preferences that will be converted to Fleet Chat's system
-  return {} as T;
-};
+// Other utilities (simplified implementations)
+export const showToast = Toast.show;
+export const showHUD = (message: string) => console.log('HUD:', message);
+export const clearSearchBar = () => {};
+export const getSelectedText = () => '';
+export const popToRoot = () => {};
+export const updateCommandMetadata = () => {};
 
-export const openCommandPreferences = async () => {
-  console.log('Open command preferences');
-};
-
-export const openExtensionPreferences = async () => {
-  console.log('Open extension preferences');
-};
-
-// Environment and system utilities
 export const environment = {
-  commandMode: 'view' as 'view' | 'no-view' | 'menu-bar',
-  theme: 'light' as 'light' | 'dark',
-  supportsVariables: true,
-  launchContext: {
-    version: '1.0.0',
-  },
-};
-
-export const Clipboard = {
-  read: async () => {
-    // This will use Fleet Chat's clipboard system
-    if (navigator.clipboard) {
-      return await navigator.clipboard.readText();
-    }
-    return '';
-  },
-  write: async (text: string) => {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-    }
-  },
-  readText: async () => Clipboard.read(),
-  writeText: async (text: string) => Clipboard.write(text),
-};
-
-export const FileSystem = {
-  exists: async (path: string) => {
-    // Will use Fleet Chat's file system API
-    return false;
-  },
-  read: async (path: string) => {
-    // Will use Fleet Chat's file system API
-    return '';
-  },
-  write: async (path: string, content: string) => {
-    // Will use Fleet Chat's file system API
-  },
-  readTextFile: async (path: string) => FileSystem.read(path),
-  writeTextFile: async (path: string, content: string) => FileSystem.write(path, content),
+  supportsArguments: true,
+  theme: 'dark',
+  launchType: 'direct'
 };
 
 export const LocalStorage = {
-  get: async (key: string) => {
-    return localStorage.getItem(key);
-  },
-  set: async (key: string, value: string) => {
-    localStorage.setItem(key, value);
-  },
-  remove: async (key: string) => {
-    localStorage.removeItem(key);
-  },
-  clear: async () => {
-    localStorage.clear();
-  },
+  get: (key: string) => localStorage.getItem(key),
+  set: (key: string, value: string) => localStorage.setItem(key, value),
+  remove: (key: string) => localStorage.removeItem(key),
+  clear: () => localStorage.clear()
 };
 
-export const Cache = {
-  get: async (key: string) => {
-    return sessionStorage.getItem(key);
-  },
-  set: async (key: string, value: string, ttl?: number) => {
-    sessionStorage.setItem(key, value);
-  },
-  remove: async (key: string) => {
-    sessionStorage.removeItem(key);
-  },
-  clear: async () => {
-    sessionStorage.clear();
-  },
-};
+export const Cache = LocalStorage;
 
-// System utilities
-export const confirmAlert = async (options: {
-  title: string;
+export const getPreferenceValues = () => ({});
+export const openCommandPreferences = () => {};
+export const openExtensionPreferences = () => {};
+
+export const getApplications = () => [];
+export const open = (url: string) => window.open(url);
+export const closeMainWindow = () => {};
+export const pop = () => {};
+export const push = () => {};
+
+// React hooks (simplified)
+export function useState<T>(initialValue: T): [T, (value: T) => void] {
+  // In real React this would use React's useState
+  // For now, return a simple implementation
+  let value = initialValue;
+  return [value, (newValue: T) => { value = newValue; }];
+}
+
+export function useEffect(_effect: () => void | (() => void), _deps?: any[]): void {
+  // Simple effect implementation - no-op for now
+}
+
+export function useCallback<T extends (...args: any[]) => any>(callback: T, _deps?: any[]): T {
+  return callback;
+}
+
+export function useMemo<T>(factory: () => T, _deps?: any[]): T {
+  return factory();
+}
+
+export function useRef<T>(initialValue: T): { current: T } {
+  return { current: initialValue };
+}
+
+// Raycast-specific components not in the core API
+export const ActionPanel: React.FC<{
+  children: React.ReactNode;
+  title?: string;
   message?: string;
-  primaryAction?: {
-    title: string;
-    onAction?: () => void;
-  };
-  dismissAction?: {
-    title: string;
-    onAction?: () => void;
-  };
+  icon?: any;
+}> = ({ children, title, message, icon }) => {
+  return React.createElement('fleet-action-panel', {
+    title,
+    message,
+    icon
+  }, children);
+};
+
+// Fix ActionPanel.Item and Section attachments
+(ActionPanel as any).Item = Action;
+(ActionPanel as any).Section = ({ children, title }: { children: React.ReactNode; title?: string }) => {
+  return React.createElement('fleet-action-panel-section', {
+    title
+  }, children);
+};
+
+// MenuBarExtra - Raycast specific
+export const MenuBarExtra: React.FC<{
+  icon?: any;
+  title?: string;
+  tooltip?: string;
+  children?: React.ReactNode;
+}> = ({ icon, title, tooltip, children }) => {
+  return React.createElement('fleet-menu-bar-extra', {
+    icon,
+    title,
+    tooltip
+  }, children);
+};
+
+// Fix MenuBarExtra attachments
+(MenuBarExtra as any).Item = ({
+  title,
+  icon,
+  onAction,
+  shortcut
+}: {
+  title: string;
+  icon?: any;
+  onAction?: () => void;
+  shortcut?: string;
 }) => {
-  console.log('Alert:', options);
-  return true; // Will be converted to use Fleet Chat's alert system
+  return React.createElement('fleet-menu-bar-item', {
+    title,
+    icon,
+    shortcut,
+    onClick: onAction
+  });
 };
 
-export const Alert = {
-  ActionStyle: {
-    Default: 'default',
-    Regular: 'regular',
-  },
+(MenuBarExtra as any).Submenu = ({
+  title,
+  icon,
+  children
+}: {
+  title: string;
+  icon?: any;
+  children: React.ReactNode;
+}) => {
+  return React.createElement('fleet-menu-bar-submenu', {
+    title,
+    icon
+  }, children);
 };
 
-export const getApplications = async () => {
-  // Will use Fleet Chat's application list
-  return [];
+(MenuBarExtra as any).Separator = () => {
+  return React.createElement('fleet-menu-bar-separator');
 };
 
-export const open = async (url: string) => {
-  window.open(url, '_blank');
-};
-
-export const closeMainWindow = async () => {
-  // Will use Fleet Chat's window management
-  window.close();
-};
-
-export const showHUD = async (message: string) => {
-  console.log('HUD:', message);
-
-  // Dispatch event for Fleet Chat to handle
-  window.dispatchEvent(new CustomEvent('show-hud', {
-    detail: { message }
-  }));
-};
-
-export const clearSearchBar = () => {
-  // Will clear Fleet Chat's search bar
-};
-
-export const getSelectedText = () => {
-  return window.getSelection()?.toString() || '';
-};
-
-export const popToRoot = () => {
-  // Will use Fleet Chat's navigation system
-};
-
-export const updateCommandMetadata = (metadata: any) => {
-  console.log('Update command metadata:', metadata);
-};
-
-// Utility functions
-export const randomId = () => {
-  return Math.random().toString(36).substr(2, 9);
-};
-
-export const formatTitle = (title: string) => {
-  return title.charAt(0).toUpperCase() + title.slice(1);
-};
-
-// React Hooks equivalents for Fleet Chat
-export const useState = <T>(initialValue: T): [T, (value: T) => void] => {
-  // This will be converted to Lit's reactive properties
-  const [value, setValue] = React.useState(initialValue);
-  return [value, setValue];
-};
-
-export const useEffect = (effect: () => void | (() => void), deps?: React.DependencyList) => {
-  // This will be converted to Lit's lifecycle methods
-  return React.useEffect(effect, deps);
-};
-
-export const useCallback = <T extends (...args: any[]) => any>(
-  callback: T,
-  deps: React.DependencyList
-): T => {
-  return React.useCallback(callback, deps);
-};
-
-export const useMemo = <T>(factory: () => T, deps: React.DependencyList): T => {
-  return React.useMemo(factory, deps);
-};
-
-export const useRef = <T>(initialValue: T): React.RefObject<T> => {
-  return React.useRef(initialValue);
-};
-
+// Export everything for convenience
 export default {
-  // Components
   List,
-  ListItem,
-  ActionPanel,
-  Action,
+  Grid,
   Detail,
   Form,
-  FormTextField,
-  FormTextArea,
-  FormCheckbox,
-  FormDropdown,
-  FormDateField,
-  FormSeparator,
-  Icon,
+  Action,
+  ActionPanel,
+  MenuBarExtra,
   Image,
-  Keyboard,
-
-  // Utilities
+  Icon,
   Color,
+  Keyboard,
   Toast,
-  showToast,
-  useNavigation,
-  getPreferenceValues,
-  openCommandPreferences,
-  openExtensionPreferences,
-  environment,
-  Clipboard,
-  FileSystem,
-  LocalStorage,
-  Cache,
-  confirmAlert,
   Alert,
-  getApplications,
-  open,
-  closeMainWindow,
+  useNavigation,
+  showToast,
   showHUD,
   clearSearchBar,
   getSelectedText,
   popToRoot,
   updateCommandMetadata,
-  randomId,
-  formatTitle,
-
-  // Hooks
+  environment,
+  LocalStorage,
+  Cache,
+  getPreferenceValues,
+  openCommandPreferences,
+  openExtensionPreferences,
+  getApplications,
+  open,
+  closeMainWindow,
+  pop,
+  push,
   useState,
   useEffect,
   useCallback,
   useMemo,
-  useRef,
+  useRef
 };
