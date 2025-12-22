@@ -260,7 +260,7 @@ export class PluginManager extends EventEmitter {
       // Create a plugin wrapper for function-based plugins
       const plugin: Plugin = {
         manifest,
-        async initialize(context: PluginContext, api: PluginAPI) {
+        async initialize(_context: PluginContext, _api: PluginAPI) {
           console.log(`Plugin ${manifest.name} initialized`);
         },
       };
@@ -272,7 +272,7 @@ export class PluginManager extends EventEmitter {
       // Return a fallback plugin
       const fallbackPlugin: Plugin = {
         manifest,
-        async initialize(context: PluginContext, api: PluginAPI) {
+        async initialize(_context: PluginContext, _api: PluginAPI) {
           console.log(`Fallback plugin ${manifest.name} initialized`);
         },
       };
@@ -358,9 +358,9 @@ export class PluginManager extends EventEmitter {
 
       // Navigation - placeholder implementations
       pop: async () => console.log('Navigation.pop called'),
-      push: async (view: HTMLElement, options?: any) => console.log('Navigation.push called'),
-      replace: async (view: HTMLElement, options?: any) => console.log('Navigation.replace called'),
-      popToRoot: async (type?: "immediate" | "animated") => console.log('Navigation.popToRoot called'),
+      push: async (_view: HTMLElement, _options?: any) => console.log('Navigation.push called'),
+      replace: async (_view: HTMLElement, _options?: any) => console.log('Navigation.replace called'),
+      popToRoot: async (_type?: "immediate" | "animated") => console.log('Navigation.popToRoot called'),
       clear: async () => console.log('Navigation.clear called'),
 
       // System APIs - placeholder implementations

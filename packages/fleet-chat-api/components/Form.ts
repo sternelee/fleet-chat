@@ -28,6 +28,18 @@ export interface FormProps {
 
 @customElement("fleet-form")
 export class FCForm extends LitElement {
+  @property({ attribute: false })
+  private formChildren: TemplateResult[] = [];
+
+  // Create a setter/getter for children
+  set children(value: TemplateResult[]) {
+    this.formChildren = value;
+    this.requestUpdate();
+  }
+
+  get children(): TemplateResult[] {
+    return this.formChildren;
+  }
   static styles = css`
     :host {
       display: block;
@@ -55,9 +67,7 @@ export class FCForm extends LitElement {
   @property({ type: Object })
   actions?: TemplateResult;
 
-  @property({ type: Array })
-  children: TemplateResult[] = [];
-
+  
   @property({ type: Function })
   onSubmit?: (values: Record<string, any>) => void;
 
@@ -103,19 +113,16 @@ export class FCForm extends LitElement {
     this.requestUpdate();
   }
 
+  private handleFieldChange(event: CustomEvent) {
+    const { id, value } = event.detail;
+    this.updateFieldValue(id, value);
+  }
+
   render() {
     return html`
-      <div class="form" @submit=${this.handleSubmit}>
-        ${this.children.map((child) => {
-          // Clone the child to pass form context
-          if (child && child.values && child.values.length > 0) {
-            // This is a simplified approach to handle form fields
-            return html`
-              <div class="form-field-wrapper" data-field-id="${child.values[0]?.id || ""}">
-                ${child}
-              </div>
-            `;
-          }
+      <div class="form" @submit=${this.handleSubmit} @field-change=${this.handleFieldChange}>
+        ${this.formChildren.map((child) => {
+          // Simple rendering of child components
           return child;
         })}
         ${this.actions ? html` <div class="form-actions">${this.actions}</div> ` : ""}

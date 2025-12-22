@@ -9,17 +9,46 @@
 export * from '@raycast/api';
 
 // Re-export our Tauri-specific implementations
-export { LocalStorage, Cache, preferences } from './api/storage.js';
-export { getApplications as tauriGetApplications, getFrontmostApplication, getRunningApplications } from './api/applications.js';
+export { getApplications as tauriGetApplications } from './api/applications.js';
 export { showToast, showHUD } from './api/ui.js';
-export { environment } from './api/environment.js';
 export type { Environment } from './api/environment.js';
 
 // React Hooks compatibility
 export * from './hooks/index.js';
 
-// Re-export Raycast API compatibility layer
-export * from './raycast-api/index.js';
+// Re-export Raycast API compatibility layer components
+export {
+  // React-wrapped components
+  ReactList,
+  ReactAction,
+  ReactActionPanel,
+  ReactDetail,
+  ReactGrid,
+  ReactMenuBarExtra,
+  ReactForm,
+
+  // Enhanced utilities
+  RaycastAPI,
+
+  // System APIs from raycast-api
+  getFrontmostApplication,
+  getRunningApplications,
+  openApplication,
+  FCClipboard,
+  FCFileSystem,
+
+  // MenuBarExtra and Form
+  MenuBarExtra,
+  Form
+} from './raycast-api/index.js';
+
+// Re-export types from raycast-api
+export type {
+  MenuBarExtraProps,
+  MenuBarExtraItemProps,
+  FormProps,
+  FormFieldProps
+} from './raycast-api/index.js';
 
 // Plugin System - Core functionality
 export { PluginManager } from './plugins/core/manager.js';

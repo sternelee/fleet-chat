@@ -303,36 +303,36 @@ export class FCDetail extends LitElement {
     return html`
       <div class="detail-container">
         ${this.markdown || this.html
-        ? html`
+          ? html`
               <div class="content-area">
                 ${this.html
-            ? html` <div class="markdown-content">${this.html}</div> `
-            : html` <div class="markdown-content">${this.renderMarkdown()}</div> `}
+                  ? html` <div class="markdown-content">${this.html}</div> `
+                  : html` <div class="markdown-content">${this.renderMarkdown()}</div> `}
               </div>
             `
-        : ""}
+          : ""}
         ${this.metadata.length > 0
-        ? html`
+          ? html`
               <div class="metadata">
                 <div class="metadata-title">Information</div>
                 ${repeat(
-          this.metadata,
-          (item) => html`
+                  this.metadata,
+                  (item) => html`
                     <div class="metadata-item">
                       <span class="metadata-label">${item.label}</span>
                       <span class="metadata-text">${item.text}</span>
                     </div>
                   `,
-        )}
+                )}
               </div>
             `
-        : ""}
+          : ""}
         ${this.actions.length > 0
-        ? html`
+          ? html`
               <div class="actions">
                 ${repeat(
-          this.actions,
-          (action) => html`
+                  this.actions,
+                  (action) => html`
                     <button
                       class="action-button ${action.style === "primary" ? "primary" : ""}"
                       @click="${() => this.handleAction(action)}"
@@ -340,10 +340,10 @@ export class FCDetail extends LitElement {
                       ${action.icon ? html`<span>${action.icon}</span>` : ""} ${action.title}
                     </button>
                   `,
-        )}
+                )}
               </div>
             `
-        : ""}
+          : ""}
       </div>
     `;
   }

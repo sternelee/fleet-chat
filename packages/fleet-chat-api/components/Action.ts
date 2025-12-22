@@ -298,8 +298,8 @@ export class FCAction extends LitElement {
         <div class="action-text">${this.title}</div>
 
         ${this.shortcut
-        ? html` <div class="action-shortcut">${this.formatShortcut(this.shortcut)}</div> `
-        : ""}
+          ? html` <div class="action-shortcut">${this.formatShortcut(this.shortcut)}</div> `
+          : ""}
       </div>
     `;
   }
@@ -433,7 +433,7 @@ export interface ActionPanelItemProps {
 export class FCActionPanelItem extends FCAction {
   // Inherit from FCAction but add panel-specific styling
   static styles = [
-    ...FCAction.styles,
+    ...(Array.isArray(FCAction.styles) ? FCAction.styles : [FCAction.styles]),
     css`
       :host {
         display: block;

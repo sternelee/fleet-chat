@@ -17,6 +17,18 @@ export interface MenuBarExtraItemProps {
 
 @customElement("fleet-menu-bar-extra")
 export class FCMenuBarExtra extends LitElement {
+  @property({ attribute: false })
+  private menuChildren: TemplateResult[] = [];
+
+  // Create a setter/getter for children
+  set children(value: TemplateResult[]) {
+    this.menuChildren = value;
+    this.requestUpdate();
+  }
+
+  get children(): TemplateResult[] {
+    return this.menuChildren;
+  }
   static styles = css`
     :host {
       display: block;
@@ -152,9 +164,7 @@ export class FCMenuBarExtra extends LitElement {
   @property({ type: String })
   tooltip?: string;
 
-  @property({ type: Array })
-  children: TemplateResult[] = [];
-
+  
   private isDropdownVisible = false;
 
   connectedCallback() {
@@ -194,10 +204,10 @@ export class FCMenuBarExtra extends LitElement {
     return html`
       <div class="menu-bar-extra" @click=${this.toggleDropdown}>
         ${iconSrc ? html`<img class="menu-bar-icon" src="${iconSrc}" alt="Menu Bar Icon" />` : ""}
-        ${this.children && this.children.length > 0
+        ${this.menuChildren && this.menuChildren.length > 0
           ? html`
               <div class="menu-dropdown ${this.isDropdownVisible ? "visible" : ""}">
-                ${this.children.map((child) => {
+                ${this.menuChildren.map((child) => {
                   // Extract props from the child template result if it's a MenuBarExtraItem
                   if (child && child.values && child.values.length > 0) {
                     // This is a simplified approach - in production you'd want more sophisticated
@@ -288,7 +298,7 @@ export class FCMenuBarExtraItem extends LitElement {
   `;
 
   @property({ type: String })
-  title?: string;
+  title: string = '';
 
   @property({ type: String })
   icon?: string | { light: string; dark: string };
@@ -349,7 +359,7 @@ export interface MenuBarExtraProps {
 }
 
 export interface MenuBarExtraItemProps {
-  title?: string;
+  title: string;
   icon?: string | { light: string; dark: string };
   shortcut?: string;
   onAction?: () => void;

@@ -439,8 +439,8 @@ export class FCList extends LitElement {
           placeholder=${this.searchPlaceholder}
           value=${this._searchQuery}
           @input=${(e: InputEvent) => {
-        this._searchQuery = (e.target as HTMLInputElement).value;
-      }}
+            this._searchQuery = (e.target as HTMLInputElement).value;
+          }}
         />
       </div>
     `;
@@ -449,8 +449,8 @@ export class FCList extends LitElement {
   private _renderLoadingSkeleton() {
     return html`
       ${Array.from(
-      { length: 5 },
-      () => html`
+        { length: 5 },
+        () => html`
           <div class="loading-skeleton">
             <div class="skeleton-icon"></div>
             <div class="skeleton-content">
@@ -459,7 +459,7 @@ export class FCList extends LitElement {
             </div>
           </div>
         `,
-    )}
+      )}
     `;
   }
 
@@ -483,14 +483,14 @@ export class FCList extends LitElement {
         @contextmenu=${(e: MouseEvent) => (item.actions ? this._showActionPanel(item, e) : null)}
       >
         ${item.icon
-        ? html`
+          ? html`
               <div class="item-icon">
                 ${item.icon.startsWith("http")
-            ? html`<img src="${item.icon}" alt="${item.title}" />`
-            : item.icon}
+                  ? html`<img src="${item.icon}" alt="${item.title}" />`
+                  : item.icon}
               </div>
             `
-        : ""}
+          : ""}
 
         <div class="item-content">
           <div class="item-title">${item.title}</div>
@@ -498,17 +498,17 @@ export class FCList extends LitElement {
         </div>
 
         ${item.accessories && item.accessories.length > 0
-        ? html`
+          ? html`
               <div class="item-accessories">
                 ${item.accessories.map(
-          (accessory) => html`
+                  (accessory) => html`
                     <div class="accessory">
                       ${accessory.icon
-              ? html` <span class="accessory-icon">${accessory.icon}</span> `
-              : ""}
+                        ? html` <span class="accessory-icon">${accessory.icon}</span> `
+                        : ""}
                       ${accessory.text ? html` <span>${accessory.text}</span> ` : ""}
                       ${accessory.tag
-              ? html`
+                        ? html`
                             <span
                               class="accessory-tag"
                               style="
@@ -518,13 +518,13 @@ export class FCList extends LitElement {
                               ${accessory.tag.value}
                             </span>
                           `
-              : ""}
+                        : ""}
                     </div>
                   `,
-        )}
+                )}
               </div>
             `
-        : ""}
+          : ""}
       </div>
     `;
   }
@@ -538,7 +538,7 @@ export class FCList extends LitElement {
       <div
         class="action-panel"
         style="top: ${this._actionPanelPosition.top}px; right: ${this._actionPanelPosition
-        .right}px;"
+          .right}px;"
         @click=${(e: MouseEvent) => e.stopPropagation()}
       >
         ${this._actionPanelItem.actions.map(
@@ -547,8 +547,8 @@ export class FCList extends LitElement {
               ${action.icon ? html` <span class="action-icon">${action.icon}</span> ` : ""}
               <span class="action-text">${action.title}</span>
               ${action.shortcut
-              ? html` <span class="action-shortcut">${action.shortcut}</span> `
-              : ""}
+                ? html` <span class="action-shortcut">${action.shortcut}</span> `
+                : ""}
             </div>
           `,
         )}
@@ -561,10 +561,10 @@ export class FCList extends LitElement {
       <div class="list-container" @click=${this._hideActionPanel}>
         ${this._renderSearchInput()}
         ${this.isLoading
-        ? this._renderLoadingSkeleton()
-        : this._filteredItems.length > 0
-          ? this._filteredItems.map((item, index) => this._renderItem(item, index))
-          : this._renderEmptyState()}
+          ? this._renderLoadingSkeleton()
+          : this._filteredItems.length > 0
+            ? this._filteredItems.map((item, index) => this._renderItem(item, index))
+            : this._renderEmptyState()}
       </div>
 
       ${this._renderActionPanel()}
