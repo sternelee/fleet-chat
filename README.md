@@ -25,6 +25,7 @@ Fleet Chat is an experimental VS Code-like desktop application built with Tauri 
 - [x] **Application Search** - macOS app discovery with ICNS icon extraction
 - [x] **File Search** - Fast file content and name search
 - [x] **A2UI Framework** - Agent-to-UI system with multi-provider AI support
+- [x] **A2UI Plugin Generator** - AI-powered plugin generation from natural language descriptions
 - [x] **Plugin System** - Vicinae-inspired architecture with Raycast plugin compatibility
 - [x] **React-to-Lit Compilation** - Seamlessly run existing Raycast plugins
 - [x] **Web Worker Isolation** - Secure sandboxed plugin execution
@@ -59,7 +60,31 @@ You can also add these variables to a `.env` file in the root directory. See `.e
 
 Fleet Chat features a comprehensive plugin system inspired by Vicinae architecture that supports Raycast plugin compatibility:
 
-### Creating a New Plugin
+### AI-Powered Plugin Generation 🤖
+
+Generate plugins using natural language with the A2UI Plugin Generator:
+
+```bash
+# Access the generator UI
+# Navigate to /plugin-generator in Fleet Chat
+
+# Or use the API directly
+curl -X POST http://localhost:3000/a2ui/plugin/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "my-session",
+    "description": "Create a plugin that shows a list of my favorite websites"
+  }'
+```
+
+**Example descriptions that work well:**
+- "Create a plugin that shows a list of programming languages with their popularity ratings"
+- "Create a calculator plugin with basic math operations"
+- "Create a plugin for managing bookmarks with search functionality"
+
+See the [A2UI Plugin Generation Guide](./docs/A2UI_PLUGIN_GENERATION.md) for detailed documentation.
+
+### Creating a New Plugin Manually
 
 ```bash
 # Create a new plugin using the CLI tool
