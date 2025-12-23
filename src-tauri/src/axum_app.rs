@@ -1,4 +1,5 @@
 use crate::a2ui::agent::{A2UIAgent, GeneratedResponse};
+use crate::a2ui::plugin_generator::{A2UIPluginGenerator, GeneratedPlugin, PluginGenerationRequest};
 use crate::a2ui::provider::{AIProvider, GeminiProvider, OpenAIProvider};
 use crate::rig_agent::{
     AIOptions, AIResponse, ChatMessage, EmbeddingRequest, ImageAnalysisRequest, ImageGenerationRequest,
@@ -957,6 +958,9 @@ pub fn create_axum_app() -> Router {
         .route("/a2ui/agent/chat/stream", post(a2ui_agent_chat_stream))
         .route("/a2ui/agent/session/{id}", get(get_a2ui_session))
         .route("/a2ui/agent/sessions", get(list_a2ui_sessions))
+        // A2UI Plugin Generation endpoints
+        .route("/a2ui/plugin/generate", post(generate_plugin))
+        .route("/a2ui/plugin/generate/preview", post(generate_plugin_preview))
         // Rig AI Agent endpoints
         .route("/ai/generate", post(ai_generate))
         .route("/ai/generate/stream", post(ai_generate_stream))
@@ -1206,6 +1210,58 @@ async fn list_a2ui_sessions(State(state): State<AppState>) -> Result<Json<serde_
         }))),
         Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
     }
+}
+
+// ============================================================================
+// A2UI Plugin Generation Handlers
+// ============================================================================
+
+async fn generate_plugin(
+    State(state): State<AppState>,
+    Json(request): Json<PluginGenerationRequest>,
+) -> Result<Json<GeneratedPlugin>, http::StatusCode> {
+    let agent = state.a2ui_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    // Create plugin generator
+    let generator = A2UIPluginGenerator::new((**agent).clone());
+
+    // Generate plugin
+    let plugin = generator
+        .generate_plugin(request)
+        .await
+        .map_err(|e| {
+            eprintln!("Plugin generation error: {:?}", e);
+            http::StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(plugin))
+}
+
+async fn generate_plugin_preview(
+    State(state): State<AppState>,
+    Json(request): Json<PluginGenerationRequest>,
+) -> Result<Json<serde_json::Value>, http::StatusCode> {
+    let agent = state.a2ui_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    // Create plugin generator
+    let generator = A2UIPluginGenerator::new((**agent).clone());
+
+    // Generate plugin
+    let plugin = generator
+        .generate_plugin(request)
+        .await
+        .map_err(|e| {
+            eprintln!("Plugin generation error: {:?}", e);
+            http::StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    // Return preview with manifest and source code only
+    Ok(Json(json!({
+        "manifest": plugin.manifest,
+        "source_code": plugin.source_code,
+        "has_a2ui_components": !plugin.a2ui_components.is_empty(),
+        "component_count": plugin.a2ui_components.len()
+    })))
 }
 
 // ============================================================================
