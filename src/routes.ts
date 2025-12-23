@@ -16,47 +16,31 @@ export class MyApp extends LitElement {
       {
         path: "/",
         render: () => html`
-          <root-layout @navigate=${this._onNavigate}>
-            <view-home></view-home>
-          </root-layout>
+          <launcher-layout>
+            <view-search></view-search>
+          </launcher-layout>
         `,
       },
       {
         path: "/search",
         render: () => html`
-          <root-layout @navigate=${this._onNavigate}>
+          <launcher-layout>
             <view-search></view-search>
-          </root-layout>
-        `,
-      },
-      {
-        path: "/projects",
-        render: () => html`
-          <root-layout @navigate=${this._onNavigate}>
-            <h1>Projects</h1>
-          </root-layout>
-        `,
-      },
-      {
-        path: "/about",
-        render: () => html`
-          <root-layout @navigate=${this._onNavigate}>
-            <h1>About</h1>
-          </root-layout>
+          </launcher-layout>
         `,
       },
       {
         path: "/chat",
         render: () => html`
-          <root-layout @navigate=${this._onNavigate}>
+          <launcher-layout>
             <a2ui-chat></a2ui-chat>
-          </root-layout>
+          </launcher-layout>
         `,
       },
     ],
     {
       fallback: {
-        render: () => html` <page-not-found @navigate=${this._onNavigate}></page-not-found>`,
+        render: () => html` <launcher-layout><view-search></view-search></launcher-layout> `,
       },
     },
   );
@@ -75,26 +59,14 @@ export class MyApp extends LitElement {
     `;
   }
 
-  private _onNavigate(e: CustomEvent) {
-    const path = e.detail.path;
-    this._routes.goto(path);
-    window.history.pushState(null, "", path);
-  }
-
   connectedCallback() {
     super.connectedCallback();
 
     // Handle the back/forward browser navigation
     window.addEventListener("popstate", () => this.requestUpdate());
 
-    // Make sure the initial route is correctly rendered.
-    // If the URL is currently empty or /, point to the home route.
-    if (window.location.pathname === "/" || window.location.pathname === "") {
-      this._routes.goto("/search");
-    } else {
-      // If other urls, navigate to the URL
-      this._routes.goto(window.location.pathname);
-    }
+    // Always navigate to /search (the launcher interface)
+    this._routes.goto("/search");
   }
 
   disconnectedCallback() {

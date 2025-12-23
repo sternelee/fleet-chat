@@ -12,11 +12,10 @@ import "./components/global-drop-handler";
 // Import the pages
 import "./views/errors/not-found";
 import "./views/errors/not-in-browser";
-import "./views/home/home.component";
 import "./views/search/search.component";
 
-// Import application routes
-import "./layouts/root-layout";
+// Import application routes and new launcher layout
+import "./layouts/launcher-layout";
 import "./routes";
 
 // Initialize plugin system
