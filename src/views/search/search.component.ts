@@ -55,6 +55,7 @@ export class ViewSearch extends LitElement {
 
   // AI item constants
   private readonly AI_ITEM_INDEX = 0
+  private readonly SEARCH_AI_CHAT_EVENT = 'search:ai-chat'
 
   /**
    * Returns whether the AI item should be displayed
@@ -1154,7 +1155,7 @@ export class ViewSearch extends LitElement {
   private _openAIChat() {
     // Trigger a custom event to send the query to the chat panel
     window.dispatchEvent(
-      new CustomEvent('search:ai-chat', {
+      new CustomEvent(this.SEARCH_AI_CHAT_EVENT, {
         detail: { query: this.query },
       }),
     )

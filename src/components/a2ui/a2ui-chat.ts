@@ -5,6 +5,9 @@ import { repeat } from 'lit/directives/repeat.js'
 import { A2UIClient } from './client.js'
 import './a2ui-renderer.js'
 
+// Event name constant for external message handling
+const EXTERNAL_MESSAGE_EVENT = 'external-message'
+
 // Mock A2UI types for now
 interface ServerToClientMessage {
   type: string
@@ -248,12 +251,12 @@ export class A2UIChat extends SignalWatcher(LitElement) {
     super.connectedCallback()
 
     // Listen for external message events from the panel-chat
-    this.addEventListener('external-message', this._handleExternalMessage)
+    this.addEventListener(EXTERNAL_MESSAGE_EVENT, this._handleExternalMessage)
   }
 
   disconnectedCallback() {
     super.disconnectedCallback()
-    this.removeEventListener('external-message', this._handleExternalMessage)
+    this.removeEventListener(EXTERNAL_MESSAGE_EVENT, this._handleExternalMessage)
   }
 
   private _handleExternalMessage = (event: Event) => {

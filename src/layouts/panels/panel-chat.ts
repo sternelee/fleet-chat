@@ -3,6 +3,10 @@ import { customElement } from 'lit/decorators.js'
 import { noSelectStyles, scrollableStyles } from '#/styles/global.css'
 import '../../components/a2ui/a2ui-chat.js'
 
+// Event name constants for search-to-chat communication
+const SEARCH_AI_CHAT_EVENT = 'search:ai-chat'
+const EXTERNAL_MESSAGE_EVENT = 'external-message'
+
 /**
  * Chat panel content component
  * Displays chat interface for communication
@@ -13,12 +17,12 @@ export class PanelChat extends LitElement {
     super.connectedCallback()
 
     // Listen for search AI chat events
-    window.addEventListener('search:ai-chat', this._handleSearchAIChat)
+    window.addEventListener(SEARCH_AI_CHAT_EVENT, this._handleSearchAIChat)
   }
 
   disconnectedCallback() {
     super.disconnectedCallback()
-    window.removeEventListener('search:ai-chat', this._handleSearchAIChat)
+    window.removeEventListener(SEARCH_AI_CHAT_EVENT, this._handleSearchAIChat)
   }
 
   private _handleSearchAIChat = (event: Event) => {
@@ -37,10 +41,12 @@ export class PanelChat extends LitElement {
     if (chatComponent) {
       // Dispatch a custom event to the chat component
       chatComponent.dispatchEvent(
-        new CustomEvent('external-message', {
+        new CustomEvent(EXTERNAL_MESSAGE_EVENT, {
           detail: { message: query },
         }),
       )
+    } else {
+      console.warn('a2ui-chat component not found in shadow DOM')
     }
   }
 
