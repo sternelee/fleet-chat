@@ -53,6 +53,30 @@ export class ViewSearch extends LitElement {
   private searchDebounceTimer: number | null = null
   private animationTimeout: number | null = null
 
+  // AI item constants
+  private readonly AI_ITEM_INDEX = 0
+
+  /**
+   * Returns whether the AI item should be displayed
+   */
+  private get hasAIItem(): boolean {
+    return this.query.trim().length > 0
+  }
+
+  /**
+   * Returns the count of AI items (0 or 1)
+   */
+  private get aiItemCount(): number {
+    return this.hasAIItem ? 1 : 0
+  }
+
+  /**
+   * Adjusts an index to account for the AI item when present
+   */
+  private getAdjustedIndex(baseIndex: number): number {
+    return this.hasAIItem ? baseIndex + 1 : baseIndex
+  }
+
   async connectedCallback() {
     super.connectedCallback()
     this._addGlobalKeyListeners()
@@ -751,11 +775,11 @@ export class ViewSearch extends LitElement {
 
   private _renderAIItem() {
     // Only show AI item when there's a query
-    if (!this.query.trim()) {
+    if (!this.hasAIItem) {
       return null
     }
 
-    const isSelected = this.selectedIndex === 0
+    const isSelected = this.selectedIndex === this.AI_ITEM_INDEX
 
     return html`
       <div class="results-section">
@@ -781,7 +805,7 @@ export class ViewSearch extends LitElement {
 
   private _renderApplicationItem(app: Application, index: number) {
     // Adjust index to account for AI item (which is at index 0)
-    const adjustedIndex = this.query.trim() ? index + 1 : index
+    const adjustedIndex = this.getAdjustedIndex(index)
     const isSelected = adjustedIndex === this.selectedIndex
     const iconContent = app.icon_base64
       ? html`<img src="${app.icon_base64}" alt="${app.name}" />`
@@ -804,7 +828,7 @@ export class ViewSearch extends LitElement {
 
   private _renderFileItem(file: FileMatch, index: number) {
     // Adjust index to account for AI item (which is at index 0)
-    const adjustedIndex = this.query.trim() ? index + 1 : index
+    const adjustedIndex = this.getAdjustedIndex(index)
     const isSelected = adjustedIndex === this.selectedIndex
     return html`
       <div
@@ -847,7 +871,7 @@ export class ViewSearch extends LitElement {
   private _renderPluginCommandItem(cmd: PluginCommand, index: number) {
     const baseIndex = this.results.applications.length + this.results.files.length
     // Adjust index to account for AI item (which is at index 0)
-    const adjustedIndex = this.query.trim() ? baseIndex + index + 1 : baseIndex + index
+    const adjustedIndex = this.getAdjustedIndex(baseIndex + index)
     const isSelected = adjustedIndex === this.selectedIndex
 
     return html`
@@ -1035,10 +1059,9 @@ export class ViewSearch extends LitElement {
 
   private _handleKeyDown(e: KeyboardEvent) {
     const pluginResults = this._getFilteredPluginCommands()
-    // Add 1 to total results to account for AI item when there's a query
-    const aiItemCount = this.query.trim() ? 1 : 0
+    // Add AI item count to total results
     const totalResults =
-      aiItemCount +
+      this.aiItemCount +
       this.results.applications.length +
       this.results.files.length +
       pluginResults.length
@@ -1078,13 +1101,13 @@ export class ViewSearch extends LitElement {
 
   private _openSelected() {
     // If there's a query, AI item is at index 0
-    if (this.query.trim() && this.selectedIndex === 0) {
+    if (this.hasAIItem && this.selectedIndex === this.AI_ITEM_INDEX) {
       this._openAIChat()
       return
     }
 
     // Adjust indices to account for AI item
-    const adjustedIndex = this.query.trim() ? this.selectedIndex - 1 : this.selectedIndex
+    const adjustedIndex = this.hasAIItem ? this.selectedIndex - 1 : this.selectedIndex
 
     if (adjustedIndex < this.results.applications.length) {
       const app = this.results.applications[adjustedIndex]
