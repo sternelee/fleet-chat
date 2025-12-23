@@ -4,8 +4,8 @@
  * Enables drag-and-drop of .fcp files anywhere in the Fleet Chat window
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { css, html, LitElement } from 'lit'
+import { customElement, state } from 'lit/decorators.js'
 
 @customElement('global-drop-handler')
 export class GlobalDropHandler extends LitElement {
@@ -157,301 +157,320 @@ export class GlobalDropHandler extends LitElement {
       opacity: 0.8;
       font-style: italic;
     }
-  `;
+  `
 
   @state()
-  private isActive = false;
+  private isActive = false
 
   @state()
-  private dropFiles: File[] = [];
+  private dropFiles: File[] = []
 
   @state()
-  private processingFiles: Set<string> = new Set();
+  private processingFiles: Set<string> = new Set()
 
   @state()
-  private processedFiles: Set<string> = new Set();
+  private processedFiles: Set<string> = new Set()
 
   @state()
-  private errorFiles: Set<string> = new Set();
+  private errorFiles: Set<string> = new Set()
 
-  private fileDropHandler?: (files: File[]) => Promise<void>;
+  private fileDropHandler?: (files: File[]) => Promise<void>
 
   connectedCallback() {
-    super.connectedCallback();
+    super.connectedCallback()
 
     // Wait for plugin system to be ready
     if ((window as any).pluginLoader) {
-      console.log('🎯 Plugin loader already available, setting up listeners...');
-      this.setupGlobalDragListeners();
+      console.log('🎯 Plugin loader already available, setting up listeners...')
+      this.setupGlobalDragListeners()
     } else {
-      console.log('⏳ Waiting for plugin system to be ready...');
-      window.addEventListener('plugin-system-ready', this.handlePluginSystemReady as EventListener);
+      console.log('⏳ Waiting for plugin system to be ready...')
+      window.addEventListener('plugin-system-ready', this.handlePluginSystemReady as EventListener)
     }
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
-    window.removeEventListener('plugin-system-ready', this.handlePluginSystemReady as EventListener);
-    this.removeGlobalDragListeners();
+    super.disconnectedCallback()
+    window.removeEventListener('plugin-system-ready', this.handlePluginSystemReady as EventListener)
+    this.removeGlobalDragListeners()
   }
 
   private handlePluginSystemReady(_e: Event) {
-    console.log('✅ Plugin system ready, setting up drag listeners...');
-    this.setupGlobalDragListeners();
+    console.log('✅ Plugin system ready, setting up drag listeners...')
+    this.setupGlobalDragListeners()
   }
 
   private setupGlobalDragListeners() {
     // Listen for drag events on the document
-    document.addEventListener('dragenter', this.handleDocumentDragEnter.bind(this));
-    document.addEventListener('dragover', this.handleDocumentDragOver.bind(this));
-    document.addEventListener('dragleave', this.handleDocumentDragLeave.bind(this));
-    document.addEventListener('drop', this.handleDocumentDrop.bind(this));
+    document.addEventListener('dragenter', this.handleDocumentDragEnter.bind(this))
+    document.addEventListener('dragover', this.handleDocumentDragOver.bind(this))
+    document.addEventListener('dragleave', this.handleDocumentDragLeave.bind(this))
+    document.addEventListener('drop', this.handleDocumentDrop.bind(this))
   }
 
   private removeGlobalDragListeners() {
-    document.removeEventListener('dragenter', this.handleDocumentDragEnter.bind(this));
-    document.removeEventListener('dragover', this.handleDocumentDragOver.bind(this));
-    document.removeEventListener('dragleave', this.handleDocumentDragLeave.bind(this));
-    document.removeEventListener('drop', this.handleDocumentDrop.bind(this));
+    document.removeEventListener('dragenter', this.handleDocumentDragEnter.bind(this))
+    document.removeEventListener('dragover', this.handleDocumentDragOver.bind(this))
+    document.removeEventListener('dragleave', this.handleDocumentDragLeave.bind(this))
+    document.removeEventListener('drop', this.handleDocumentDrop.bind(this))
   }
 
   private handleDocumentDragEnter(e: DragEvent) {
-    e.preventDefault();
+    e.preventDefault()
 
-    const items = e.dataTransfer?.items;
+    const items = e.dataTransfer?.items
     if (items && this.hasValidFiles(Array.from(items))) {
-      this.isActive = true;
-      document.body.style.userSelect = 'none';
+      this.isActive = true
+      document.body.style.userSelect = 'none'
     }
   }
 
   private handleDocumentDragOver(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
 
     if (this.isActive) {
-      e.dataTransfer!.dropEffect = 'copy';
+      e.dataTransfer!.dropEffect = 'copy'
     }
   }
 
   private handleDocumentDragLeave(e: DragEvent) {
-    e.preventDefault();
+    e.preventDefault()
 
     // Check if leaving the window
     if (e.clientX === 0 && e.clientY === 0) {
-      this.isActive = false;
-      document.body.style.userSelect = '';
+      this.isActive = false
+      document.body.style.userSelect = ''
     }
   }
 
   private async handleDocumentDrop(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
 
     console.log('🎯 GlobalDropHandler: Drop event detected', {
-      hasFiles: !!(e.dataTransfer?.files),
+      hasFiles: !!e.dataTransfer?.files,
       filesCount: e.dataTransfer?.files?.length,
-      types: Array.from(e.dataTransfer?.items || []).map(item => ({
+      types: Array.from(e.dataTransfer?.items || []).map((item) => ({
         kind: item.kind,
-        type: item.type
-      }))
-    });
+        type: item.type,
+      })),
+    })
 
-    this.isActive = false;
-    document.body.style.userSelect = '';
+    this.isActive = false
+    document.body.style.userSelect = ''
 
-    const files = e.dataTransfer?.files;
+    const files = e.dataTransfer?.files
     if (!files || files.length === 0) {
-      console.log('❌ No files in drop event');
-      return;
+      console.log('❌ No files in drop event')
+      return
     }
 
-    console.log('📁 Files dropped:', Array.from(files).map(f => ({
-      name: f.name,
-      size: f.size,
-      type: f.type,
-      path: (f as any).path || 'N/A'
-    })));
+    console.log(
+      '📁 Files dropped:',
+      Array.from(files).map((f) => ({
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        path: (f as any).path || 'N/A',
+      })),
+    )
 
     // Filter valid files (.fcp)
-    const validFiles = Array.from(files).filter(file =>
-      file.name.toLowerCase().endsWith('.fcp')
-    );
+    const validFiles = Array.from(files).filter((file) => file.name.toLowerCase().endsWith('.fcp'))
 
-    console.log('✅ Valid .fcp files:', validFiles.map(f => f.name));
+    console.log(
+      '✅ Valid .fcp files:',
+      validFiles.map((f) => f.name),
+    )
 
     if (validFiles.length === 0) {
-      console.log('❌ No valid .fcp files found');
+      console.log('❌ No valid .fcp files found')
       // Show temporary error state
-      this.dropFiles = [];
+      this.dropFiles = []
       setTimeout(() => {
-        this.isActive = false;
-      }, 1000);
-      return;
+        this.isActive = false
+      }, 1000)
+      return
     }
 
-    this.dropFiles = validFiles;
-    this.processingFiles = new Set(validFiles.map(f => f.name));
+    this.dropFiles = validFiles
+    this.processingFiles = new Set(validFiles.map((f) => f.name))
 
     // Initialize plugin handler if needed
     if (!this.fileDropHandler) {
-      console.log('⚠️ No file drop handler set, initializing...');
-      this.initializePluginHandler();
+      console.log('⚠️ No file drop handler set, initializing...')
+      this.initializePluginHandler()
     }
 
     // Process files
     if (this.fileDropHandler) {
       try {
-        console.log('🔄 Processing files...');
-        await this.fileDropHandler(validFiles);
+        console.log('🔄 Processing files...')
+        await this.fileDropHandler(validFiles)
 
         // Mark all as successfully processed
-        validFiles.forEach(file => {
-          this.processingFiles.delete(file.name);
-          this.processedFiles.add(file.name);
-          console.log(`✅ Successfully processed: ${file.name}`);
-        });
+        validFiles.forEach((file) => {
+          this.processingFiles.delete(file.name)
+          this.processedFiles.add(file.name)
+          console.log(`✅ Successfully processed: ${file.name}`)
+        })
 
         // Hide overlay after success
         setTimeout(() => {
-          this.resetState();
-        }, 2000);
+          this.resetState()
+        }, 2000)
       } catch (error) {
         // Mark all as errors
-        validFiles.forEach(file => {
-          this.processingFiles.delete(file.name);
-          this.errorFiles.add(file.name);
-          console.error(`❌ Failed to process ${file.name}:`, error);
-        });
+        validFiles.forEach((file) => {
+          this.processingFiles.delete(file.name)
+          this.errorFiles.add(file.name)
+          console.error(`❌ Failed to process ${file.name}:`, error)
+        })
 
-        console.error('Plugin installation error:', error);
+        console.error('Plugin installation error:', error)
 
         // Hide overlay after error
         setTimeout(() => {
-          this.resetState();
-        }, 3000);
+          this.resetState()
+        }, 3000)
       }
     }
   }
 
   private async initializePluginHandler() {
     try {
-      console.log('🔧 Initializing plugin handler...');
+      console.log('🔧 Initializing plugin handler...')
 
       // First try to use the window.pluginLoader directly
-      const pluginLoader = (window as any).pluginLoader;
+      const pluginLoader = (window as any).pluginLoader
 
       if (pluginLoader && typeof pluginLoader.loadPluginFromFile === 'function') {
-        console.log('✅ Found window.pluginLoader');
+        console.log('✅ Found window.pluginLoader')
         this.fileDropHandler = async (files: File[]) => {
-          console.log(`📦 Processing ${files.length} files with window.pluginLoader`);
+          console.log(`📦 Processing ${files.length} files with window.pluginLoader`)
 
           for (const file of files) {
             try {
-              await pluginLoader.loadPluginFromFile(file);
-              console.log(`✅ Successfully processed ${file.name}`);
+              await pluginLoader.loadPluginFromFile(file)
+              console.log(`✅ Successfully processed ${file.name}`)
             } catch (error) {
-              console.error(`❌ Failed to process ${file.name}:`, error);
-              this.errorFiles.add(file.name);
+              console.error(`❌ Failed to process ${file.name}:`, error)
+              this.errorFiles.add(file.name)
             }
           }
-        };
-        console.log('✅ Plugin handler initialized successfully');
+        }
+        console.log('✅ Plugin handler initialized successfully')
       } else {
-        console.log('⚠️ No window.pluginLoader found, trying fallbacks...');
+        console.log('⚠️ No window.pluginLoader found, trying fallbacks...')
 
         // Fallback to getGlobalPluginLoader
         try {
-          const { getGlobalPluginLoader } = await import('../plugins/plugin-loader.js');
-          const globalLoader = getGlobalPluginLoader();
+          const { getGlobalPluginLoader } = await import('../plugins/plugin-loader.js')
+          const globalLoader = getGlobalPluginLoader()
 
           if (globalLoader) {
-            console.log('✅ Found global plugin loader via getGlobalPluginLoader');
+            console.log('✅ Found global plugin loader via getGlobalPluginLoader')
             this.fileDropHandler = async (files: File[]) => {
-              console.log(`📦 Processing ${files.length} files with global loader`);
+              console.log(`📦 Processing ${files.length} files with global loader`)
 
               for (const file of files) {
-                await globalLoader.loadPluginFromFile(file);
+                await globalLoader.loadPluginFromFile(file)
               }
-            };
+            }
           } else {
             // Final fallback to window.pluginManager
-            const pluginManager = (window as any).pluginManager;
+            const pluginManager = (window as any).pluginManager
             if (pluginManager) {
-              console.log('✅ Using window.pluginManager fallback');
-              const { PluginLoader } = await import('../plugins/plugin-loader.js');
-              const loader = new PluginLoader(pluginManager);
+              console.log('✅ Using window.pluginManager fallback')
+              const { PluginLoader } = await import('../plugins/plugin-loader.js')
+              const loader = new PluginLoader(pluginManager)
 
               this.fileDropHandler = async (files: File[]) => {
-                console.log(`📦 Processing ${files.length} files with fallback loader`);
+                console.log(`📦 Processing ${files.length} files with fallback loader`)
 
                 for (const file of files) {
-                  await loader.loadPluginFromFile(file);
+                  await loader.loadPluginFromFile(file)
                 }
-              };
+              }
             } else {
-              console.log('❌ No plugin manager available at all');
+              console.log('❌ No plugin manager available at all')
               // Create a mock handler for testing
               this.fileDropHandler = async (files: File[]) => {
-                console.log(`🧪 Mock processing ${files.length} files:`, files.map(f => f.name));
-                alert(`插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map(f => f.name).join('\n')}`);
-              };
+                console.log(
+                  `🧪 Mock processing ${files.length} files:`,
+                  files.map((f) => f.name),
+                )
+                alert(
+                  `插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map((f) => f.name).join('\n')}`,
+                )
+              }
             }
           }
         } catch (importError) {
-          console.error('❌ Failed to import plugin loader:', importError);
+          console.error('❌ Failed to import plugin loader:', importError)
           // Create mock handler
           this.fileDropHandler = async (files: File[]) => {
-            console.log(`🧪 Mock processing ${files.length} files:`, files.map(f => f.name));
-            alert(`插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map(f => f.name).join('\n')}`);
-          };
+            console.log(
+              `🧪 Mock processing ${files.length} files:`,
+              files.map((f) => f.name),
+            )
+            alert(
+              `插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map((f) => f.name).join('\n')}`,
+            )
+          }
         }
       }
 
-      console.log('🎯 Plugin handler setup complete');
+      console.log('🎯 Plugin handler setup complete')
     } catch (error) {
-      console.error('❌ Failed to initialize plugin handler:', error);
+      console.error('❌ Failed to initialize plugin handler:', error)
       // Create mock handler as last resort
       this.fileDropHandler = async (files: File[]) => {
-        console.log(`🧪 Mock processing ${files.length} files:`, files.map(f => f.name));
-        alert(`插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map(f => f.name).join('\n')}`);
-      };
+        console.log(
+          `🧪 Mock processing ${files.length} files:`,
+          files.map((f) => f.name),
+        )
+        alert(
+          `插件安装功能正在调试中\n检测到 ${files.length} 个文件:\n${files.map((f) => f.name).join('\n')}`,
+        )
+      }
     }
   }
 
   private hasValidFiles(items: DataTransferItem[]): boolean {
-    return Array.from(items).some(item => {
-      const file = item.getAsFile();
-      return file && file.name.toLowerCase().endsWith('.fcp');
-    });
+    return Array.from(items).some((item) => {
+      const file = item.getAsFile()
+      return file && file.name.toLowerCase().endsWith('.fcp')
+    })
   }
 
   private resetState() {
-    this.isActive = false;
-    this.dropFiles = [];
-    this.processingFiles.clear();
-    this.processedFiles.clear();
-    this.errorFiles.clear();
+    this.isActive = false
+    this.dropFiles = []
+    this.processingFiles.clear()
+    this.processedFiles.clear()
+    this.errorFiles.clear()
   }
 
   private formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / k ** i).toFixed(2)) + ' ' + sizes[i]
   }
 
   private getFileStatus(fileName: string): 'processing' | 'success' | 'error' {
-    if (this.processingFiles.has(fileName)) return 'processing';
-    if (this.processedFiles.has(fileName)) return 'success';
-    if (this.errorFiles.has(fileName)) return 'error';
-    return 'processing';
+    if (this.processingFiles.has(fileName)) return 'processing'
+    if (this.processedFiles.has(fileName)) return 'success'
+    if (this.errorFiles.has(fileName)) return 'error'
+    return 'processing'
   }
 
   // Public API
   public setFileDropHandler(handler: (files: File[]) => Promise<void>) {
-    this.fileDropHandler = handler;
+    this.fileDropHandler = handler
   }
 
   render() {
@@ -462,10 +481,12 @@ export class GlobalDropHandler extends LitElement {
           <div class="drop-title">Install Plugin</div>
           <div class="drop-subtitle">Release to install Fleet Chat plugin</div>
 
-          ${this.dropFiles.length > 0 ? html`
+          ${
+            this.dropFiles.length > 0
+              ? html`
             <div class="drop-files">
-              ${this.dropFiles.map(file => {
-                const status = this.getFileStatus(file.name);
+              ${this.dropFiles.map((file) => {
+                const status = this.getFileStatus(file.name)
                 return html`
                   <div class="drop-file-item">
                     <div class="file-info">
@@ -481,40 +502,47 @@ export class GlobalDropHandler extends LitElement {
                       ${status === 'error' ? html`<span>❌ Failed</span>` : ''}
                     </div>
                   </div>
-                `;
+                `
               })}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
 
           <div class="drop-hint">
-            ${this.dropFiles.length === 0
-              ? 'Drag .fcp plugin files here'
-              : this.processingFiles.size > 0
-                ? `Installing ${this.processingFiles.size} plugin${this.processingFiles.size > 1 ? 's' : ''}...`
-                : this.processedFiles.size > 0
-                  ? `Successfully installed ${this.processedFiles.size} plugin${this.processedFiles.size > 1 ? 's' : ''}!`
-                  : ''
+            ${
+              this.dropFiles.length === 0
+                ? 'Drag .fcp plugin files here'
+                : this.processingFiles.size > 0
+                  ? `Installing ${this.processingFiles.size} plugin${this.processingFiles.size > 1 ? 's' : ''}...`
+                  : this.processedFiles.size > 0
+                    ? `Successfully installed ${this.processedFiles.size} plugin${this.processedFiles.size > 1 ? 's' : ''}!`
+                    : ''
             }
           </div>
 
-          ${this.processingFiles.size > 0 ? html`
+          ${
+            this.processingFiles.size > 0
+              ? html`
             <div class="progress-bar">
               <div class="progress-fill" style="width: 60%"></div>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
-    `;
+    `
   }
 }
 
 // Declare for TypeScript
 declare global {
   interface WindowEventMap {
-    'dragenter': DragEvent;
-    'dragover': DragEvent;
-    'dragleave': DragEvent;
-    'drop': DragEvent;
-    'plugin-system-ready': Event;
+    dragenter: DragEvent
+    dragover: DragEvent
+    dragleave: DragEvent
+    drop: DragEvent
+    'plugin-system-ready': Event
   }
 }

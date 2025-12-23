@@ -1,49 +1,49 @@
 {
-  "name": "@fleet-chat/raycast-api",
-  "version": "1.0.0",
-  "description": "Fleet Chat Raycast API Compatibility Package",
-  "main": "./index.ts",
-  "types": "./index.ts",
-  "type": "module",
-  "exports": {
-    ".": "./index.ts",
-    "./utils": "./utils/raycast-utils.ts"
-  },
-  "dependencies": {
-    "@raycast/api": "^1.103.0",
-    "@raycast/utils": "^2.2.1",
-    "@lit/react": "^2.0.3",
-    "lit": "^3.3.1"
-  },
-  "peerDependencies": {
-    "@lit/react": "^2.0.3",
-    "lit": "^3.3.1",
-    "react": "^18.0.0"
-  },
-  "keywords": [
-    "raycast",
-    "api",
-    "compatibility",
-    "fleet-chat",
-    "plugin",
-    "lit",
-    "react"
-  ],
-  "author": "Fleet Chat Team",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sternelee/fleet-chat.git",
-    "directory": "packages/fleet-chat-api/raycast-api"
-  },
-  "bugs": {
-    "url": "https://github.com/sternelee/fleet-chat/issues"
-  },
-  "homepage": "https://github.com/sternelee/fleet-chat/tree/main/packages/fleet-chat-api/raycast-api#readme",
-  "files": [
-    "*.ts",
-    "*.js",
-    "*.d.ts",
-    "package.json"
-  ]
+    "name": "@fleet-chat/raycast-api",
+    "version": "1.0.0",
+    "description": "Fleet Chat Raycast API Compatibility Package",
+    "main": "./index.ts",
+    "types": "./index.ts",
+    "type": "module",
+    "exports": {
+        ".": "./index.ts",
+        "./utils": "./utils/raycast-utils.ts"
+    },
+    "dependencies": {
+        "@raycast/api": "^1.103.0",
+        "@raycast/utils": "^2.2.1",
+        "@lit/react": "^2.0.3",
+        "lit": "^3.3.1"
+    },
+    "peerDependencies": {
+        "@lit/react": "^2.0.3",
+        "lit": "^3.3.1",
+        "react": "^18.0.0"
+    },
+    "keywords": [
+        "raycast",
+        "api",
+        "compatibility",
+        "fleet-chat",
+        "plugin",
+        "lit",
+        "react"
+    ],
+    "author": "Fleet Chat Team",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sternelee/fleet-chat.git",
+        "directory": "packages/fleet-chat-api/raycast-api"
+    },
+    "bugs": {
+        "url": "https://github.com/sternelee/fleet-chat/issues"
+    },
+    "homepage": "https://github.com/sternelee/fleet-chat/tree/main/packages/fleet-chat-api/raycast-api#readme",
+    "files": [
+        "*.ts",
+        "*.js",
+        "*.d.ts",
+        "package.json"
+    ]
 }

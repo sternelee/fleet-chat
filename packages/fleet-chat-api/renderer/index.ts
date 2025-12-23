@@ -5,24 +5,24 @@
  * Translates React JSX into Lit web components
  */
 
-import { LitElement, html, TemplateResult } from 'lit';
+import { html, type LitElement, type TemplateResult } from 'lit'
 
 // React-like interfaces for compilation
 export interface ReactElement {
-  type: string | Function;
-  props?: any;
-  children?: ReactNode[];
-  key?: string | number;
+  type: string | Function
+  props?: any
+  children?: ReactNode[]
+  key?: string | number
 }
 
-export type ReactNode = ReactElement | string | number | null | undefined | ReactNode[];
+export type ReactNode = ReactElement | string | number | null | undefined | ReactNode[]
 
 export interface ComponentInstance {
-  id: string;
-  component: LitElement;
-  element: ReactElement;
-  children: ComponentInstance[];
-  eventHandlers: Map<string, Function>;
+  id: string
+  component: LitElement
+  element: ReactElement
+  children: ComponentInstance[]
+  eventHandlers: Map<string, Function>
 }
 
 /**
@@ -36,33 +36,33 @@ export function createElement(
   return {
     type,
     props: props || {},
-    children: children.flat().filter(child => child != null)
-  };
+    children: children.flat().filter((child) => child != null),
+  }
 }
 
 /**
  * Fragment support
  */
-export const Fragment = 'Fragment';
+export const Fragment = 'Fragment'
 
 /**
  * React-to-Lit Compiler
  * Transforms React element trees into Lit templates
  */
 export class ReactToLitCompiler {
-  private componentRegistry = new Map<string, Function>();
-  private eventHandlerRegistry = new Map<string, Map<string, Function>>();
-  private componentIdCounter = 0;
+  private componentRegistry = new Map<string, Function>()
+  private eventHandlerRegistry = new Map<string, Map<string, Function>>()
+  private componentIdCounter = 0
 
   constructor() {
-    this.registerBuiltinComponents();
+    this.registerBuiltinComponents()
   }
 
   /**
    * Register a React component function
    */
   registerComponent(name: string, componentFn: Function): void {
-    this.componentRegistry.set(name, componentFn);
+    this.componentRegistry.set(name, componentFn)
   }
 
   /**
@@ -70,14 +70,14 @@ export class ReactToLitCompiler {
    */
   private registerBuiltinComponents(): void {
     // Register core Raycast components
-    this.componentRegistry.set('List', this.createListComponent.bind(this));
-    this.componentRegistry.set('List.Item', this.createListItemComponent.bind(this));
-    this.componentRegistry.set('Detail', this.createDetailComponent.bind(this));
-    this.componentRegistry.set('ActionPanel', this.createActionPanelComponent.bind(this));
-    this.componentRegistry.set('Action', this.createActionComponent.bind(this));
-    this.componentRegistry.set('Form', this.createFormComponent.bind(this));
-    this.componentRegistry.set('Grid', this.createGridComponent.bind(this));
-    this.componentRegistry.set('Grid.Item', this.createGridItemComponent.bind(this));
+    this.componentRegistry.set('List', this.createListComponent.bind(this))
+    this.componentRegistry.set('List.Item', this.createListItemComponent.bind(this))
+    this.componentRegistry.set('Detail', this.createDetailComponent.bind(this))
+    this.componentRegistry.set('ActionPanel', this.createActionPanelComponent.bind(this))
+    this.componentRegistry.set('Action', this.createActionComponent.bind(this))
+    this.componentRegistry.set('Form', this.createFormComponent.bind(this))
+    this.componentRegistry.set('Grid', this.createGridComponent.bind(this))
+    this.componentRegistry.set('Grid.Item', this.createGridItemComponent.bind(this))
   }
 
   /**
@@ -85,72 +85,72 @@ export class ReactToLitCompiler {
    */
   compile(element: ReactElement): TemplateResult {
     if (typeof element === 'string' || typeof element === 'number') {
-      return html`${element}`;
+      return html`${element}`
     }
 
     if (element == null) {
-      return html``;
+      return html``
     }
 
     if (Array.isArray(element)) {
-      return html`${element.map(child => this.compile(child))}`;
+      return html`${element.map((child) => this.compile(child))}`
     }
 
     if (typeof element.type === 'string') {
-      return this.compileHTMLTag(element);
+      return this.compileHTMLTag(element)
     }
 
     if (typeof element.type === 'function') {
-      return this.compileComponent(element);
+      return this.compileComponent(element)
     }
 
-    return html``;
+    return html``
   }
 
   /**
    * Compile HTML tags
    */
   private compileHTMLTag(element: ReactElement): TemplateResult {
-    const { type, props, children } = element;
+    const { type, props, children } = element
 
     // Handle fragments
     if (type === Fragment) {
-      return html`${children?.map(child => this.compile(child))}`;
+      return html`${children?.map((child) => this.compile(child))}`
     }
 
     // Build template with props and children
-    const attrs = this.buildAttributes(props);
-    const childTemplates = children?.map(child => this.compile(child));
+    const attrs = this.buildAttributes(props)
+    const childTemplates = children?.map((child) => this.compile(child))
 
-    return html`<${type} ${attrs}>${childTemplates}</${type}>`;
+    return html`<${type} ${attrs}>${childTemplates}</${type}>`
   }
 
   /**
    * Compile React component
    */
   private compileComponent(element: ReactElement): TemplateResult {
-    const componentFn = this.componentRegistry.get(element.type as string);
+    const componentFn = this.componentRegistry.get(element.type as string)
 
     if (!componentFn) {
-      console.warn(`Unknown component: ${element.type}`);
-      return html`<div>Unknown component: ${element.type}</div>`;
+      console.warn(`Unknown component: ${element.type}`)
+      return html`<div>Unknown component: ${element.type}</div>`
     }
 
     try {
-      const result = componentFn(element.props);
+      const result = componentFn(element.props)
 
       if (typeof result === 'string' || typeof result === 'number') {
-        return html`${result}`;
+        return html`${result}`
       }
 
       if (result && typeof result === 'object') {
-        return this.compile(result as ReactElement);
+        return this.compile(result as ReactElement)
       }
 
-      return html``;
+      return html``
     } catch (error) {
-      console.error(`Error compiling component ${element.type}:`, error);
-      return html`<div>Error in component ${element.type}</div>`;
+      console.error(`Error compiling component ${element.type}:`, error)
+      return html`<div>Error in component ${element.type}</div>`
     }
   }
 
@@ -158,34 +158,34 @@ export class ReactToLitCompiler {
    * Build HTML attributes from props
    */
   private buildAttributes(props: any): string {
-    if (!props) return '';
+    if (!props) return ''
 
-    const attrs: string[] = [];
+    const attrs: string[] = []
 
     for (const [key, value] of Object.entries(props)) {
-      if (key === 'children') continue;
+      if (key === 'children') continue
       if (key.startsWith('on') && typeof value === 'function') {
         // Event handlers will be handled separately
-        continue;
+        continue
       }
 
       if (key === 'className') {
-        attrs.push(`class="${value}"`);
+        attrs.push(`class="${value}"`)
       } else if (key === 'htmlFor') {
-        attrs.push(`for="${value}"`);
+        attrs.push(`for="${value}"`)
       } else if (key === 'style' && typeof value === 'object') {
         const styles = Object.entries(value)
           .map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}:${v}`)
-          .join(';');
-        attrs.push(`style="${styles}"`);
+          .join(';')
+        attrs.push(`style="${styles}"`)
       } else if (typeof value === 'string' || typeof value === 'number') {
-        attrs.push(`${key}="${value}"`);
+        attrs.push(`${key}="${value}"`)
       } else if (value === true) {
-        attrs.push(key);
+        attrs.push(key)
       }
     }
 
-    return attrs.join(' ');
+    return attrs.join(' ')
   }
 
   /**
@@ -200,10 +200,10 @@ export class ReactToLitCompiler {
         isLoading: props.isLoading ?? false,
         emptyStateTitle: props.emptyState?.title ?? 'No Items',
         emptyStateDescription: props.emptyState?.description ?? '',
-        emptyStateIcon: props.emptyState?.icon ?? '📋'
+        emptyStateIcon: props.emptyState?.icon ?? '📋',
       },
-      children: props.children || []
-    };
+      children: props.children || [],
+    }
   }
 
   /**
@@ -216,13 +216,13 @@ export class ReactToLitCompiler {
         className: 'list-item',
         'data-title': props.title,
         'data-subtitle': props.subtitle,
-        'data-icon': props.icon
+        'data-icon': props.icon,
       },
       children: [
         props.icon && {
           type: 'div',
           props: { className: 'item-icon' },
-          children: [props.icon]
+          children: [props.icon],
         },
         {
           type: 'div',
@@ -231,14 +231,14 @@ export class ReactToLitCompiler {
             {
               type: 'div',
               props: { className: 'item-title' },
-              children: [props.title]
+              children: [props.title],
             },
             props.subtitle && {
               type: 'div',
               props: { className: 'item-subtitle' },
-              children: [props.subtitle]
-            }
-          ].filter(Boolean)
+              children: [props.subtitle],
+            },
+          ].filter(Boolean),
         },
         props.accessories && {
           type: 'div',
@@ -246,12 +246,12 @@ export class ReactToLitCompiler {
           children: props.accessories.map((acc: any) => ({
             type: 'span',
             props: { className: 'accessory' },
-            children: [acc.text || acc.tag?.value || '']
-          }))
+            children: [acc.text || acc.tag?.value || ''],
+          })),
         },
-        props.actions && this.createActionPanelComponent({ children: props.actions })
-      ].filter(Boolean)
-    };
+        props.actions && this.createActionPanelComponent({ children: props.actions }),
+      ].filter(Boolean),
+    }
   }
 
   /**
@@ -263,10 +263,10 @@ export class ReactToLitCompiler {
       props: {
         markdown: props.markdown || '',
         isLoading: props.isLoading ?? false,
-        metadata: props.metadata || []
+        metadata: props.metadata || [],
       },
-      children: props.children || []
-    };
+      children: props.children || [],
+    }
   }
 
   /**
@@ -276,8 +276,8 @@ export class ReactToLitCompiler {
     return {
       type: 'div',
       props: { className: 'action-panel' },
-      children: props.children || []
-    };
+      children: props.children || [],
+    }
   }
 
   /**
@@ -289,26 +289,26 @@ export class ReactToLitCompiler {
       props: {
         className: 'action-item',
         'data-title': props.title,
-        'data-shortcut': props.shortcut
+        'data-shortcut': props.shortcut,
       },
       children: [
         props.icon && {
           type: 'span',
           props: { className: 'action-icon' },
-          children: [props.icon]
+          children: [props.icon],
         },
         {
           type: 'span',
           props: { className: 'action-text' },
-          children: [props.title]
+          children: [props.title],
         },
         props.shortcut && {
           type: 'span',
           props: { className: 'action-shortcut' },
-          children: [props.shortcut]
-        }
-      ].filter(Boolean)
-    };
+          children: [props.shortcut],
+        },
+      ].filter(Boolean),
+    }
   }
 
   /**
@@ -319,10 +319,10 @@ export class ReactToLitCompiler {
       type: 'fc-form',
       props: {
         isLoading: props.isLoading ?? false,
-        actions: props.actions
+        actions: props.actions,
       },
-      children: props.children || []
-    };
+      children: props.children || [],
+    }
   }
 
   /**
@@ -335,10 +335,10 @@ export class ReactToLitCompiler {
         columns: props.columns,
         itemSize: props.itemSize,
         fit: props.fit ?? false,
-        aspectRatio: props.aspectRatio
+        aspectRatio: props.aspectRatio,
       },
-      children: props.children || []
-    };
+      children: props.children || [],
+    }
   }
 
   /**
@@ -350,13 +350,13 @@ export class ReactToLitCompiler {
       props: {
         className: 'grid-item',
         'data-title': props.title,
-        'data-content': props.content
+        'data-content': props.content,
       },
       children: [
         props.icon && {
           type: 'div',
           props: { className: 'grid-item-icon' },
-          children: [props.icon]
+          children: [props.icon],
         },
         {
           type: 'div',
@@ -365,62 +365,60 @@ export class ReactToLitCompiler {
             props.title && {
               type: 'div',
               props: { className: 'grid-item-title' },
-              children: [props.title]
+              children: [props.title],
             },
             props.subtitle && {
               type: 'div',
               props: { className: 'grid-item-subtitle' },
-              children: [props.subtitle]
-            }
-          ].filter(Boolean)
-        }
-      ].filter(Boolean)
-    };
+              children: [props.subtitle],
+            },
+          ].filter(Boolean),
+        },
+      ].filter(Boolean),
+    }
   }
 
-  
   /**
    * Register event handler for component
    */
   registerEventHandler(componentId: string, eventType: string, handler: Function): void {
     if (!this.eventHandlerRegistry.has(componentId)) {
-      this.eventHandlerRegistry.set(componentId, new Map());
+      this.eventHandlerRegistry.set(componentId, new Map())
     }
-    this.eventHandlerRegistry.get(componentId)!.set(eventType, handler);
+    this.eventHandlerRegistry.get(componentId)!.set(eventType, handler)
   }
 
   /**
    * Get event handler for component
    */
   getEventHandler(componentId: string, eventType: string): Function | undefined {
-    return this.eventHandlerRegistry.get(componentId)?.get(eventType);
+    return this.eventHandlerRegistry.get(componentId)?.get(eventType)
   }
 
   /**
    * Clear event handlers for component
    */
   clearEventHandlers(componentId: string): void {
-    this.eventHandlerRegistry.delete(componentId);
+    this.eventHandlerRegistry.delete(componentId)
   }
 
   /**
    * Convert React JSX to Lit template
    */
   jsxToTemplate(jsxElement: ReactElement): TemplateResult {
-    return this.compile(jsxElement);
+    return this.compile(jsxElement)
   }
 }
 
 /**
  * Global compiler instance
  */
-export const reactToLitCompiler = new ReactToLitCompiler();
+export const reactToLitCompiler = new ReactToLitCompiler()
 
 /**
  * Create React-like JSX elements
  */
-export const h = createElement;
-
+export const h = createElement
 
 // Re-export from other renderer modules when they exist
 // export * from './event-system.js';

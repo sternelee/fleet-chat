@@ -5,9 +5,9 @@
  * This enables direct React support in Fleet Chat plugins
  */
 
-import { createComponent } from '@lit/react';
-import { html, TemplateResult } from 'lit';
-import React from 'react';
+import { createComponent } from '@lit/react'
+import { html, TemplateResult } from 'lit'
+import React from 'react'
 
 /**
  * Create a React component wrapper for a Lit component
@@ -18,10 +18,10 @@ import React from 'react';
 export function createLitComponent(LitComponent: any) {
   return React.forwardRef((props: any, ref: any) => {
     // Convert React props to Lit properties
-    const litProps = { ...props };
+    const litProps = { ...props }
 
     // Handle children specially for React
-    const { children, ...otherProps } = litProps;
+    const { children, ...otherProps } = litProps
 
     return createComponent({
       tagName: LitComponent.tagName || LitComponent.name.toLowerCase(),
@@ -29,8 +29,8 @@ export function createLitComponent(LitComponent: any) {
       events: {},
       constructorProps: otherProps,
       ref,
-    });
-  });
+    })
+  })
 }
 
 /**
@@ -40,25 +40,28 @@ export function createLitComponent(LitComponent: any) {
  * @param {Object} options - Configuration options
  * @returns {React.ForwardRefExoticComponent} - React-wrapped component
  */
-export function createEnhancedLitComponent(LitComponent: any, options: {
-  events?: Record<string, string>;
-  mappings?: Record<string, string>;
-} = {}) {
+export function createEnhancedLitComponent(
+  LitComponent: any,
+  options: {
+    events?: Record<string, string>
+    mappings?: Record<string, string>
+  } = {},
+) {
   return React.forwardRef((props: any, ref: any) => {
-    const { events = {}, mappings = {} } = options;
+    const { events = {}, mappings = {} } = options
 
     // Map React prop names to Lit property names
-    const litProps: any = {};
+    const litProps: any = {}
     for (const [reactProp, litProp] of Object.entries(mappings)) {
       if (props[reactProp] !== undefined) {
-        litProps[litProp] = props[reactProp];
+        litProps[litProp] = props[reactProp]
       }
     }
 
     // Copy remaining props
     for (const [key, value] of Object.entries(props)) {
       if (!mappings[key]) {
-        litProps[key] = value;
+        litProps[key] = value
       }
     }
 
@@ -68,14 +71,14 @@ export function createEnhancedLitComponent(LitComponent: any, options: {
       events,
       constructorProps: litProps,
       ref,
-    });
-  });
+    })
+  })
 }
 
 /**
  * Default export for backwards compatibility
  */
-export { createLitComponent as createLitReactComponent };
+export { createLitComponent as createLitReactComponent }
 
 /**
  * Common event mappings for Raycast components
@@ -86,7 +89,7 @@ export const RAYCAST_EVENTS = {
   onChange: 'change',
   onSubmit: 'submit',
   onCancel: 'cancel',
-};
+}
 
 /**
  * Common prop mappings for Raycast components
@@ -110,4 +113,4 @@ export const RAYCAST_MAPPINGS = {
   actions: 'actions',
   isLoading: 'isLoading',
   onSubmit: 'onSubmit',
-};
+}

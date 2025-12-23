@@ -5,4 +5,4 @@
  * providing 100% Raycast API compatibility
  */
 // Re-export all base types from fleet-chat-api
-export * from '../../types/index.js';
+export * from '../../types/index.js'

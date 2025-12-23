@@ -34,10 +34,7 @@
                     }
                 }
             },
-            "required": [
-                "root",
-                "surfaceId"
-            ]
+            "required": ["root", "surfaceId"]
         },
         "surfaceUpdate": {
             "type": "object",
@@ -101,9 +98,7 @@
                                                 ]
                                             }
                                         },
-                                        "required": [
-                                            "text"
-                                        ]
+                                        "required": ["text"]
                                     },
                                     "Button": {
                                         "type": "object",
@@ -128,9 +123,7 @@
                                                         }
                                                     }
                                                 },
-                                                "required": [
-                                                    "name"
-                                                ]
+                                                "required": ["name"]
                                             }
                                         }
                                     },
@@ -140,11 +133,7 @@
                                         "properties": {
                                             "alignment": {
                                                 "type": "string",
-                                                "enum": [
-                                                    "start",
-                                                    "center",
-                                                    "end"
-                                                ]
+                                                "enum": ["start", "center", "end"]
                                             },
                                             "distribution": {
                                                 "type": "string",
@@ -179,20 +168,11 @@
                                         "properties": {
                                             "alignment": {
                                                 "type": "string",
-                                                "enum": [
-                                                    "start",
-                                                    "center",
-                                                    "end"
-                                                ]
+                                                "enum": ["start", "center", "end"]
                                             },
                                             "distribution": {
                                                 "type": "string",
-                                                "enum": [
-                                                    "start",
-                                                    "center",
-                                                    "end",
-                                                    "stretch"
-                                                ]
+                                                "enum": ["start", "center", "end", "stretch"]
                                             },
                                             "children": {
                                                 "type": "object",
@@ -218,9 +198,7 @@
                                                 "description": "The ID of the child component to display inside the card."
                                             }
                                         },
-                                        "required": [
-                                            "child"
-                                        ]
+                                        "required": ["child"]
                                     },
                                     "TextField": {
                                         "type": "object",
@@ -254,12 +232,7 @@
                                             },
                                             "type": {
                                                 "type": "string",
-                                                "enum": [
-                                                    "text",
-                                                    "password",
-                                                    "email",
-                                                    "number"
-                                                ]
+                                                "enum": ["text", "password", "email", "number"]
                                             },
                                             "action": {
                                                 "type": "object",
@@ -276,26 +249,18 @@
                                                         }
                                                     }
                                                 },
-                                                "required": [
-                                                    "name"
-                                                ]
+                                                "required": ["name"]
                                             }
                                         }
                                     }
                                 }
                             }
                         },
-                        "required": [
-                            "id",
-                            "component"
-                        ]
+                        "required": ["id", "component"]
                     }
                 }
             },
-            "required": [
-                "surfaceId",
-                "components"
-            ]
+            "required": ["surfaceId", "components"]
         },
         "dataModelUpdate": {
             "type": "object",
@@ -323,17 +288,11 @@
                                 "description": "The new value to set at the specified path. Can be any valid JSON value (string, number, boolean, object, array, null)."
                             }
                         },
-                        "required": [
-                            "path",
-                            "value"
-                        ]
+                        "required": ["path", "value"]
                     }
                 }
             },
-            "required": [
-                "surfaceId",
-                "patches"
-            ]
+            "required": ["surfaceId", "patches"]
         },
         "deleteSurface": {
             "type": "object",
@@ -345,31 +304,21 @@
                     "description": "The unique identifier for the UI surface to be deleted."
                 }
             },
-            "required": [
-                "surfaceId"
-            ]
+            "required": ["surfaceId"]
         }
     },
     "oneOf": [
         {
-            "required": [
-                "beginRendering"
-            ]
+            "required": ["beginRendering"]
         },
         {
-            "required": [
-                "surfaceUpdate"
-            ]
+            "required": ["surfaceUpdate"]
         },
         {
-            "required": [
-                "dataModelUpdate"
-            ]
+            "required": ["dataModelUpdate"]
         },
         {
-            "required": [
-                "deleteSurface"
-            ]
+            "required": ["deleteSurface"]
         }
     ]
 }

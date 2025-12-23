@@ -6,18 +6,18 @@
  */
 
 // Import Tauri APIs
-import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { exists, readTextFile, writeFile, mkdir, remove } from '@tauri-apps/plugin-fs';
+import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager'
+import { exists, mkdir, readTextFile, remove, writeFile } from '@tauri-apps/plugin-fs'
 
 // Clipboard APIs
 export interface ClipboardOptions {
-  text?: string;
+  text?: string
 }
 
 export interface ClipboardResult {
-  success: boolean;
-  data?: string;
-  error?: string;
+  success: boolean
+  data?: string
+  error?: string
 }
 
 /**
@@ -32,18 +32,18 @@ export class Clipboard {
     try {
       // Try Tauri clipboard first if available
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        return await readText();
+        return await readText()
       }
 
       // Fallback to browser clipboard
       if (navigator.clipboard && navigator.clipboard.readText) {
-        return await navigator.clipboard.readText();
+        return await navigator.clipboard.readText()
       }
 
-      throw new Error('Clipboard API not available');
+      throw new Error('Clipboard API not available')
     } catch (error) {
-      console.error('Clipboard readText error:', error);
-      throw error;
+      console.error('Clipboard readText error:', error)
+      throw error
     }
   }
 
@@ -54,20 +54,20 @@ export class Clipboard {
     try {
       // Try Tauri clipboard first if available
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        await writeText(text);
-        return;
+        await writeText(text)
+        return
       }
 
       // Fallback to browser clipboard
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return;
+        await navigator.clipboard.writeText(text)
+        return
       }
 
-      throw new Error('Clipboard API not available');
+      throw new Error('Clipboard API not available')
     } catch (error) {
-      console.error('Clipboard writeText error:', error);
-      throw error;
+      console.error('Clipboard writeText error:', error)
+      throw error
     }
   }
 
@@ -75,14 +75,14 @@ export class Clipboard {
    * Read clipboard content (legacy method)
    */
   static async read(): Promise<string> {
-    return this.readText();
+    return Clipboard.readText()
   }
 
   /**
    * Write clipboard content (legacy method)
    */
   static async write(text: string): Promise<void> {
-    await this.writeText(text);
+    await Clipboard.writeText(text)
   }
 
   /**
@@ -92,13 +92,16 @@ export class Clipboard {
     try {
       // Check if Tauri clipboard is available
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        return true;
+        return true
       }
 
       // Check if browser clipboard is available
-      return !!(navigator.clipboard && (navigator.clipboard.readText || navigator.clipboard.writeText));
+      return !!(
+        navigator.clipboard &&
+        (navigator.clipboard.readText || navigator.clipboard.writeText)
+      )
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -107,10 +110,10 @@ export class Clipboard {
    */
   static async clear(): Promise<void> {
     try {
-      await this.writeText('');
+      await Clipboard.writeText('')
     } catch (error) {
-      console.error('Clipboard clear error:', error);
-      throw error;
+      console.error('Clipboard clear error:', error)
+      throw error
     }
   }
 
@@ -119,10 +122,10 @@ export class Clipboard {
    */
   static async hasText(): Promise<boolean> {
     try {
-      const text = await this.readText();
-      return text.length > 0;
+      const text = await Clipboard.readText()
+      return text.length > 0
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -131,33 +134,33 @@ export class Clipboard {
    */
   static async getLength(): Promise<number> {
     try {
-      const text = await this.readText();
-      return text.length;
+      const text = await Clipboard.readText()
+      return text.length
     } catch {
-      return 0;
+      return 0
     }
   }
 }
 
 // File System APIs
 export interface FileSystemOptions {
-  path: string;
-  content?: string;
-  encoding?: 'utf-8' | 'binary';
+  path: string
+  content?: string
+  encoding?: 'utf-8' | 'binary'
 }
 
 export interface FileMetadata {
-  path: string;
-  size: number;
-  modified: Date;
-  isDirectory: boolean;
-  isFile: boolean;
+  path: string
+  size: number
+  modified: Date
+  isDirectory: boolean
+  isFile: boolean
 }
 
 export interface FileSystemResult {
-  success: boolean;
-  data?: any;
-  error?: string;
+  success: boolean
+  data?: any
+  error?: string
 }
 
 /**
@@ -171,14 +174,14 @@ export class FileSystem {
   static async exists(path: string): Promise<boolean> {
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        return await exists(path);
+        return await exists(path)
       }
 
       // Browser fallback - limited functionality
-      return false;
+      return false
     } catch (error) {
-      console.error('FileSystem exists error:', error);
-      return false;
+      console.error('FileSystem exists error:', error)
+      return false
     }
   }
 
@@ -188,14 +191,14 @@ export class FileSystem {
   static async readTextFile(path: string): Promise<string> {
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        return await readTextFile(path);
+        return await readTextFile(path)
       }
 
       // Browser fallback - could implement IndexedDB storage
-      throw new Error('File system API not available in browser environment');
+      throw new Error('File system API not available in browser environment')
     } catch (error) {
-      console.error('FileSystem readTextFile error:', error);
-      throw error;
+      console.error('FileSystem readTextFile error:', error)
+      throw error
     }
   }
 
@@ -205,15 +208,15 @@ export class FileSystem {
   static async writeFile(path: string, content: string): Promise<void> {
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        await writeFile(path, content);
-        return;
+        await writeFile(path, content)
+        return
       }
 
       // Browser fallback - could implement IndexedDB storage
-      throw new Error('File system API not available in browser environment');
+      throw new Error('File system API not available in browser environment')
     } catch (error) {
-      console.error('FileSystem writeFile error:', error);
-      throw error;
+      console.error('FileSystem writeFile error:', error)
+      throw error
     }
   }
 
@@ -223,14 +226,14 @@ export class FileSystem {
   static async mkdir(path: string): Promise<void> {
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        await mkdir(path, { recursive: true });
-        return;
+        await mkdir(path, { recursive: true })
+        return
       }
 
-      throw new Error('File system API not available in browser environment');
+      throw new Error('File system API not available in browser environment')
     } catch (error) {
-      console.error('FileSystem mkdir error:', error);
-      throw error;
+      console.error('FileSystem mkdir error:', error)
+      throw error
     }
   }
 
@@ -240,14 +243,14 @@ export class FileSystem {
   static async remove(path: string): Promise<void> {
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        await remove(path);
-        return;
+        await remove(path)
+        return
       }
 
-      throw new Error('File system API not available in browser environment');
+      throw new Error('File system API not available in browser environment')
     } catch (error) {
-      console.error('FileSystem remove error:', error);
-      throw error;
+      console.error('FileSystem remove error:', error)
+      throw error
     }
   }
 
@@ -264,14 +267,14 @@ export class FileSystem {
           size: 0,
           modified: new Date(),
           isDirectory: path.endsWith('/'),
-          isFile: !path.endsWith('/')
-        };
+          isFile: !path.endsWith('/'),
+        }
       }
 
-      return null;
+      return null
     } catch (error) {
-      console.error('FileSystem getMetadata error:', error);
-      return null;
+      console.error('FileSystem getMetadata error:', error)
+      return null
     }
   }
 
@@ -280,25 +283,22 @@ export class FileSystem {
    */
   static async isAvailable(): Promise<boolean> {
     try {
-      return typeof window !== 'undefined' && !!(window.__TAURI__);
+      return typeof window !== 'undefined' && !!window.__TAURI__
     } catch {
-      return false;
+      return false
     }
   }
 }
 
+export type { Application } from '../api/applications.js'
 // Re-export application management from api/applications.ts
 export {
   getApplications,
   getFrontmostApplication,
   getRunningApplications,
   launchApplication,
-} from '../api/applications.js';
-
-export type {
-  Application
-} from '../api/applications.js';
+} from '../api/applications.js'
 
 // Legacy exports for compatibility
-export const FCClipboard = Clipboard;
-export const FCFileSystem = FileSystem;
+export const FCClipboard = Clipboard
+export const FCFileSystem = FileSystem

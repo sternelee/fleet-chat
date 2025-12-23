@@ -10,35 +10,37 @@ import '../../components/a2ui/a2ui-chat.js'
 @customElement('panel-chat')
 export class PanelChat extends LitElement {
   connectedCallback() {
-    super.connectedCallback();
-    
+    super.connectedCallback()
+
     // Listen for search AI chat events
-    window.addEventListener('search:ai-chat', this._handleSearchAIChat);
+    window.addEventListener('search:ai-chat', this._handleSearchAIChat)
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
-    window.removeEventListener('search:ai-chat', this._handleSearchAIChat);
+    super.disconnectedCallback()
+    window.removeEventListener('search:ai-chat', this._handleSearchAIChat)
   }
 
   private _handleSearchAIChat = (event: Event) => {
-    const customEvent = event as CustomEvent;
-    const { query } = customEvent.detail;
-    
-    console.log('Received AI chat request from search:', query);
-    
+    const customEvent = event as CustomEvent
+    const { query } = customEvent.detail
+
+    console.log('Received AI chat request from search:', query)
+
     // Trigger the chat with the query
-    this._sendQueryToChat(query);
-  };
+    this._sendQueryToChat(query)
+  }
 
   private _sendQueryToChat(query: string) {
     // Find the a2ui-chat component and trigger it
-    const chatComponent = this.shadowRoot?.querySelector('a2ui-chat');
+    const chatComponent = this.shadowRoot?.querySelector('a2ui-chat')
     if (chatComponent) {
       // Dispatch a custom event to the chat component
-      chatComponent.dispatchEvent(new CustomEvent('external-message', {
-        detail: { message: query }
-      }));
+      chatComponent.dispatchEvent(
+        new CustomEvent('external-message', {
+          detail: { message: query },
+        }),
+      )
     }
   }
 

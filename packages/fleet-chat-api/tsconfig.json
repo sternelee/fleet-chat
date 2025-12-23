@@ -8,13 +8,6 @@
         "composite": true,
         "incremental": true
     },
-    "include": [
-        "**/*.ts"
-    ],
-    "exclude": [
-        "dist",
-        "node_modules",
-        "**/*.test.ts",
-        "**/*.spec.ts"
-    ]
+    "include": ["**/*.ts"],
+    "exclude": ["dist", "node_modules", "**/*.test.ts", "**/*.spec.ts"]
 }

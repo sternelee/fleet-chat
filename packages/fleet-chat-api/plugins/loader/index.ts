@@ -2,4 +2,4 @@
  * Plugin Loader Module
  */
 
-export { PluginLoader } from './plugin-loader.js';
+export { PluginLoader } from './plugin-loader.js'

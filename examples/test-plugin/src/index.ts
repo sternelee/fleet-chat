@@ -2,8 +2,8 @@
  * test-plugin Plugin for Fleet Chat
  */
 
+import { Action, ActionPanel, type List, showToast } from '@fleet-chat/raycast-api';
 import React from 'react';
-import { List, ActionPanel, Action, showToast } from '@fleet-chat/raycast-api';
 
 export default function Command() {
   return (

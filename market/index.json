@@ -1,38 +1,30 @@
 {
-  "plugins": [
-    {
-      "name": "simple-demo",
-      "version": "1.0.0",
-      "title": "simple-demo",
-      "description": "A Fleet Chat plugin",
-      "author": "Unknown",
-      "category": "Demo",
-      "tags": [
-        "example",
-        "simple"
-      ],
-      "icon": "🔌",
-      "screenshots": [],
-      "homepage": "",
-      "repository": "",
-      "license": "MIT",
-      "size": 985,
-      "checksum": "6e68547f685b35482ea7294d048ab250dc88bfcf17b6b7a12f0b81263a25533d",
-      "createdAt": "2025-12-22T07:26:47.739Z",
-      "updatedAt": "2025-12-22T07:26:47.739Z",
-      "downloads": 0,
-      "rating": 0,
-      "reviewCount": 0
-    }
-  ],
-  "categories": [
-    "Demo"
-  ],
-  "tags": [
-    "example",
-    "simple"
-  ],
-  "lastUpdated": "2025-12-22T07:26:47.739Z",
-  "totalPlugins": 1,
-  "totalDownloads": 0
+    "plugins": [
+        {
+            "name": "simple-demo",
+            "version": "1.0.0",
+            "title": "simple-demo",
+            "description": "A Fleet Chat plugin",
+            "author": "Unknown",
+            "category": "Demo",
+            "tags": ["example", "simple"],
+            "icon": "🔌",
+            "screenshots": [],
+            "homepage": "",
+            "repository": "",
+            "license": "MIT",
+            "size": 985,
+            "checksum": "6e68547f685b35482ea7294d048ab250dc88bfcf17b6b7a12f0b81263a25533d",
+            "createdAt": "2025-12-22T07:26:47.739Z",
+            "updatedAt": "2025-12-22T07:26:47.739Z",
+            "downloads": 0,
+            "rating": 0,
+            "reviewCount": 0
+        }
+    ],
+    "categories": ["Demo"],
+    "tags": ["example", "simple"],
+    "lastUpdated": "2025-12-22T07:26:47.739Z",
+    "totalPlugins": 1,
+    "totalDownloads": 0
 }

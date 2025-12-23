@@ -5,18 +5,18 @@
  * Replace the placeholders with your actual plugin code.
  */
 
-import React, { useState, useEffect } from 'react';
 import {
-  List,
-  ActionPanel,
   Action,
-  Detail,
-  Grid,
-  showToast,
+  ActionPanel,
+  Cache, 
   Clipboard,
+  type Detail,
+  Grid,
+  List,
   LocalStorage,
-  Cache
+  showToast
 } from '@fleet-chat/raycast-api';
+import React, { useEffect, useState } from 'react';
 
 // Your plugin's main component
 export default function Command() {

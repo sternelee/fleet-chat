@@ -3,21 +3,11 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            "@/*": [
-                "src/*"
-            ],
-            "@fleet-chat/api": [
-                "../../packages/fleet-chat-api"
-            ],
-            "@fleet-chat/raycast-api": [
-                "../../packages/fleet-chat-api/raycast-api"
-            ],
-            "@fleet-chat/extension-manager": [
-                "../../packages/fleet-chat-extension-manager"
-            ]
+            "@/*": ["src/*"],
+            "@fleet-chat/api": ["../../packages/fleet-chat-api"],
+            "@fleet-chat/raycast-api": ["../../packages/fleet-chat-api/raycast-api"],
+            "@fleet-chat/extension-manager": ["../../packages/fleet-chat-extension-manager"]
         }
     },
-    "include": [
-        "**/*"
-    ]
+    "include": ["**/*"]
 }

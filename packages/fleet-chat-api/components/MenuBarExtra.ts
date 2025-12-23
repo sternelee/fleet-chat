@@ -4,30 +4,30 @@
  * Raycast-compatible MenuBarExtra component built with Lit
  */
 
-import { LitElement, html, css, TemplateResult } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { css, html, LitElement, type TemplateResult } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
 
 export interface MenuBarExtraItemProps {
-  title: string;
-  icon?: string | { light: string; dark: string };
-  tooltip?: string;
-  shortcut?: string;
-  onAction?: () => void;
+  title: string
+  icon?: string | { light: string; dark: string }
+  tooltip?: string
+  shortcut?: string
+  onAction?: () => void
 }
 
-@customElement("fleet-menu-bar-extra")
+@customElement('fleet-menu-bar-extra')
 export class FCMenuBarExtra extends LitElement {
   @property({ attribute: false })
-  private menuChildren: TemplateResult[] = [];
+  private menuChildren: TemplateResult[] = []
 
   // Create a setter/getter for children
   set children(value: TemplateResult[]) {
-    this.menuChildren = value;
-    this.requestUpdate();
+    this.menuChildren = value
+    this.requestUpdate()
   }
 
   get children(): TemplateResult[] {
-    return this.menuChildren;
+    return this.menuChildren
   }
   static styles = css`
     :host {
@@ -156,81 +156,84 @@ export class FCMenuBarExtra extends LitElement {
     .tooltip.visible {
       display: block;
     }
-  `;
+  `
 
   @property({ type: String })
-  icon?: string | { light: string; dark: string };
+  icon?: string | { light: string; dark: string }
 
   @property({ type: String })
-  tooltip?: string;
+  tooltip?: string
 
-
-  private isDropdownVisible = false;
+  private isDropdownVisible = false
 
   connectedCallback() {
-    super.connectedCallback();
-    document.addEventListener("click", this.handleDocumentClick.bind(this));
+    super.connectedCallback()
+    document.addEventListener('click', this.handleDocumentClick.bind(this))
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener("click", this.handleDocumentClick.bind(this));
+    super.disconnectedCallback()
+    document.removeEventListener('click', this.handleDocumentClick.bind(this))
   }
 
   private handleDocumentClick(event: Event) {
-    const target = event.target as Node;
+    const target = event.target as Node
     if (!this.contains(target)) {
-      this.isDropdownVisible = false;
-      this.requestUpdate();
+      this.isDropdownVisible = false
+      this.requestUpdate()
     }
   }
 
   private toggleDropdown() {
-    this.isDropdownVisible = !this.isDropdownVisible;
-    this.requestUpdate();
+    this.isDropdownVisible = !this.isDropdownVisible
+    this.requestUpdate()
   }
 
   private handleItemClick(item: MenuBarExtraItemProps) {
     if (item.onAction) {
-      item.onAction();
+      item.onAction()
     }
-    this.isDropdownVisible = false;
-    this.requestUpdate();
+    this.isDropdownVisible = false
+    this.requestUpdate()
   }
 
   render() {
-    const iconSrc = typeof this.icon === "string" ? this.icon : this.icon?.light || this.icon?.dark;
+    const iconSrc = typeof this.icon === 'string' ? this.icon : this.icon?.light || this.icon?.dark
 
     return html`
       <div class="menu-bar-extra" @click=${this.toggleDropdown}>
-        ${iconSrc ? html`<img class="menu-bar-icon" src="${iconSrc}" alt="Menu Bar Icon" />` : ""}
-        ${this.menuChildren && this.menuChildren.length > 0
-        ? html`
-              <div class="menu-dropdown ${this.isDropdownVisible ? "visible" : ""}">
+        ${iconSrc ? html`<img class="menu-bar-icon" src="${iconSrc}" alt="Menu Bar Icon" />` : ''}
+        ${
+          this.menuChildren && this.menuChildren.length > 0
+            ? html`
+              <div class="menu-dropdown ${this.isDropdownVisible ? 'visible' : ''}">
                 ${this.menuChildren.map((child) => {
-          // Extract props from the child template result if it's a MenuBarExtraItem
-          if (child && child.values && child.values.length > 0) {
-            // This is a simplified approach - in production you'd want more sophisticated
-            // extraction of component props from the template result
-            return child;
-          }
-          return child;
-        })}
+                  // Extract props from the child template result if it's a MenuBarExtraItem
+                  if (child && child.values && child.values.length > 0) {
+                    // This is a simplified approach - in production you'd want more sophisticated
+                    // extraction of component props from the template result
+                    return child
+                  }
+                  return child
+                })}
               </div>
             `
-        : ""}
-        ${this.tooltip
-        ? html`
-              <div class="tooltip ${this.isDropdownVisible ? "" : "visible"}">${this.tooltip}</div>
+            : ''
+        }
+        ${
+          this.tooltip
+            ? html`
+              <div class="tooltip ${this.isDropdownVisible ? '' : 'visible'}">${this.tooltip}</div>
             `
-        : ""}
+            : ''
+        }
       </div>
-    `;
+    `
   }
 }
 
 // MenuBarExtra Item Component
-@customElement("fleet-menu-bar-extra-item")
+@customElement('fleet-menu-bar-extra-item')
 export class FCMenuBarExtraItem extends LitElement {
   static styles = css`
     :host {
@@ -295,33 +298,33 @@ export class FCMenuBarExtraItem extends LitElement {
       margin: 4px 0;
       cursor: default;
     }
-  `;
+  `
 
   @property({ type: String })
-  title: string = '';
+  title: string = ''
 
   @property({ type: String })
-  icon?: string | { light: string; dark: string };
+  icon?: string | { light: string; dark: string }
 
   @property({ type: String })
-  shortcut?: string;
+  shortcut?: string
 
   @property({ type: Boolean })
-  separator = false;
+  separator = false
 
   @property({ type: Function })
-  onAction?: () => void;
+  onAction?: () => void
 
   private handleClick() {
-    if (this.separator) return;
+    if (this.separator) return
 
     if (this.onAction) {
-      this.onAction();
+      this.onAction()
     }
 
     // Dispatch a custom event for parent to handle
     this.dispatchEvent(
-      new CustomEvent("menu-bar-item-click", {
+      new CustomEvent('menu-bar-item-click', {
         detail: {
           title: this.title,
           icon: this.icon,
@@ -330,47 +333,47 @@ export class FCMenuBarExtraItem extends LitElement {
         },
         bubbles: true,
       }),
-    );
+    )
   }
 
   render() {
     if (this.separator) {
-      return html`<div class="separator"></div>`;
+      return html`<div class="separator"></div>`
     }
 
-    const iconSrc = typeof this.icon === "string" ? this.icon : this.icon?.light || this.icon?.dark;
+    const iconSrc = typeof this.icon === 'string' ? this.icon : this.icon?.light || this.icon?.dark
 
     return html`
       <button class="menu-item" @click=${this.handleClick}>
-        ${iconSrc ? html`<img class="menu-item-icon" src="${iconSrc}" alt="${this.title}" />` : ""}
-        ${this.title ? html`<span class="menu-item-text">${this.title}</span>` : ""}
-        ${this.shortcut ? html`<span class="menu-item-shortcut">${this.shortcut}</span>` : ""}
+        ${iconSrc ? html`<img class="menu-item-icon" src="${iconSrc}" alt="${this.title}" />` : ''}
+        ${this.title ? html`<span class="menu-item-text">${this.title}</span>` : ''}
+        ${this.shortcut ? html`<span class="menu-item-shortcut">${this.shortcut}</span>` : ''}
         <slot></slot>
       </button>
-    `;
+    `
   }
 }
 
 // Type definitions for external use
 export interface MenuBarExtraProps {
-  icon?: string | { light: string; dark: string };
-  tooltip?: string;
-  children?: TemplateResult[];
+  icon?: string | { light: string; dark: string }
+  tooltip?: string
+  children?: TemplateResult[]
 }
 
 export interface MenuBarExtraItemProps {
-  title: string;
-  icon?: string | { light: string; dark: string };
-  shortcut?: string;
-  onAction?: () => void;
-  separator?: boolean;
+  title: string
+  icon?: string | { light: string; dark: string }
+  shortcut?: string
+  onAction?: () => void
+  separator?: boolean
 }
 
 // Raycast-compatible exports
-export const MenuBarExtra = FCMenuBarExtra;
-export const MenuBarExtraItem = FCMenuBarExtraItem;
-export const MenuBarExtraSeparator = FCMenuBarExtraItem;
+export const MenuBarExtra = FCMenuBarExtra
+export const MenuBarExtraItem = FCMenuBarExtraItem
+export const MenuBarExtraSeparator = FCMenuBarExtraItem
 
 // Add displayName for debugging
-(FCMenuBarExtra as any).displayName = "MenuBarExtra";
-(FCMenuBarExtraItem as any).displayName = "MenuBarExtraItem";
+;(FCMenuBarExtra as any).displayName = 'MenuBarExtra'
+;(FCMenuBarExtraItem as any).displayName = 'MenuBarExtraItem'

@@ -6,42 +6,41 @@
  * Simplified command-line interface for the new plugin system
  */
 
-import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync, readdirSync } from 'fs';
-import { join, basename, dirname } from 'path';
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import path from 'path';
+import { spawn } from 'child_process'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import path, { basename, dirname, join } from 'path'
+import { fileURLToPath } from 'url'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 interface PluginConfig {
-  name: string;
-  version: string;
-  description: string;
-  author: string;
+  name: string
+  version: string
+  description: string
+  author: string
   commands: Array<{
-    name: string;
-    title: string;
-    description?: string;
-    mode?: 'no-view' | 'view';
-  }>;
-  icon?: string;
+    name: string
+    title: string
+    description?: string
+    mode?: 'no-view' | 'view'
+  }>
+  icon?: string
 }
 
 function createPlugin(name: string, options: { force?: boolean } = {}) {
-  const pluginDir = join(process.cwd(), name);
+  const pluginDir = join(process.cwd(), name)
 
   if (existsSync(pluginDir) && !options.force) {
-    console.error(`❌ Plugin directory ${pluginDir} already exists. Use --force to overwrite.`);
-    process.exit(1);
+    console.error(`❌ Plugin directory ${pluginDir} already exists. Use --force to overwrite.`)
+    process.exit(1)
   }
 
-  console.log(`🚀 Creating Fleet Chat plugin: ${name}`);
+  console.log(`🚀 Creating Fleet Chat plugin: ${name}`)
 
   // Create plugin directory structure
-  mkdirSync(pluginDir, { recursive: true });
-  mkdirSync(join(pluginDir, 'src'), { recursive: true });
+  mkdirSync(pluginDir, { recursive: true })
+  mkdirSync(join(pluginDir, 'src'), { recursive: true })
 
   // Generate package.json
   const packageJson: PluginConfig = {
@@ -52,18 +51,18 @@ function createPlugin(name: string, options: { force?: boolean } = {}) {
     commands: [
       {
         name: 'default',
-        title: name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        title: name
+          .split('-')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' '),
         description: `${name} plugin functionality`,
-        mode: 'view'
-      }
+        mode: 'view',
+      },
     ],
-    icon: '🚀'
-  };
+    icon: '🚀',
+  }
 
-  writeFileSync(
-    join(pluginDir, 'package.json'),
-    JSON.stringify(packageJson, null, 2)
-  );
+  writeFileSync(join(pluginDir, 'package.json'), JSON.stringify(packageJson, null, 2))
 
   // Generate plugin source code
   const pluginCode = `/**
@@ -96,9 +95,9 @@ export default function Command() {
     </List>
   );
 }
-`;
+`
 
-  writeFileSync(join(pluginDir, 'src/index.ts'), pluginCode);
+  writeFileSync(join(pluginDir, 'src/index.ts'), pluginCode)
 
   // Generate README
   const readme = `# ${name} Plugin
@@ -127,80 +126,80 @@ node ../../tools/simple-packer.ts .
 - [Fleet Chat Plugin Guide](../../docs/PLUGIN_SYSTEM_GUIDE.md)
 - [API Reference](../../packages/fleet-chat-api/)
 - [Example Plugins](../examples/)
-`;
+`
 
-  writeFileSync(join(pluginDir, 'README.md'), readme);
+  writeFileSync(join(pluginDir, 'README.md'), readme)
 
-  console.log(`✅ Plugin created successfully: ${pluginDir}`);
-  console.log(`📝 Next steps:`);
-  console.log(`   1. cd ${name}`);
-  console.log(`   2. Edit src/index.ts to customize your plugin`);
-  console.log(`   3. Run: node ../../tools/simple-packer.ts .`);
-  console.log(`   4. Load the .fcp file in Fleet Chat`);
+  console.log(`✅ Plugin created successfully: ${pluginDir}`)
+  console.log(`📝 Next steps:`)
+  console.log(`   1. cd ${name}`)
+  console.log(`   2. Edit src/index.ts to customize your plugin`)
+  console.log(`   3. Run: node ../../tools/simple-packer.ts .`)
+  console.log(`   4. Load the .fcp file in Fleet Chat`)
 }
 
 function packPlugin(pluginPath: string) {
-  const packerPath = join(__dirname, 'simple-packer.ts');
+  const packerPath = join(__dirname, 'simple-packer.ts')
 
-  console.log(`📦 Packing plugin: ${pluginPath}`);
+  console.log(`📦 Packing plugin: ${pluginPath}`)
 
   const child = spawn('node', [packerPath, pluginPath], {
-    stdio: 'inherit'
-  });
+    stdio: 'inherit',
+  })
 
   child.on('exit', (code) => {
     if (code === 0) {
-      console.log(`✅ Plugin packed successfully!`);
+      console.log(`✅ Plugin packed successfully!`)
     } else {
-      console.error(`❌ Failed to pack plugin`);
-      process.exit(code || 1);
+      console.error(`❌ Failed to pack plugin`)
+      process.exit(code || 1)
     }
-  });
+  })
 }
 
 function listPlugins() {
-  const examplesDir = join(__dirname, '../examples');
+  const examplesDir = join(__dirname, '../examples')
 
   if (!existsSync(examplesDir)) {
-    console.log('No examples directory found.');
-    return;
+    console.log('No examples directory found.')
+    return
   }
 
   const plugins = readdirSync(examplesDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name)
 
-  console.log('📋 Available Fleet Chat plugins:');
+  console.log('📋 Available Fleet Chat plugins:')
 
-  plugins.forEach(plugin => {
-    const pluginDir = join(examplesDir, plugin);
-    const packageJsonPath = join(pluginDir, 'package.json');
+  plugins.forEach((plugin) => {
+    const pluginDir = join(examplesDir, plugin)
+    const packageJsonPath = join(pluginDir, 'package.json')
 
     if (existsSync(packageJsonPath)) {
       try {
-        const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-        console.log(`  • ${plugin} - ${packageJson.description} (${packageJson.version})`);
+        const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+        console.log(`  • ${plugin} - ${packageJson.description} (${packageJson.version})`)
 
         // Check for .fcp file (both in examples directory and plugin directory)
-        const fcpFile1 = join(examplesDir, `${plugin}.fcp`);
-        const fcpFile2 = join(pluginDir, `${plugin}.fcp`);
+        const fcpFile1 = join(examplesDir, `${plugin}.fcp`)
+        const fcpFile2 = join(pluginDir, `${plugin}.fcp`)
 
         if (existsSync(fcpFile1)) {
-          const stats = statSync(fcpFile1);
-          console.log(`    ✅ Packed (${(stats.size / 1024).toFixed(1)} KB)`);
+          const stats = statSync(fcpFile1)
+          console.log(`    ✅ Packed (${(stats.size / 1024).toFixed(1)} KB)`)
         } else if (existsSync(fcpFile2)) {
-          const stats = statSync(fcpFile2);
-          console.log(`    ✅ Packed (${(stats.size / 1024).toFixed(1)} KB)`);
+          const stats = statSync(fcpFile2)
+          console.log(`    ✅ Packed (${(stats.size / 1024).toFixed(1)} KB)`)
         } else {
-          console.log(`    ❓ Not packed`);
+          console.log(`    ❓ Not packed`)
         }
       } catch (error) {
-        console.log(`  • ${plugin} - Invalid package.json`);
+        console.log(`  • ${plugin} - Invalid package.json`)
       }
     } else {
-      console.log(`  • ${plugin} - No package.json`);
+      console.log(`  • ${plugin} - No package.json`)
     }
-  });
+  })
 }
 
 function showHelp() {
@@ -223,57 +222,57 @@ Examples:
 
 Options:
   --force               Overwrite existing plugin directory (create command only)
-`);
+`)
 }
 
 function main() {
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(2)
 
   if (args.length === 0) {
-    showHelp();
-    return;
+    showHelp()
+    return
   }
 
-  const command = args[0];
+  const command = args[0]
 
   switch (command) {
     case 'create':
       if (args.length < 2) {
-        console.error('❌ Plugin name is required.');
-        console.log('Usage: simple-cli create <plugin-name>');
-        process.exit(1);
+        console.error('❌ Plugin name is required.')
+        console.log('Usage: simple-cli create <plugin-name>')
+        process.exit(1)
       }
-      createPlugin(args[1], { force: args.includes('--force') });
-      break;
+      createPlugin(args[1], { force: args.includes('--force') })
+      break
 
     case 'pack':
       if (args.length < 2) {
-        console.error('❌ Plugin path is required.');
-        console.log('Usage: simple-cli pack <plugin-path>');
-        process.exit(1);
+        console.error('❌ Plugin path is required.')
+        console.log('Usage: simple-cli pack <plugin-path>')
+        process.exit(1)
       }
-      packPlugin(args[1]);
-      break;
+      packPlugin(args[1])
+      break
 
     case 'list':
-      listPlugins();
-      break;
+      listPlugins()
+      break
 
     case 'help':
     case '--help':
     case '-h':
-      showHelp();
-      break;
+      showHelp()
+      break
 
     default:
-      console.error(`❌ Unknown command: ${command}`);
-      showHelp();
-      process.exit(1);
+      console.error(`❌ Unknown command: ${command}`)
+      showHelp()
+      process.exit(1)
   }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+  main()
 }
 
-export { createPlugin, packPlugin, listPlugins };
+export { createPlugin, packPlugin, listPlugins }

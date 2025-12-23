@@ -6,139 +6,135 @@
  */
 
 // Re-export everything from @raycast/api for full compatibility
-export * from '@raycast/api';
+export * from '@raycast/api'
 
 // Re-export our Tauri-specific implementations
-export { getApplications as tauriGetApplications } from './api/applications.js';
-export { showToast, showHUD } from './api/ui.js';
-export type { Environment } from './api/environment.js';
-
+export { getApplications as tauriGetApplications } from './api/applications.js'
+export type { Environment } from './api/environment.js'
+export { showHUD, showToast } from './api/ui.js'
+export type {
+  ActionPanelItemProps,
+  ActionProps,
+  ListAccessory,
+  ListAction,
+  ListItemProps,
+} from './components/index.js'
+// UI Components - Enhanced Fleet Chat components
+export {
+  Action,
+  ActionPanel,
+  ActionPanelItem,
+  ActionPanelSeparator,
+  Detail,
+  FCAction,
+  FCActionPanel,
+  FCActionPanelItem,
+  FCActionSeparator,
+  FCList,
+  Grid,
+  List,
+} from './components/index.js'
+// Examples and documentation
+export {
+  createExamplePlugin,
+  exampleActionCommand,
+  exampleDetailCommand,
+  exampleHelloWorldCommand,
+  helloWorldManifest,
+  pluginDevelopmentGuide,
+} from './examples/index.js'
 // React Hooks compatibility
-export * from './hooks/index.js';
-
+export * from './hooks/index.js'
+// Plugin System - Core functionality
+export { PluginManager } from './plugins/core/manager.js'
+export type {
+  Application,
+  NoViewPlugin,
+  Plugin,
+  PluginAPI,
+  PluginCommand,
+  PluginContext,
+  PluginLoadResult,
+  PluginManagerConfig,
+  PluginManifest,
+  PluginState,
+  PluginWorker,
+  SecurityPolicy,
+  ViewPlugin,
+  WorkerMessage,
+  WorkerResponse,
+} from './plugins/core/types.js'
+// Re-export types from raycast-api
+export type {
+  FormFieldProps,
+  FormProps,
+  MenuBarExtraItemProps,
+  MenuBarExtraProps,
+} from './raycast-api/index.js'
 // Re-export Raycast API compatibility layer components
 export {
-  // React-wrapped components
-  ReactList,
-  ReactAction,
-  ReactActionPanel,
-  ReactDetail,
-  ReactGrid,
-  ReactMenuBarExtra,
-  ReactForm,
-
-  // Enhanced utilities
-  RaycastAPI,
-
+  FCClipboard,
+  FCFileSystem,
+  Form,
   // System APIs from raycast-api
   getFrontmostApplication,
   getRunningApplications,
-  openApplication,
-  FCClipboard,
-  FCFileSystem,
-
   // MenuBarExtra and Form
   MenuBarExtra,
-  Form
-} from './raycast-api/index.js';
-
-// Re-export types from raycast-api
+  openApplication,
+  // Enhanced utilities
+  RaycastAPI,
+  ReactAction,
+  ReactActionPanel,
+  ReactDetail,
+  ReactForm,
+  ReactGrid,
+  // React-wrapped components
+  ReactList,
+  ReactMenuBarExtra,
+} from './raycast-api/index.js'
 export type {
-  MenuBarExtraProps,
-  MenuBarExtraItemProps,
-  FormProps,
-  FormFieldProps
-} from './raycast-api/index.js';
-
-// Plugin System - Core functionality
-export { PluginManager } from './plugins/core/manager.js';
-export type {
-  PluginManifest,
-  PluginCommand,
-  PluginContext,
-  PluginAPI,
-  Plugin,
-  ViewPlugin,
-  NoViewPlugin,
-  PluginState,
-  PluginManagerConfig,
-  SecurityPolicy,
-  Application,
-  PluginLoadResult,
-  PluginWorker,
-  WorkerMessage,
-  WorkerResponse
-} from './plugins/core/types.js';
-
-// UI Components - Enhanced Fleet Chat components
-export {
-  FCList, FCAction, FCActionPanel, FCActionSeparator, FCActionPanelItem,
-  List, Action, ActionPanel, ActionPanelItem, ActionPanelSeparator,
-  Detail, Grid
-} from './components/index.js';
-
-export type {
-  ListItemProps,
-  ListAccessory,
-  ListAction,
-  ActionProps,
-  ActionPanelItemProps
-} from './components/index.js';
-
-// Storage System - Unified storage with Tauri and browser fallbacks
-export {
-  BrowserLocalStorage,
-  BrowserCache
-} from './storage/index.js';
-
-// System APIs - Clipboard, filesystem, and system integration
-export {
-  Clipboard,
-  FileSystem,
-  FCClipboard,
-  FCFileSystem
-} from './system/index.js';
+  ComponentInstance,
+  ReactElement,
+  ReactNode,
+} from './renderer/index.js'
 
 // React-to-Lit Renderer - JSX compilation for plugins
 export {
-  ReactToLitCompiler,
   createElement,
-  h,
   Fragment,
-  reactToLitCompiler
-} from './renderer/index.js';
-
-export type {
-  ReactElement,
-  ReactNode,
-  ComponentInstance
-} from './renderer/index.js';
-
-// Examples and documentation
+  h,
+  ReactToLitCompiler,
+  reactToLitCompiler,
+} from './renderer/index.js'
+// Storage System - Unified storage with Tauri and browser fallbacks
 export {
-  helloWorldManifest,
-  exampleHelloWorldCommand,
-  exampleDetailCommand,
-  exampleActionCommand,
-  pluginDevelopmentGuide,
-  createExamplePlugin
-} from './examples/index.js';
+  BrowserCache,
+  BrowserLocalStorage,
+} from './storage/index.js'
+// System APIs - Clipboard, filesystem, and system integration
+export {
+  Clipboard,
+  FCClipboard,
+  FCFileSystem,
+  FileSystem,
+} from './system/index.js'
 
 // Export all Fleet Chat specific types
 export type {
-  LaunchContext,
-  ToastOptions,
   ActionPanelProps,
-  ListProps,
-  GridProps,
-  DetailProps,
-  ImageLike,
-  IconLike,
-  ColorLike,
-  KeyboardShortcut,
-  NavigationOptions,
-  CacheOptions,
+  AIOptions,
   AlertOptions,
+  CacheOptions,
+  ColorLike,
+  DetailProps,
+  GridProps,
+  IconLike,
+  ImageLike,
+  KeyboardShortcut,
+  LaunchContext,
+  ListProps,
+  NavigationOptions,
   OAuthOptions,
-  AIOptions
-} from './types/index.js';
+  ToastOptions,
+} from './types/index.js'

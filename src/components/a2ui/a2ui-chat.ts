@@ -245,28 +245,28 @@ export class A2UIChat extends SignalWatcher(LitElement) {
   #a2uiClient = new A2UIClient()
 
   connectedCallback() {
-    super.connectedCallback();
-    
+    super.connectedCallback()
+
     // Listen for external message events from the panel-chat
-    this.addEventListener('external-message', this._handleExternalMessage);
+    this.addEventListener('external-message', this._handleExternalMessage)
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
-    this.removeEventListener('external-message', this._handleExternalMessage);
+    super.disconnectedCallback()
+    this.removeEventListener('external-message', this._handleExternalMessage)
   }
 
   private _handleExternalMessage = (event: Event) => {
-    const customEvent = event as CustomEvent;
-    const { message } = customEvent.detail;
-    
+    const customEvent = event as CustomEvent
+    const { message } = customEvent.detail
+
     if (message) {
       // Set the input text and submit
-      this.inputText = message;
+      this.inputText = message
       // Wait a tick for the state to update, then submit
-      setTimeout(() => this.#handleSubmit(), 0);
+      setTimeout(() => this.#handleSubmit(), 0)
     }
-  };
+  }
 
   render() {
     return html`

@@ -6,6 +6,7 @@
  * Based on Vicinae's worker architecture
  */
 import { createElement } from "../../packages/fleet-chat-api/renderer/index.js";
+
 // Placeholder implementations until these are moved to the API package
 const componentSerializer = {
     serialize: (element) => ({
