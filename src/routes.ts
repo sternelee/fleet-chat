@@ -2,6 +2,7 @@ import { Routes } from "@lit-labs/router";
 import { css, html, LitElement } from "lit";
 import { customElement } from "lit/decorators.js";
 import "./components/global-drop-handler.js";
+import "./views/plugin-generator/plugin-generator.component.js";
 
 // Polyfills URLPattern to handle better borwsers compatibility.
 // @see: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern#browser_compatibility
@@ -26,6 +27,14 @@ export class MyApp extends LitElement {
         render: () => html`
           <launcher-layout>
             <a2ui-chat></a2ui-chat>
+          </launcher-layout>
+        `,
+      },
+      {
+        path: "/plugin-generator",
+        render: () => html`
+          <launcher-layout>
+            <plugin-generator-view></plugin-generator-view>
           </launcher-layout>
         `,
       },
