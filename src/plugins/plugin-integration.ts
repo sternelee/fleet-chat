@@ -4,8 +4,7 @@
  */
 
 import { PluginManager } from "../../packages/fleet-chat-api/plugins/core/manager.js";
-import type { PluginManifest, PluginAPI } from "../../packages/fleet-chat-api/plugins/core/types.js";
-import { uiStore } from "../stores/ui.store";
+import type { PluginAPI } from "../../packages/fleet-chat-api/plugins/core/types.js";
 
 /**
  * Plugin Integration Service
@@ -118,15 +117,15 @@ export class PluginIntegration {
         // Integrate with Fleet Chat navigation
         console.log("Navigation.pop called by plugin");
       },
-      push: async (view: HTMLElement, options?: any) => {
+      push: async (_view: HTMLElement, _options?: any) => {
         // Integrate with Fleet Chat navigation
         console.log("Navigation.push called by plugin");
       },
-      replace: async (view: HTMLElement, options?: any) => {
+      replace: async (_view: HTMLElement, _options?: any) => {
         // Integrate with Fleet Chat navigation
         console.log("Navigation.replace called by plugin");
       },
-      popToRoot: async (type?: "immediate" | "animated") => {
+      popToRoot: async (_type?: "immediate" | "animated") => {
         // Integrate with Fleet Chat navigation
         console.log("Navigation.popToRoot called by plugin");
       },
@@ -161,7 +160,7 @@ export class PluginIntegration {
       // Environment - use Fleet Chat environment
       environment: {
         supports: true,
-        theme: uiStore.get("theme") || "dark",
+        theme: "dark",
         launchContext: null,
       } as any,
 

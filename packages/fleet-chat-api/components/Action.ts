@@ -6,14 +6,26 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
+export interface IconProps {
+  source: string;
+  tintColor?: string;
+  tooltip?: string;
+}
+
 export interface ActionProps {
   title: string;
-  icon?: string;
-  shortcut?: string;
+  icon?: string | IconProps;
+  shortcut?: string | KeyboardShortcut;
   onAction?: () => void | Promise<void>;
   disabled?: boolean;
   destructive?: boolean;
   tooltip?: string;
+  style?: "default" | "destructive" | "secondary";
+}
+
+export interface KeyboardShortcut {
+  key: string;
+  modifiers?: ("cmd" | "ctrl" | "opt" | "alt" | "shift")[];
 }
 
 @customElement("fc-action")
@@ -33,10 +45,15 @@ export class FCAction extends LitElement {
       user-select: none;
       min-height: 36px;
       gap: 8px;
+      position: relative;
     }
 
     .action-item:hover:not(.disabled) {
       background: var(--color-item-hover);
+    }
+
+    .action-item:active:not(.disabled) {
+      transform: scale(0.98);
     }
 
     .action-item.active {
@@ -50,11 +67,15 @@ export class FCAction extends LitElement {
     }
 
     .action-item.destructive {
-      color: var(--color-error);
+      color: var(--color-error, #ff3b30);
     }
 
     .action-item.destructive:hover:not(.disabled) {
-      background: var(--color-error-alpha);
+      background: var(--color-error-alpha, rgba(255, 59, 48, 0.1));
+    }
+
+    .action-item.secondary {
+      color: var(--color-text-secondary);
     }
 
     .action-icon {
@@ -67,6 +88,13 @@ export class FCAction extends LitElement {
       font-size: 14px;
     }
 
+    .action-icon img,
+    .action-icon svg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
     .action-text {
       flex: 1;
       font-size: var(--font-size-sm);
@@ -77,19 +105,35 @@ export class FCAction extends LitElement {
     }
 
     .action-shortcut {
+      display: flex;
+      align-items: center;
+      gap: 2px;
       font-size: var(--font-size-xs);
       color: var(--color-text-secondary);
       font-family: var(--font-family-mono);
       background: var(--color-badge-background);
-      padding: 2px 6px;
+      padding: 2px 4px;
       border-radius: 4px;
       flex-shrink: 0;
     }
 
-    .action-shortcut-key {
-      display: inline-block;
-      min-width: 12px;
-      text-align: center;
+    .shortcut-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      background: var(--color-key-background);
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .shortcut-plus {
+      margin: 0 2px;
+      opacity: 0.5;
     }
 
     /* Separator */
@@ -102,7 +146,7 @@ export class FCAction extends LitElement {
     /* Loading state */
     .action-loading {
       position: relative;
-      color: transparent;
+      color: transparent !important;
     }
 
     .action-loading::after {
@@ -131,17 +175,18 @@ export class FCAction extends LitElement {
 
     /* Tooltip */
     .action-tooltip {
-      position: absolute;
-      background: var(--color-tooltip-background);
-      color: var(--color-tooltip-text);
+      position: fixed;
+      background: var(--color-tooltip-background, #1c1c1e);
+      color: var(--color-tooltip-text, #ffffff);
       padding: 6px 8px;
       border-radius: 4px;
       font-size: var(--font-size-xs);
       white-space: nowrap;
-      z-index: 1000;
+      z-index: 10000;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .action-tooltip.visible {
@@ -153,10 +198,10 @@ export class FCAction extends LitElement {
   title: string = "";
 
   @property({ type: String })
-  icon?: string;
+  icon?: string | IconProps;
 
   @property({ type: String })
-  shortcut?: string;
+  shortcut?: string | KeyboardShortcut;
 
   @property({ type: Function })
   onAction?: () => void | Promise<void>;
@@ -170,19 +215,28 @@ export class FCAction extends LitElement {
   @property({ type: String })
   tooltip?: string;
 
+  @property({ type: String })
+  style: "default" | "destructive" | "secondary" = "default";
+
   @property({ type: Boolean })
   isLoading: boolean = false;
 
-  @property({ type: Boolean })
-  showTooltip: boolean = false;
+  @state()
+  private tooltipVisible = false;
 
   @state()
   private tooltipPosition: { top: number; left: number } = { top: 0, left: 0 };
 
   private tooltipElement: HTMLElement | null = null;
 
-  protected firstUpdated() {
+  connectedCallback() {
+    super.connectedCallback();
     this.createTooltipElement();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeTooltip();
   }
 
   private createTooltipElement() {
@@ -194,19 +248,96 @@ export class FCAction extends LitElement {
     }
   }
 
-  private formatShortcut(shortcut: string): string {
-    return shortcut
-      .split("+")
-      .map((key) => {
-        const keyElement = document.createElement("span");
-        keyElement.className = "action-shortcut-key";
-        keyElement.textContent = key.trim();
-        return keyElement.outerHTML;
-      })
-      .join(" + ");
+  private removeTooltip() {
+    if (this.tooltipElement) {
+      this.tooltipElement.remove();
+      this.tooltipElement = null;
+    }
   }
 
-  private handleClick(event: Event) {
+  private formatShortcut(shortcut: string | KeyboardShortcut | undefined): ReturnType<typeof html> {
+    if (!shortcut) return html``;
+
+    let modifiers: string[] = [];
+    let key: string = "";
+
+    if (typeof shortcut === "string") {
+      const parts = shortcut.split("+");
+      key = parts.pop() || "";
+      modifiers = parts;
+    } else {
+      key = shortcut.key;
+      modifiers = shortcut.modifiers || [];
+    }
+
+    // Normalize modifiers
+    const normalizedModifiers = modifiers.map(m => {
+      const lower = m.toLowerCase();
+      if (lower === "cmd" || lower === "command") return "⌘";
+      if (lower === "ctrl" || lower === "control") return "⌃";
+      if (lower === "opt" || lower === "option" || lower === "alt") return "⌥";
+      if (lower === "shift") return "⇧";
+      return m;
+    });
+
+    // Normalize key
+    const normalizedKey = this.formatKey(key);
+
+    return html`
+      <div class="action-shortcut">
+        ${normalizedModifiers.map((mod, i) => html`
+          ${i > 0 ? html`<span class="shortcut-plus">+</span>` : ""}
+          <span class="shortcut-key">${mod}</span>
+        `)}
+        ${normalizedModifiers.length > 0 ? html`<span class="shortcut-plus">+</span>` : ""}
+        <span class="shortcut-key">${normalizedKey}</span>
+      </div>
+    `;
+  }
+
+  private formatKey(key: string): string {
+    const upper = key.toUpperCase();
+    const keyMap: Record<string, string> = {
+      "ENTER": "↩",
+      "RETURN": "↩",
+      "ESC": "⎋",
+      "ESCAPE": "⎋",
+      "SPACE": "␣",
+      "TAB": "⇥",
+      "DELETE": "⌫",
+      "BACKSPACE": "⌫",
+      "UP": "↑",
+      "DOWN": "↓",
+      "LEFT": "←",
+      "RIGHT": "→",
+      "HOME": "↖",
+      "END": "↘",
+      "PAGEUP": "⇞",
+      "PAGEDOWN": "⇟",
+    };
+    return keyMap[upper] || upper;
+  }
+
+  private renderIcon(icon: string | IconProps | undefined) {
+    if (!icon) return html``;
+
+    const iconSrc = typeof icon === "string" ? icon : icon.source;
+    const iconTint = typeof icon === "object" && icon.tintColor
+      ? `color: ${icon.tintColor}`
+      : "";
+
+    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
+      return html`<img src="${iconSrc}" alt="" style="${iconTint}" />`;
+    }
+
+    if (iconSrc.startsWith("<svg")) {
+      return html`<div style="${iconTint}">${iconSrc}</div>`;
+    }
+
+    return html`<span style="${iconTint}">${iconSrc}</span>`;
+  }
+
+  private async handleClick(event: Event) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -217,19 +348,19 @@ export class FCAction extends LitElement {
     if (this.onAction) {
       this.isLoading = true;
 
-      Promise.resolve(this.onAction())
-        .catch((error) => {
-          console.error("Action execution error:", error);
-        })
-        .finally(() => {
-          this.isLoading = false;
-        });
+      try {
+        await Promise.resolve(this.onAction());
+      } catch (error) {
+        console.error("Action execution error:", error);
+      } finally {
+        this.isLoading = false;
+      }
     }
   }
 
   private handleMouseEnter(event: MouseEvent) {
     if (this.tooltip && this.tooltipElement) {
-      const rect = (event.target as HTMLElement).getBoundingClientRect();
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
       this.tooltipPosition = {
         top: rect.bottom + 8,
         left: rect.left + rect.width / 2,
@@ -239,36 +370,14 @@ export class FCAction extends LitElement {
       this.tooltipElement.style.left = `${this.tooltipPosition.left}px`;
       this.tooltipElement.style.transform = "translateX(-50%)";
       this.tooltipElement.classList.add("visible");
-      this.showTooltip = true;
+      this.tooltipVisible = true;
     }
   }
 
   private handleMouseLeave() {
     if (this.tooltipElement) {
       this.tooltipElement.classList.remove("visible");
-      this.showTooltip = false;
-    }
-  }
-
-  updated(changedProperties: any) {
-    super.updated(changedProperties);
-
-    if (changedProperties.has("tooltip")) {
-      // Recreate tooltip if it changed
-      if (this.tooltipElement) {
-        this.tooltipElement.remove();
-        this.tooltipElement = null;
-      }
-      this.createTooltipElement();
-    }
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-
-    if (this.tooltipElement) {
-      this.tooltipElement.remove();
-      this.tooltipElement = null;
+      this.tooltipVisible = false;
     }
   }
 
@@ -276,7 +385,8 @@ export class FCAction extends LitElement {
     const classes = [
       "action-item",
       this.disabled ? "disabled" : "",
-      this.destructive ? "destructive" : "",
+      this.destructive || this.style === "destructive" ? "destructive" : "",
+      this.style === "secondary" ? "secondary" : "",
       this.isLoading ? "action-loading" : "",
     ]
       .filter(Boolean)
@@ -293,13 +403,11 @@ export class FCAction extends LitElement {
         aria-label="${this.title}"
         aria-disabled="${this.disabled}"
       >
-        ${this.icon ? html` <div class="action-icon">${this.icon}</div> ` : ""}
+        ${this.icon ? html` <div class="action-icon">${this.renderIcon(this.icon)}</div> ` : ""}
 
         <div class="action-text">${this.title}</div>
 
-        ${this.shortcut
-          ? html` <div class="action-shortcut">${this.formatShortcut(this.shortcut)}</div> `
-          : ""}
+        ${this.shortcut ? this.formatShortcut(this.shortcut) : ""}
       </div>
     `;
   }
@@ -309,10 +417,12 @@ export class FCAction extends LitElement {
 export class FCActionPanel extends LitElement {
   static styles = css`
     :host {
+      display: none;
+    }
+
+    :host([visible]) {
       display: block;
-      position: absolute;
-      right: 12px;
-      top: 12px;
+      position: fixed;
       background: var(--color-panel-background);
       border: 1px solid var(--color-border);
       border-radius: 8px;
@@ -329,68 +439,96 @@ export class FCActionPanel extends LitElement {
       gap: 2px;
     }
 
-    /* Positioning variants */
-    .position-top-right {
-      top: 12px;
-      right: 12px;
-      bottom: auto;
-      left: auto;
-    }
-
-    .position-top-left {
-      top: 12px;
-      left: 12px;
-      right: auto;
-      bottom: auto;
-    }
-
-    .position-bottom-right {
-      bottom: 12px;
-      right: 12px;
-      top: auto;
-      left: auto;
-    }
-
-    .position-bottom-left {
-      bottom: 12px;
-      left: 12px;
-      right: auto;
-      top: auto;
+    .panel-header {
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: 4px;
     }
   `;
 
   @property({ type: String })
   position: "top-right" | "top-left" | "bottom-right" | "bottom-left" = "top-right";
 
-  @property({ type: Boolean })
-  visible: boolean = true;
+  @property({ type: Boolean, reflect: true })
+  visible: boolean = false;
+
+  @property({ type: Object })
+  anchorPosition: { top: number; left: number } = { top: 0, left: 0 };
+
+  @property({ type: String })
+  title?: string;
+
+  willUpdate(changedProperties: Map<string, any>) {
+    if (changedProperties.has("visible") || changedProperties.has("anchorPosition")) {
+      this.updatePosition();
+    }
+  }
+
+  private updatePosition() {
+    if (!this.visible) return;
+
+    const { top, left } = this.anchorPosition;
+    const panelWidth = 240; // approximate width
+    const panelHeight = Math.min(400, window.innerHeight - top - 20);
+
+    let finalTop = top;
+    let finalLeft = left;
+
+    switch (this.position) {
+      case "top-right":
+        finalLeft = Math.min(left, window.innerWidth - panelWidth - 20);
+        break;
+      case "top-left":
+        finalLeft = Math.max(20, left - panelWidth);
+        break;
+      case "bottom-right":
+        finalLeft = Math.min(left, window.innerWidth - panelWidth - 20);
+        finalTop = Math.max(20, top - panelHeight);
+        break;
+      case "bottom-left":
+        finalLeft = Math.max(20, left - panelWidth);
+        finalTop = Math.max(20, top - panelHeight);
+        break;
+    }
+
+    this.style.top = `${finalTop}px`;
+    this.style.left = `${finalLeft}px`;
+    this.style.maxHeight = `${panelHeight}px`;
+    this.style.overflowY = "auto";
+  }
 
   private handleClickOutside(event: MouseEvent) {
-    if (!this.contains(event.target as Node)) {
+    if (!this.contains(event.target as Node) && this.visible) {
       this.visible = false;
-      this.requestUpdate();
     }
   }
 
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener("click", this.handleClickOutside.bind(this));
+    document.addEventListener("keydown", this.handleKeydown.bind(this));
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
     document.removeEventListener("click", this.handleClickOutside.bind(this));
+    document.removeEventListener("keydown", this.handleKeydown.bind(this));
+  }
+
+  private handleKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape" && this.visible) {
+      this.visible = false;
+    }
   }
 
   render() {
-    if (!this.visible) {
-      return html``;
-    }
-
-    const positionClass = `position-${this.position}`;
-
     return html`
-      <div class="action-panel ${positionClass}">
+      <div class="action-panel">
+        ${this.title ? html`<div class="panel-header">${this.title}</div>` : ""}
         <slot></slot>
       </div>
     `;
@@ -421,12 +559,13 @@ export class FCActionSeparator extends LitElement {
 // Create ActionPanelItem component for easier usage
 export interface ActionPanelItemProps {
   title: string;
-  icon?: string;
-  shortcut?: string;
+  icon?: string | IconProps;
+  shortcut?: string | KeyboardShortcut;
   onAction?: () => void | Promise<void>;
   disabled?: boolean;
   destructive?: boolean;
   tooltip?: string;
+  id?: string;
 }
 
 @customElement("fc-action-panel-item")
@@ -441,6 +580,9 @@ export class FCActionPanelItem extends FCAction {
       }
     `,
   ];
+
+  @property({ type: String })
+  id?: string;
 }
 
 declare global {

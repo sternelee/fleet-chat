@@ -4,7 +4,7 @@
  * Provides a drag-and-drop zone for installing .fcp plugin files
  */
 
-import { LitElement, html, css, PropertyValues } from 'lit';
+import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 @customElement('drop-zone')
@@ -321,8 +321,8 @@ export class DropZone extends LitElement {
 
     if (this.disabled || this.isProcessing) return;
 
-    const files = e.dataTransfer?.items;
-    if (files && this.hasValidFiles(Array.from(files))) {
+    const hasValid = this.hasValidDataTransfer(e.dataTransfer);
+    if (hasValid) {
       this.isDragOver = true;
       this.isDragReject = false;
     } else {
@@ -339,8 +339,8 @@ export class DropZone extends LitElement {
       return;
     }
 
-    const files = e.dataTransfer?.items || e.dataTransfer?.files;
-    if (files && this.hasValidFiles(Array.from(files))) {
+    const hasValid = this.hasValidDataTransfer(e.dataTransfer);
+    if (hasValid) {
       e.dataTransfer!.dropEffect = 'copy';
       this.isDragOver = true;
       this.isDragReject = false;
@@ -391,11 +391,32 @@ export class DropZone extends LitElement {
     await this.processFiles(validFiles);
   }
 
-  private hasValidFiles(items: DataTransferItem[] | File[]): boolean {
-    return Array.from(items).some(item => {
-      const file = 'kind' in item ? item.getAsFile() : item;
-      return file && this.isValidFile(file);
-    });
+  private hasValidDataTransfer(dataTransfer: DataTransfer | null | undefined): boolean {
+    if (!dataTransfer) return false;
+
+    // Check items first
+    if (dataTransfer.items) {
+      for (let i = 0; i < dataTransfer.items.length; i++) {
+        const item = dataTransfer.items[i];
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file && this.isValidFile(file)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    // Fallback to files
+    if (dataTransfer.files) {
+      for (let i = 0; i < dataTransfer.files.length; i++) {
+        if (this.isValidFile(dataTransfer.files[i])) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   private isValidFile(file: File): boolean {

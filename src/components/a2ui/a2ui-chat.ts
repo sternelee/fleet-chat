@@ -357,7 +357,7 @@ export class A2UIChat extends SignalWatcher(LitElement) {
         ${repeat(
           this.lastMessages,
           (_message, index) => index,
-          (_, message) => {
+          (message, _index) => {
             if (message.type === 'user_message') {
               return html`<div class="message user-message">${(message as any).data}</div>`
             } else {

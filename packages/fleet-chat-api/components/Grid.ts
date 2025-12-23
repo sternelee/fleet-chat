@@ -8,6 +8,34 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 
+export interface IconProps {
+  source: string;
+  tintColor?: string;
+  tooltip?: string;
+}
+
+export interface GridItemProps {
+  id: string;
+  title: string;
+  subtitle?: string;
+  text?: string;
+  image?: string;
+  icon?: string | IconProps;
+  actions?: GridActionProps[];
+  aspectRatio?: number;
+  content?: string;
+}
+
+export interface GridActionProps {
+  title: string;
+  icon?: string | IconProps;
+  onAction?: () => void | Promise<void>;
+  style?: "default" | "destructive";
+}
+
+export type GridSize = "small" | "medium" | "large";
+export type GridColumns = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
 @customElement("fc-grid")
 export class FCGrid extends LitElement {
   static styles = css`
@@ -24,87 +52,122 @@ export class FCGrid extends LitElement {
       height: 100%;
     }
 
+    /* Search Bar */
     .search-bar {
       padding: 8px 12px;
-      border-bottom: 1px solid var(--border-color);
-      background: var(--background-color);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-background);
     }
 
     .search-input {
       width: 100%;
       padding: 8px 12px;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--color-border);
       border-radius: 6px;
-      background: var(--input-background);
-      color: var(--text-color);
+      background: var(--color-input-background);
+      color: var(--color-text-primary);
       font-size: 14px;
       outline: none;
+      transition: border-color 0.15s ease;
     }
 
     .search-input:focus {
-      border-color: var(--accent-color);
+      border-color: var(--color-primary);
     }
 
+    /* Grid Items */
     .grid-items {
       flex: 1;
       padding: 12px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(var(--item-width, 200px), 1fr));
       gap: 12px;
       overflow-y: auto;
     }
 
+    /* Grid size variants */
+    .grid-items.size-small {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    .grid-items.size-medium {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .grid-items.size-large {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    /* Fixed columns */
+    .grid-items.columns-1 { grid-template-columns: repeat(1, 1fr); }
+    .grid-items.columns-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-items.columns-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-items.columns-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-items.columns-5 { grid-template-columns: repeat(5, 1fr); }
+    .grid-items.columns-6 { grid-template-columns: repeat(6, 1fr); }
+    .grid-items.columns-7 { grid-template-columns: repeat(7, 1fr); }
+    .grid-items.columns-8 { grid-template-columns: repeat(8, 1fr); }
+
+    /* Grid Item */
     .grid-item {
-      background: var(--item-background);
-      border: 1px solid var(--border-color);
+      background: var(--color-item-background);
+      border: 1px solid var(--color-border);
       border-radius: 8px;
       overflow: hidden;
       cursor: pointer;
       transition: all 0.15s ease;
-      aspect-ratio: var(--aspect-ratio, 1/1);
       display: flex;
       flex-direction: column;
+      position: relative;
     }
 
     .grid-item:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-color: var(--color-primary);
     }
 
     .grid-item.selected {
-      border-color: var(--accent-color);
-      box-shadow: 0 0 0 2px var(--accent-color);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px var(--color-primary-alpha);
+    }
+
+    .grid-item-image {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      background: var(--color-image-placeholder);
+    }
+
+    .grid-item-icon {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      background: var(--color-icon-background);
+      color: var(--color-icon);
+    }
+
+    .grid-item-icon img,
+    .grid-item-icon svg {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
     }
 
     .grid-item-content {
-      flex: 1;
       padding: 12px;
+      flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
+      min-height: 0;
     }
 
-    .item-image {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      border-radius: 4px;
-      margin-bottom: 8px;
-    }
-
-    .item-icon {
-      font-size: 48px;
-      margin-bottom: 8px;
-      opacity: 0.8;
-    }
-
-    .item-title {
+    .grid-item-title {
       font-weight: 500;
-      color: var(--text-color);
+      color: var(--color-text-primary);
       margin-bottom: 4px;
-      line-height: 1.2;
+      line-height: 1.3;
       overflow: hidden;
       text-overflow: ellipsis;
       display: -webkit-box;
@@ -112,48 +175,73 @@ export class FCGrid extends LitElement {
       -webkit-box-orient: vertical;
     }
 
-    .item-subtitle {
+    .grid-item-subtitle {
       font-size: 12px;
-      color: var(--secondary-text-color);
+      color: var(--color-text-secondary);
       line-height: 1.3;
       overflow: hidden;
       text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
     }
 
-    .item-actions {
+    .grid-item-text {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 4px;
+    }
+
+    .grid-item-actions {
       padding: 8px 12px;
-      border-top: 1px solid var(--border-color);
-      background: var(--action-background);
+      border-top: 1px solid var(--color-border);
+      background: var(--color-actions-background);
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      gap: 8px;
     }
 
-    .action-button {
-      padding: 4px 8px;
+    .grid-action {
+      flex: 1;
+      padding: 6px 8px;
       border: none;
       border-radius: 4px;
-      background: var(--accent-color);
+      background: var(--color-primary);
       color: white;
       font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
       transition: background-color 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
 
-    .action-button:hover {
-      background: var(--accent-hover-color);
+    .grid-action:hover {
+      background: var(--color-primary-hover);
     }
 
+    .grid-action.destructive {
+      background: var(--color-error);
+    }
+
+    .grid-action.destructive:hover {
+      background: var(--color-error-hover);
+    }
+
+    .grid-action-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* Empty State */
     .empty-state {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 60px 20px;
-      color: var(--secondary-text-color);
+      color: var(--color-text-secondary);
       text-align: center;
       grid-column: 1 / -1;
     }
@@ -174,18 +262,57 @@ export class FCGrid extends LitElement {
       font-size: 14px;
       line-height: 1.4;
     }
+
+    /* Loading State */
+    .loading-skeleton {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      padding: 12px;
+    }
+
+    .skeleton-item {
+      background: var(--color-item-background);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .skeleton-image {
+      aspect-ratio: 1;
+      background: var(--color-skeleton);
+      animation: pulse 2s infinite;
+    }
+
+    .skeleton-content {
+      padding: 12px;
+    }
+
+    .skeleton-title {
+      height: 16px;
+      width: 80%;
+      margin-bottom: 8px;
+      border-radius: 3px;
+      background: var(--color-skeleton);
+      animation: pulse 2s infinite;
+    }
+
+    .skeleton-subtitle {
+      height: 12px;
+      width: 60%;
+      border-radius: 3px;
+      background: var(--color-skeleton);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
   `;
 
   @property({ type: Array })
-  items: Array<{
-    id: string;
-    title: string;
-    subtitle?: string;
-    image?: string;
-    icon?: string;
-    actions?: any[];
-    aspectRatio?: number;
-  }> = [];
+  items: GridItemProps[] = [];
 
   @property({ type: String })
   searchBarPlaceholder = "Search...";
@@ -193,8 +320,11 @@ export class FCGrid extends LitElement {
   @property({ type: Boolean })
   filtering = true;
 
+  @property({ type: String })
+  size: GridSize = "medium";
+
   @property({ type: Number })
-  itemSize = { width: 200, height: 200 };
+  columns?: GridColumns;
 
   @property({ type: Number })
   aspectRatio = 1;
@@ -205,38 +335,21 @@ export class FCGrid extends LitElement {
   @property({ type: Number })
   selectedIndex = -1;
 
-  @property({ type: Array })
-  actions: any[] = [];
+  @property({ type: Boolean })
+  isLoading = false;
 
-  private filteredItems: Array<{
-    id: string;
-    title: string;
-    subtitle?: string;
-    image?: string;
-    icon?: string;
-    actions?: any[];
-    aspectRatio?: number;
-  }> = [];
+  @property({ type: Boolean })
+  navigation = true;
+
+  private filteredItems: GridItemProps[] = [];
 
   static get Item() {
     return FCGridItem;
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.style.setProperty("--item-width", `${this.itemSize.width}px`);
-    this.style.setProperty("--aspect-ratio", this.aspectRatio.toString());
-  }
-
   willUpdate(changedProperties: Map<string, any>) {
     if (changedProperties.has("items") || changedProperties.has("filter")) {
       this.updateFilteredItems();
-    }
-    if (changedProperties.has("itemSize")) {
-      this.style.setProperty("--item-width", `${this.itemSize.width}px`);
-    }
-    if (changedProperties.has("aspectRatio")) {
-      this.style.setProperty("--aspect-ratio", this.aspectRatio.toString());
     }
   }
 
@@ -248,7 +361,7 @@ export class FCGrid extends LitElement {
 
     const filterLower = this.filter.toLowerCase();
     this.filteredItems = this.items.filter((item) => {
-      const searchText = `${item.title} ${item.subtitle || ""}`.toLowerCase();
+      const searchText = `${item.title} ${item.subtitle || ""} ${item.text || ""}`.toLowerCase();
       return searchText.includes(filterLower);
     });
   }
@@ -258,7 +371,7 @@ export class FCGrid extends LitElement {
     this.filter = target.value;
   }
 
-  private selectItem(item: any) {
+  private selectItem(item: GridItemProps) {
     this.dispatchEvent(
       new CustomEvent("item-selected", {
         detail: item,
@@ -269,12 +382,18 @@ export class FCGrid extends LitElement {
   }
 
   private handleKeyDown(event: KeyboardEvent) {
+    if (!this.navigation) return;
+
+    const totalItems = this.filteredItems.length;
+
     switch (event.key) {
       case "ArrowDown":
+      case "ArrowRight":
         event.preventDefault();
-        this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredItems.length - 1);
+        this.selectedIndex = Math.min(this.selectedIndex + 1, totalItems - 1);
         break;
       case "ArrowUp":
+      case "ArrowLeft":
         event.preventDefault();
         this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
         break;
@@ -287,11 +406,18 @@ export class FCGrid extends LitElement {
     }
   }
 
+  private getGridClassName(): string {
+    if (this.columns) {
+      return `grid-items columns-${this.columns}`;
+    }
+    return `grid-items size-${this.size}`;
+  }
+
   render() {
     return html`
       <div class="grid-container" @keydown="${this.handleKeyDown}">
         ${this.filtering
-          ? html`
+        ? html`
               <div class="search-bar">
                 <input
                   type="text"
@@ -302,31 +428,54 @@ export class FCGrid extends LitElement {
                 />
               </div>
             `
-          : ""}
+        : ""}
 
-        <div class="grid-items">
-          ${this.filteredItems.length > 0
+        ${this.isLoading
+        ? this.renderLoadingSkeleton()
+        : html`
+              <div class="${this.getGridClassName()}">
+                ${this.filteredItems.length > 0
             ? html`
-                ${repeat(
-                  this.filteredItems,
-                  (item) => item.id,
-                  (item, _index) => html`
-                    <fc-grid-item
-                      .item="${item}"
-                      .selected="${_index === this.selectedIndex}"
-                      @click="${() => this.selectItem(item)}"
-                    ></fc-grid-item>
-                  `,
-                )}
-              `
+                      ${repeat(
+              this.filteredItems,
+              (item) => item.id,
+              (item, index) => html`
+                          <fc-grid-item
+                            .item="${item}"
+                            .selected="${index === this.selectedIndex}"
+                            .aspectRatio="${this.aspectRatio}"
+                            @click="${() => this.selectItem(item)}"
+                          ></fc-grid-item>
+                        `,
+            )}
+                    `
             : html`
-                <div class="empty-state">
-                  <div class="empty-icon">🔍</div>
-                  <div class="empty-title">No Results</div>
-                  <div class="empty-message">Try adjusting your search terms</div>
-                </div>
-              `}
-        </div>
+                      <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <div class="empty-title">No Results</div>
+                        <div class="empty-message">Try adjusting your search terms</div>
+                      </div>
+                    `
+          }
+              </div>
+            `
+      }
+      </div>
+    `;
+  }
+
+  private renderLoadingSkeleton() {
+    return html`
+      <div class="loading-skeleton">
+        ${Array.from({ length: 8 }, () => html`
+          <div class="skeleton-item">
+            <div class="skeleton-image"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-subtitle"></div>
+            </div>
+          </div>
+        `)}
       </div>
     `;
   }
@@ -340,61 +489,113 @@ export class FCGridItem extends LitElement {
     }
 
     .grid-item {
-      background: var(--item-background);
-      border: 1px solid var(--border-color);
+      background: var(--color-item-background);
+      border: 1px solid var(--color-border);
       border-radius: 8px;
       overflow: hidden;
       cursor: pointer;
       transition: all 0.15s ease;
-      aspect-ratio: var(--aspect-ratio, 1/1);
       display: flex;
       flex-direction: column;
+      position: relative;
     }
 
     .grid-item:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-color: var(--color-primary);
     }
 
     .grid-item.selected {
-      border-color: var(--accent-color);
-      box-shadow: 0 0 0 2px var(--accent-color);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px var(--color-primary-alpha);
     }
   `;
 
   @property({ type: Object })
-  item: any = {};
+  item!: GridItemProps;
 
   @property({ type: Boolean })
   selected = false;
 
-  render() {
-    const { title, subtitle, image, icon } = this.item;
+  @property({ type: Number })
+  aspectRatio = 1;
 
-    return html`
-      <div class="grid-item ${this.selected ? "selected" : ""}" @click="${this.handleClick}">
-        <div class="grid-item-content">
-          ${image
-            ? html` <img src="${image}" alt="${title}" class="item-image" /> `
-            : icon
-              ? html` <div class="item-icon">${icon}</div> `
-              : ""}
+  private renderIcon(icon: string | IconProps | undefined) {
+    if (!icon) return html``;
 
-          <div class="item-title">${title}</div>
-          ${subtitle ? html` <div class="item-subtitle">${subtitle}</div> ` : ""}
-        </div>
-      </div>
-    `;
+    const iconSrc = typeof icon === "string" ? icon : icon.source;
+    const iconTint = typeof icon === "object" && icon.tintColor
+      ? `color: ${icon.tintColor}`
+      : "";
+
+    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
+      return html`<img src="${iconSrc}" alt="" style="${iconTint}" />`;
+    }
+
+    if (iconSrc.startsWith("<svg")) {
+      return html`<div style="${iconTint}">${iconSrc}</div>`;
+    }
+
+    return html`<span style="${iconTint}">${iconSrc}</span>`;
   }
 
-  private handleClick() {
-    this.dispatchEvent(
-      new CustomEvent("item-click", {
-        detail: this.item,
-        bubbles: true,
-        composed: true,
-      }),
-    );
+  private handleAction(action: GridActionProps, event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (action.onAction) {
+      action.onAction();
+    }
+  }
+
+  render() {
+    const { title, subtitle, text, image, icon, actions } = this.item;
+
+    return html`
+      <div
+        class="grid-item ${this.selected ? "selected" : ""}"
+        style="${this.aspectRatio ? `--aspect-ratio: ${this.aspectRatio}` : ""}"
+        @click="${(e: Event) => {
+        e.stopPropagation();
+        this.dispatchEvent(new CustomEvent("item-click", {
+          detail: this.item,
+          bubbles: true,
+          composed: true,
+        }));
+      }}"
+      >
+        ${image
+        ? html` <img src="${image}" alt="${title}" class="grid-item-image" style="aspect-ratio: ${this.aspectRatio}" /> `
+        : icon
+          ? html`
+                <div class="grid-item-icon">
+                  ${this.renderIcon(icon)}
+                </div>
+              `
+          : ""}
+
+        <div class="grid-item-content">
+          <div class="grid-item-title">${title}</div>
+          ${subtitle ? html` <div class="grid-item-subtitle">${subtitle}</div> ` : ""}
+          ${text ? html` <div class="grid-item-text">${text}</div> ` : ""}
+        </div>
+
+        ${actions && actions.length > 0 ? html`
+          <div class="grid-item-actions">
+            ${actions.map(action => html`
+              <button
+                class="grid-action ${action.style === "destructive" ? "destructive" : ""}"
+                @click="${(e: Event) => this.handleAction(action, e)}"
+              >
+                ${action.icon ? html`<span class="grid-action-icon">${this.renderIcon(action.icon)}</span>` : ""}
+                ${action.title}
+              </button>
+            `)}
+          </div>
+        ` : ""}
+      </div>
+    `;
   }
 }
 

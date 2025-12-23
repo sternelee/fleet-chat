@@ -10,27 +10,48 @@ export interface ListItemProps {
   id: string;
   title: string;
   subtitle?: string;
-  icon?: string;
+  icon?: string | IconProps;
   accessories?: ListAccessory[];
   actions?: ListAction[];
   keywords?: string[];
+  alwaysShowTitle?: boolean;
+}
+
+export interface IconProps {
+  source: string;
+  tintColor?: string;
+  tooltip?: string;
 }
 
 export interface ListAccessory {
   text?: string;
-  icon?: string;
+  icon?: string | IconProps;
   tooltip?: string;
   tag?: {
     value: string;
     color?: string;
   };
+  date?: Date;
+  progress?: number;
+  link?: {
+    title?: string;
+    target?: string;
+    text?: string;
+  };
 }
 
 export interface ListAction {
   title: string;
-  icon?: string;
+  icon?: string | IconProps;
   shortcut?: string;
   onAction: () => void | Promise<void>;
+  style?: "default" | "destructive";
+}
+
+export interface ListSectionProps {
+  title?: string;
+  subtitle?: string;
+  items?: ListItemProps[];
 }
 
 @customElement("fc-list")
@@ -73,6 +94,30 @@ export class FCList extends LitElement {
       border-color: var(--color-primary);
     }
 
+    /* List Section */
+    .list-section {
+      margin-bottom: 16px;
+    }
+
+    .section-header {
+      padding: 8px 12px 4px;
+    }
+
+    .section-title {
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+
+    /* List Item */
     .list-item {
       display: flex;
       align-items: center;
@@ -84,6 +129,7 @@ export class FCList extends LitElement {
       width: 100%;
       text-align: left;
       user-select: none;
+      position: relative;
     }
 
     .list-item:hover {
@@ -92,6 +138,10 @@ export class FCList extends LitElement {
 
     .list-item.selected {
       background: var(--color-item-selected);
+    }
+
+    .list-item.dragging {
+      opacity: 0.5;
     }
 
     .item-icon {
@@ -106,6 +156,7 @@ export class FCList extends LitElement {
       color: var(--color-icon);
       font-size: 16px;
       flex-shrink: 0;
+      overflow: hidden;
     }
 
     .item-icon img {
@@ -115,9 +166,18 @@ export class FCList extends LitElement {
       border-radius: 6px;
     }
 
+    .item-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+    }
+
     .item-content {
       flex: 1;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .item-title {
@@ -126,6 +186,7 @@ export class FCList extends LitElement {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.3;
     }
 
     .item-subtitle {
@@ -134,6 +195,7 @@ export class FCList extends LitElement {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.3;
     }
 
     .item-accessories {
@@ -141,6 +203,7 @@ export class FCList extends LitElement {
       align-items: center;
       gap: 8px;
       margin-left: 12px;
+      flex-shrink: 0;
     }
 
     .accessory {
@@ -149,12 +212,27 @@ export class FCList extends LitElement {
       gap: 4px;
       font-size: var(--font-size-sm);
       color: var(--color-text-secondary);
+      white-space: nowrap;
     }
 
     .accessory-icon {
       width: 12px;
       height: 12px;
       opacity: 0.7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .accessory-icon img,
+    .accessory-icon svg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .accessory-text {
+      font-size: 12px;
     }
 
     .accessory-tag {
@@ -164,8 +242,42 @@ export class FCList extends LitElement {
       font-weight: 500;
       background: var(--color-tag-background);
       color: var(--color-tag-text);
+      white-space: nowrap;
     }
 
+    .accessory-date {
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: var(--color-text-secondary);
+    }
+
+    .accessory-link {
+      font-size: 12px;
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .accessory-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Progress Bar Accessory */
+    .accessory-progress {
+      width: 60px;
+      height: 4px;
+      background: var(--color-progress-background);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .accessory-progress-bar {
+      height: 100%;
+      background: var(--color-primary);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* Empty State */
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -193,6 +305,7 @@ export class FCList extends LitElement {
       max-width: 300px;
     }
 
+    /* Loading State */
     .loading-skeleton {
       display: flex;
       align-items: center;
@@ -241,8 +354,7 @@ export class FCList extends LitElement {
 
     /* Action Panel */
     .action-panel {
-      position: absolute;
-      right: 12px;
+      position: fixed;
       background: var(--color-panel-background);
       border: 1px solid var(--color-border);
       border-radius: 8px;
@@ -259,31 +371,46 @@ export class FCList extends LitElement {
       border-radius: 4px;
       cursor: pointer;
       transition: background-color 0.2s ease;
+      gap: 8px;
     }
 
     .action-item:hover {
       background: var(--color-item-hover);
     }
 
+    .action-item.destructive {
+      color: var(--color-error);
+    }
+
     .action-icon {
       width: 16px;
       height: 16px;
-      margin-right: 8px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .action-text {
       flex: 1;
+      font-size: var(--font-size-sm);
     }
 
     .action-shortcut {
       font-size: var(--font-size-xs);
       color: var(--color-text-secondary);
       font-family: var(--font-family-mono);
+      background: var(--color-badge-background);
+      padding: 2px 6px;
+      border-radius: 4px;
     }
   `;
 
   @property({ type: Array })
   items: ListItemProps[] = [];
+
+  @property({ type: Array })
+  sections: ListSectionProps[] = [];
 
   @property({ type: String })
   searchPlaceholder: string = "Search...";
@@ -294,6 +421,9 @@ export class FCList extends LitElement {
   @property({ type: Boolean })
   enableSearch: boolean = true;
 
+  @property({ type: Boolean })
+  showSectionTitles: boolean = true;
+
   @property({ type: String })
   emptyStateTitle: string = "No Items";
 
@@ -302,6 +432,9 @@ export class FCList extends LitElement {
 
   @property({ type: String })
   emptyStateIcon: string = "📋";
+
+  @property({ type: Boolean })
+  navigation: boolean = true;
 
   @state()
   private _selectedIndex = 0;
@@ -313,21 +446,26 @@ export class FCList extends LitElement {
   private _filteredItems: ListItemProps[] = [];
 
   @state()
+  private _filteredSections: ListSectionProps[] = [];
+
+  @state()
   private _actionPanelVisible = false;
 
   @state()
   private _actionPanelItem: ListItemProps | null = null;
 
   @state()
-  private _actionPanelPosition = { top: 0, right: 0 };
+  private _actionPanelPosition = { top: 0, left: 0 };
 
   protected firstUpdated() {
-    this._filteredItems = this.items;
+    this._filterItems();
     this.addEventListener("keydown", this._handleKeydown);
   }
 
   protected updated(changedProps: PropertyValues) {
-    if (changedProps.has("items") || changedProps.has("_searchQuery")) {
+    if (changedProps.has("items") ||
+      changedProps.has("sections") ||
+      changedProps.has("_searchQuery")) {
       this._filterItems();
     }
   }
@@ -335,8 +473,13 @@ export class FCList extends LitElement {
   private _filterItems() {
     if (!this._searchQuery) {
       this._filteredItems = [...this.items];
+      this._filteredSections = this.sections.map(section => ({
+        ...section,
+        items: section.items ? [...section.items] : []
+      }));
     } else {
       const query = this._searchQuery.toLowerCase();
+
       this._filteredItems = this.items.filter((item) => {
         const titleMatch = item.title.toLowerCase().includes(query);
         const subtitleMatch = item.subtitle?.toLowerCase().includes(query) ?? false;
@@ -345,19 +488,40 @@ export class FCList extends LitElement {
 
         return titleMatch || subtitleMatch || keywordsMatch;
       });
+
+      this._filteredSections = this.sections.map(section => ({
+        ...section,
+        items: section.items?.filter(item => {
+          const titleMatch = item.title.toLowerCase().includes(query);
+          const subtitleMatch = item.subtitle?.toLowerCase().includes(query) ?? false;
+          const keywordsMatch =
+            item.keywords?.some((keyword) => keyword.toLowerCase().includes(query)) ?? false;
+          return titleMatch || subtitleMatch || keywordsMatch;
+        }) ?? []
+      })).filter(section => section.items && section.items.length > 0);
     }
 
     // Reset selection if out of bounds
-    if (this._selectedIndex >= this._filteredItems.length) {
-      this._selectedIndex = Math.max(0, this._filteredItems.length - 1);
+    const totalItems = this._getTotalItemCount();
+    if (this._selectedIndex >= totalItems) {
+      this._selectedIndex = Math.max(0, totalItems - 1);
     }
   }
 
+  private _getTotalItemCount(): number {
+    return this._filteredItems.length +
+      this._filteredSections.reduce((acc, section) => acc + (section.items?.length ?? 0), 0);
+  }
+
   private _handleKeydown = (event: KeyboardEvent) => {
+    if (!this.navigation) return;
+
+    const totalItems = this._getTotalItemCount();
+
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
-        this._selectedIndex = Math.min(this._selectedIndex + 1, this._filteredItems.length - 1);
+        this._selectedIndex = Math.min(this._selectedIndex + 1, totalItems - 1);
         this._scrollToSelected();
         break;
 
@@ -369,9 +533,7 @@ export class FCList extends LitElement {
 
       case "Enter":
         event.preventDefault();
-        if (this._filteredItems[this._selectedIndex]) {
-          this._selectItem(this._filteredItems[this._selectedIndex]);
-        }
+        this._selectByIndex(this._selectedIndex);
         break;
 
       case "Escape":
@@ -390,6 +552,24 @@ export class FCList extends LitElement {
     }
   }
 
+  private _selectByIndex(index: number) {
+    const flatItems = this._getFlatItems();
+    if (flatItems[index]) {
+      this._selectItem(flatItems[index]);
+    }
+  }
+
+  private _getFlatItems(): ListItemProps[] {
+    const items: ListItemProps[] = [];
+    items.push(...this._filteredItems);
+    this._filteredSections.forEach(section => {
+      if (section.items) {
+        items.push(...section.items);
+      }
+    });
+    return items;
+  }
+
   private _selectItem(item: ListItemProps) {
     this.dispatchEvent(
       new CustomEvent("itemSelected", {
@@ -404,12 +584,12 @@ export class FCList extends LitElement {
     event.preventDefault();
     event.stopPropagation();
 
-    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
     this._actionPanelItem = item;
     this._actionPanelPosition = {
-      top: rect.top,
-      right: window.innerWidth - rect.right,
+      top: rect.bottom + 4,
+      left: Math.min(rect.left, window.innerWidth - 220),
     };
     this._actionPanelVisible = true;
   }
@@ -428,6 +608,76 @@ export class FCList extends LitElement {
     this._hideActionPanel();
   }
 
+  private _renderIcon(icon: string | IconProps | undefined, size: "small" | "normal" = "normal") {
+    if (!icon) return html``;
+
+    const iconSize = size === "small" ? "12px" : "32px";
+    const iconSrc = typeof icon === "string" ? icon : icon.source;
+    const iconTint = typeof icon === "object" && icon.tintColor
+      ? `color: ${icon.tintColor}`
+      : "";
+
+    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
+      return html`<img src="${iconSrc}" alt="" style="${iconTint}" />`;
+    }
+
+    if (iconSrc.startsWith("<svg")) {
+      return html`<div style="${iconTint}">${iconSrc}</div>`;
+    }
+
+    return html`<span style="${iconTint}">${iconSrc}</span>`;
+  }
+
+  private _renderAccessory(accessory: ListAccessory) {
+    return html`
+      <div class="accessory" title="${accessory.tooltip || ""}">
+        ${accessory.icon ? html`
+          <div class="accessory-icon">
+            ${this._renderIcon(accessory.icon, "small")}
+          </div>
+        ` : ""}
+        ${accessory.text ? html` <span class="accessory-text">${accessory.text}</span> ` : ""}
+        ${accessory.date ? html`
+          <span class="accessory-date">${this._formatDate(accessory.date)}</span>
+        ` : ""}
+        ${accessory.progress !== undefined ? html`
+          <div class="accessory-progress">
+            <div class="accessory-progress-bar" style="width: ${accessory.progress}%"></div>
+          </div>
+        ` : ""}
+        ${accessory.tag ? html`
+          <span class="accessory-tag" style="${accessory.tag.color ? `background: ${accessory.tag.color};` : ""}">
+            ${accessory.tag.value}
+          </span>
+        ` : ""}
+        ${accessory.link ? html`
+          <a class="accessory-link" href="${accessory.link.target || "#"}" title="${accessory.link.title || ""}">
+            ${accessory.link.text || accessory.link.title || "Link"}
+          </a>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  private _formatDate(date: Date): string {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      if (hours === 0) {
+        const minutes = Math.floor(diff / (1000 * 60));
+        return minutes === 0 ? "now" : `${minutes}m ago`;
+      }
+      return `${hours}h ago`;
+    }
+    if (days === 1) return "yesterday";
+    if (days < 7) return `${days}d ago`;
+
+    return date.toLocaleDateString();
+  }
+
   private _renderSearchInput() {
     if (!this.enableSearch) return html``;
 
@@ -439,8 +689,8 @@ export class FCList extends LitElement {
           placeholder=${this.searchPlaceholder}
           value=${this._searchQuery}
           @input=${(e: InputEvent) => {
-            this._searchQuery = (e.target as HTMLInputElement).value;
-          }}
+        this._searchQuery = (e.target as HTMLInputElement).value;
+      }}
         />
       </div>
     `;
@@ -449,8 +699,8 @@ export class FCList extends LitElement {
   private _renderLoadingSkeleton() {
     return html`
       ${Array.from(
-        { length: 5 },
-        () => html`
+      { length: 5 },
+      () => html`
           <div class="loading-skeleton">
             <div class="skeleton-icon"></div>
             <div class="skeleton-content">
@@ -459,7 +709,7 @@ export class FCList extends LitElement {
             </div>
           </div>
         `,
-      )}
+    )}
     `;
   }
 
@@ -474,23 +724,29 @@ export class FCList extends LitElement {
   }
 
   private _renderItem(item: ListItemProps, index: number) {
-    const isSelected = index === this._selectedIndex;
+    const globalIndex = this._filteredItems.length > 0
+      ? index
+      : this._getGlobalSectionIndex(index);
+
+    const isSelected = globalIndex === this._selectedIndex;
 
     return html`
       <div
         class="list-item ${isSelected ? "selected" : ""}"
-        @click=${() => this._selectItem(item)}
+        data-index="${globalIndex}"
+        @click=${() => {
+        this._selectedIndex = globalIndex;
+        this._selectItem(item);
+      }}
         @contextmenu=${(e: MouseEvent) => (item.actions ? this._showActionPanel(item, e) : null)}
       >
         ${item.icon
-          ? html`
+        ? html`
               <div class="item-icon">
-                ${item.icon.startsWith("http")
-                  ? html`<img src="${item.icon}" alt="${item.title}" />`
-                  : item.icon}
+                ${this._renderIcon(item.icon)}
               </div>
             `
-          : ""}
+        : ""}
 
         <div class="item-content">
           <div class="item-title">${item.title}</div>
@@ -498,33 +754,39 @@ export class FCList extends LitElement {
         </div>
 
         ${item.accessories && item.accessories.length > 0
-          ? html`
+        ? html`
               <div class="item-accessories">
-                ${item.accessories.map(
-                  (accessory) => html`
-                    <div class="accessory">
-                      ${accessory.icon
-                        ? html` <span class="accessory-icon">${accessory.icon}</span> `
-                        : ""}
-                      ${accessory.text ? html` <span>${accessory.text}</span> ` : ""}
-                      ${accessory.tag
-                        ? html`
-                            <span
-                              class="accessory-tag"
-                              style="
-                    ${accessory.tag.color ? `background: ${accessory.tag.color};` : ""}
-                  "
-                            >
-                              ${accessory.tag.value}
-                            </span>
-                          `
-                        : ""}
-                    </div>
-                  `,
-                )}
+                ${item.accessories.map((accessory) => this._renderAccessory(accessory))}
               </div>
             `
-          : ""}
+        : ""}
+      </div>
+    `;
+  }
+
+  private _getGlobalSectionIndex(sectionIndex: number, itemIndex?: number): number {
+    let globalIndex = this._filteredItems.length;
+    for (let i = 0; i < sectionIndex; i++) {
+      globalIndex += this._filteredSections[i]?.items?.length ?? 0;
+    }
+    return globalIndex + (itemIndex ?? 0);
+  }
+
+  private _renderSection(section: ListSectionProps, sectionIndex: number) {
+    if (!section.items || section.items.length === 0) return html``;
+
+    return html`
+      <div class="list-section">
+        ${this.showSectionTitles && (section.title || section.subtitle) ? html`
+          <div class="section-header">
+            ${section.title ? html`<div class="section-title">${section.title}</div>` : ""}
+            ${section.subtitle ? html`<div class="section-subtitle">${section.subtitle}</div>` : ""}
+          </div>
+        ` : ""}
+        ${section.items.map((item, itemIndex) => {
+      const globalIndex = this._getGlobalSectionIndex(sectionIndex, itemIndex);
+      return this._renderItem(item, globalIndex);
+    })}
       </div>
     `;
   }
@@ -537,34 +799,47 @@ export class FCList extends LitElement {
     return html`
       <div
         class="action-panel"
-        style="top: ${this._actionPanelPosition.top}px; right: ${this._actionPanelPosition
-          .right}px;"
+        style="top: ${this._actionPanelPosition.top}px; left: ${this._actionPanelPosition.left}px;"
         @click=${(e: MouseEvent) => e.stopPropagation()}
       >
         ${this._actionPanelItem.actions.map(
-          (action) => html`
-            <div class="action-item" @click=${() => this._executeAction(action)}>
-              ${action.icon ? html` <span class="action-icon">${action.icon}</span> ` : ""}
+      (action) => html`
+            <div
+              class="action-item ${action.style === "destructive" ? "destructive" : ""}"
+              @click=${() => this._executeAction(action)}
+            >
+              ${action.icon ? html`
+                <div class="action-icon">
+                  ${this._renderIcon(action.icon, "small")}
+                </div>
+              ` : ""}
               <span class="action-text">${action.title}</span>
               ${action.shortcut
-                ? html` <span class="action-shortcut">${action.shortcut}</span> `
-                : ""}
+          ? html` <span class="action-shortcut">${action.shortcut}</span> `
+          : ""}
             </div>
           `,
-        )}
+    )}
       </div>
     `;
   }
 
   render() {
+    const hasSections = this._filteredSections.length > 0;
+    const hasItems = this._filteredItems.length > 0;
+    const hasContent = hasSections || hasItems;
+
     return html`
       <div class="list-container" @click=${this._hideActionPanel}>
         ${this._renderSearchInput()}
         ${this.isLoading
-          ? this._renderLoadingSkeleton()
-          : this._filteredItems.length > 0
-            ? this._filteredItems.map((item, index) => this._renderItem(item, index))
-            : this._renderEmptyState()}
+        ? this._renderLoadingSkeleton()
+        : hasContent
+          ? html`
+                ${hasItems ? this._filteredItems.map((item, index) => this._renderItem(item, index)) : ""}
+                ${hasSections ? this._filteredSections.map((section, index) => this._renderSection(section, index)) : ""}
+              `
+          : this._renderEmptyState()}
       </div>
 
       ${this._renderActionPanel()}
@@ -572,11 +847,62 @@ export class FCList extends LitElement {
   }
 }
 
+/**
+ * List.Item sub-component
+ */
+@customElement("fc-list-item")
+export class FCListItem extends LitElement {
+  @property({ type: Object })
+  item!: ListItemProps;
+
+  @property({ type: Boolean })
+  selected = false;
+
+  @property({ type: Number })
+  index = 0;
+
+  static styles = css`
+    :host {
+      display: block;
+    }
+  `;
+
+  render() {
+    return html`<slot></slot>`;
+  }
+}
+
+/**
+ * List.Section sub-component
+ */
+@customElement("fc-list-section")
+export class FCListSection extends LitElement {
+  @property({ type: Object })
+  section!: ListSectionProps;
+
+  @property({ type: Boolean })
+  showTitle = true;
+
+  static styles = css`
+    :host {
+      display: block;
+    }
+  `;
+
+  render() {
+    return html`<slot></slot>`;
+  }
+}
+
 declare global {
   interface HTMLElementTagNameMap {
     "fc-list": FCList;
+    "fc-list-item": FCListItem;
+    "fc-list-section": FCListSection;
   }
 }
 
 // Export for Raycast compatibility
 export const List = FCList;
+export const ListItem = FCListItem;
+export const ListSection = FCListSection;

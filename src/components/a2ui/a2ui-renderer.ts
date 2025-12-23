@@ -396,11 +396,6 @@ export class A2UIRenderer extends LitElement {
   }
 
   // Legacy method - kept for backward compatibility but no longer used
-  private updateDataModel(_content: any) {
-    // This method is unused
-  }
-
-  // Legacy method - kept for backward compatibility but no longer used
   private valueMapToObject(valueMap: any[]): any {
     const obj: any = {};
     valueMap.forEach((item) => {

@@ -5,7 +5,7 @@
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, state, query } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import { PluginManager } from '../plugins/plugin-manager';
 import { PluginLoader } from '../plugins/plugin-loader';
 import { PluginManifest } from '../plugins/plugin-system';
@@ -418,8 +418,8 @@ export class PluginManagerUI extends LitElement {
       const loadedPlugins = this.pluginLoader.getInstalledPlugins();
       this.plugins = loadedPlugins.map(p => ({
         manifest: p.manifest,
-        status: p.plugin.status || 'loaded',
-        errors: p.plugin.errors
+        status: 'loaded',
+        errors: undefined
       }));
     } catch (error) {
       console.error('Failed to load plugins:', error);
@@ -434,7 +434,7 @@ export class PluginManagerUI extends LitElement {
     return this.plugins.filter(p =>
       p.manifest.name.toLowerCase().includes(term) ||
       p.manifest.description.toLowerCase().includes(term) ||
-      p.manifest.author.toLowerCase().includes(term)
+      (p.manifest.author && p.manifest.author.toLowerCase().includes(term))
     );
   }
 
@@ -457,7 +457,7 @@ export class PluginManagerUI extends LitElement {
       this.hideInstallDialog();
       this.loadPlugins();
     } catch (error) {
-      this.showToastMessage(`Failed to install plugin: ${error.message}`, 'error');
+      this.showToastMessage(`Failed to install plugin: ${error instanceof Error ? error.message : String(error)}`, 'error');
     }
   }
 
@@ -473,7 +473,7 @@ export class PluginManagerUI extends LitElement {
       this.showToastMessage('Plugin uninstalled successfully', 'success');
       this.loadPlugins();
     } catch (error) {
-      this.showToastMessage(`Failed to uninstall plugin: ${error.message}`, 'error');
+      this.showToastMessage(`Failed to uninstall plugin: ${error instanceof Error ? error.message : String(error)}`, 'error');
     }
   }
 
@@ -498,9 +498,8 @@ export class PluginManagerUI extends LitElement {
       try {
         // For local files, we need to get the file path
         // In a Tauri app, we can use the Tauri API to get the file path
-        if (window.__TAURI__) {
-          const { path } = await import('@tauri-apps/api/path');
-          const filePath = file.path || file.name;
+        if ((window as any).__TAURI__) {
+          const filePath = (file as any).path || file.name;
           await this.pluginLoader.loadPlugin(filePath);
           this.showToastMessage(`Installed ${file.name}`, 'success');
         } else {
@@ -511,7 +510,7 @@ export class PluginManagerUI extends LitElement {
           URL.revokeObjectURL(url);
         }
       } catch (error) {
-        this.showToastMessage(`Failed to install ${file.name}: ${error.message}`, 'error');
+        this.showToastMessage(`Failed to install ${file.name}: ${error instanceof Error ? error.message : String(error)}`, 'error');
       }
     }
 

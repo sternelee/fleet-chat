@@ -164,7 +164,7 @@ export class FCMenuBarExtra extends LitElement {
   @property({ type: String })
   tooltip?: string;
 
-  
+
   private isDropdownVisible = false;
 
   connectedCallback() {
@@ -205,25 +205,25 @@ export class FCMenuBarExtra extends LitElement {
       <div class="menu-bar-extra" @click=${this.toggleDropdown}>
         ${iconSrc ? html`<img class="menu-bar-icon" src="${iconSrc}" alt="Menu Bar Icon" />` : ""}
         ${this.menuChildren && this.menuChildren.length > 0
-          ? html`
+        ? html`
               <div class="menu-dropdown ${this.isDropdownVisible ? "visible" : ""}">
                 ${this.menuChildren.map((child) => {
-                  // Extract props from the child template result if it's a MenuBarExtraItem
-                  if (child && child.values && child.values.length > 0) {
-                    // This is a simplified approach - in production you'd want more sophisticated
-                    // extraction of component props from the template result
-                    return child;
-                  }
-                  return child;
-                })}
+          // Extract props from the child template result if it's a MenuBarExtraItem
+          if (child && child.values && child.values.length > 0) {
+            // This is a simplified approach - in production you'd want more sophisticated
+            // extraction of component props from the template result
+            return child;
+          }
+          return child;
+        })}
               </div>
             `
-          : ""}
+        : ""}
         ${this.tooltip
-          ? html`
+        ? html`
               <div class="tooltip ${this.isDropdownVisible ? "" : "visible"}">${this.tooltip}</div>
             `
-          : ""}
+        : ""}
       </div>
     `;
   }
@@ -374,4 +374,3 @@ export const MenuBarExtraSeparator = FCMenuBarExtraItem;
 // Add displayName for debugging
 (FCMenuBarExtra as any).displayName = "MenuBarExtra";
 (FCMenuBarExtraItem as any).displayName = "MenuBarExtraItem";
-

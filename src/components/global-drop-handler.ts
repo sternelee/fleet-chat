@@ -185,17 +185,17 @@ export class GlobalDropHandler extends LitElement {
       this.setupGlobalDragListeners();
     } else {
       console.log('⏳ Waiting for plugin system to be ready...');
-      window.addEventListener('plugin-system-ready', this.handlePluginSystemReady.bind(this));
+      window.addEventListener('plugin-system-ready', this.handlePluginSystemReady as EventListener);
     }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.removeEventListener('plugin-system-ready', this.handlePluginSystemReady.bind(this));
+    window.removeEventListener('plugin-system-ready', this.handlePluginSystemReady as EventListener);
     this.removeGlobalDragListeners();
   }
 
-  private handlePluginSystemReady(e: CustomEvent) {
+  private handlePluginSystemReady(_e: Event) {
     console.log('✅ Plugin system ready, setting up drag listeners...');
     this.setupGlobalDragListeners();
   }
@@ -515,5 +515,6 @@ declare global {
     'dragover': DragEvent;
     'dragleave': DragEvent;
     'drop': DragEvent;
+    'plugin-system-ready': Event;
   }
 }

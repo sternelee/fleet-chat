@@ -5,7 +5,7 @@
  */
 
 import { unzip } from 'unzipit';
-import type { PluginManifest, Plugin, PluginState } from "../../packages/fleet-chat-api/plugins/core/types.js";
+import type { PluginManifest, Plugin } from "../../packages/fleet-chat-api/plugins/core/types.js";
 import { PluginManager } from "./plugin-manager.js";
 
 // Plugin loader specific interface
@@ -65,7 +65,7 @@ export class PluginLoader {
       await this.loadPluginFromArrayBuffer(arrayBuffer, packagePath);
 
     } catch (error) {
-      console.error(`❌ Failed to load plugin from ${packagePath}:`, error.message);
+      console.error(`❌ Failed to load plugin from ${packagePath}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -81,7 +81,7 @@ export class PluginLoader {
       await this.loadPluginFromArrayBuffer(arrayBuffer, file.name);
 
     } catch (error) {
-      console.error(`❌ Failed to load plugin from file ${file.name}:`, error.message);
+      console.error(`❌ Failed to load plugin from file ${file.name}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -113,22 +113,24 @@ export class PluginLoader {
     const manifest: PluginManifest = JSON.parse(manifestJson);
 
     // Extract metadata (optional)
-    let metadata: PackageMetadata | null = null;
+    let metadata: PackageMetadata | undefined = undefined;
     try {
       const metadataEntry = entries['metadata.json'];
       if (metadataEntry) {
         const metadataJson = await metadataEntry.text();
-        metadata = JSON.parse(metadataJson);
+        const parsedMetadata: PackageMetadata = JSON.parse(metadataJson);
 
         // Verify checksum
-        if (metadata.checksum && metadata.checksum !== this.calculateChecksum(arrayBuffer)) {
+        if (parsedMetadata.checksum && parsedMetadata.checksum !== this.calculateChecksum(arrayBuffer)) {
           console.warn('Package checksum verification failed, continuing anyway');
         }
 
         // Check compatibility
-        if (metadata.fleetChatVersion && !this.isCompatible(metadata.fleetChatVersion)) {
-          console.warn(`Plugin requires Fleet Chat version ${metadata.fleetChatVersion}, continuing anyway`);
+        if (parsedMetadata.fleetChatVersion && !this.isCompatible(parsedMetadata.fleetChatVersion)) {
+          console.warn(`Plugin requires Fleet Chat version ${parsedMetadata.fleetChatVersion}, continuing anyway`);
         }
+
+        metadata = parsedMetadata;
       }
     } catch (error) {
       console.warn('No metadata.json found or invalid metadata, continuing anyway');
@@ -177,7 +179,7 @@ export class PluginLoader {
       try {
         await this.loadPlugin(fullPath);
       } catch (error) {
-        console.warn(`Warning: Failed to load plugin ${file}: ${error.message}`);
+        console.warn(`Warning: Failed to load plugin ${file}:`, error instanceof Error ? error.message : String(error));
       }
     }
   }
@@ -206,7 +208,7 @@ export class PluginLoader {
       console.log(`✅ Plugin uninstalled: ${pluginName}`);
 
     } catch (error) {
-      console.error(`❌ Failed to uninstall plugin '${pluginName}':`, error.message);
+      console.error(`❌ Failed to uninstall plugin '${pluginName}':`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -243,10 +245,10 @@ export class PluginLoader {
       const manifestJson = await manifestEntry.text();
       const manifest: PluginManifest = JSON.parse(manifestJson);
 
-      const requiredFields = ['name', 'version', 'description', 'author'];
+      const requiredFields: (keyof PluginManifest)[] = ['name', 'version', 'description', 'author'];
       for (const field of requiredFields) {
         if (!manifest[field]) {
-          return { valid: false, error: `Missing required field '${field}' in manifest` };
+          return { valid: false, error: `Missing required field '${String(field)}' in manifest` };
         }
       }
 
@@ -255,16 +257,17 @@ export class PluginLoader {
         const metadataEntry = entries['metadata.json'];
         if (metadataEntry) {
           const metadataJson = await metadataEntry.text();
-          const metadata: PackageMetadata = JSON.parse(metadataJson);
+          // Validate JSON structure by parsing
+          JSON.parse(metadataJson);
           // Metadata validation is optional since it's not required for basic functionality
         }
       } catch (error) {
         // Metadata is optional, ignore validation errors
-        console.warn('Metadata validation skipped:', error.message);
+        console.warn('Metadata validation skipped:', error instanceof Error ? error.message : String(error));
       }
 
     } catch (error) {
-      return { valid: false, error: `Package validation failed: ${error.message}` };
+      return { valid: false, error: `Package validation failed: ${error instanceof Error ? error.message : String(error)}` };
     }
 
     return { valid: true };
@@ -293,10 +296,7 @@ export class PluginLoader {
   private async createPluginFromCode(manifest: PluginManifest, code: { [key: string]: string }): Promise<Plugin> {
     // Create a plugin object with the manifest
     const plugin: Plugin = {
-      id: manifest.name,
-      manifest,
-      commands: new Map(),
-      status: 'loaded'
+      manifest
     };
 
     // For now, we'll store the code and let the plugin manager handle execution
