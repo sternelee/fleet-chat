@@ -3,8 +3,9 @@ import { customElement, state } from "lit/decorators.js";
 import { invoke } from "@tauri-apps/api/core";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
-import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { pluginIntegration, executePluginCommand } from "../../plugins/plugin-integration";
+import { toggleChatPanel, uiStore } from "../../stores/ui.store";
 
 interface Application {
   name: string;
@@ -377,6 +378,23 @@ export class ViewSearch extends LitElement {
       color: rgba(196, 181, 253, 0.9);
     }
 
+    .badge-ai {
+      background: rgba(255, 107, 0, 0.2);
+      color: rgba(255, 179, 102, 0.9);
+    }
+
+    .ai-item {
+      border-left: 3px solid rgba(255, 107, 0, 0.5);
+    }
+
+    .ai-item.selected::before {
+      background: rgba(255, 107, 0, 0.8);
+    }
+
+    .ai-icon {
+      background: linear-gradient(135deg, #ff6b00 0%, #ff8c42 100%);
+    }
+
     .loading-state,
     .empty-state {
       flex: 1;
@@ -683,6 +701,7 @@ export class ViewSearch extends LitElement {
     if (!hasResults) {
       return html`
         <div class="results-container">
+          ${this._renderAIItem()}
           <div class="empty-state">
             <div class="empty-icon">😔</div>
             <div class="empty-text">No results found for "${this.query}"</div>
@@ -693,6 +712,7 @@ export class ViewSearch extends LitElement {
 
     return html`
       <div class="results-container">
+        ${this._renderAIItem()}
         ${this._renderApplications()} 
         ${this._renderFiles()} 
         ${this._renderPluginCommands()}
@@ -728,8 +748,40 @@ export class ViewSearch extends LitElement {
     `;
   }
 
+  private _renderAIItem() {
+    // Only show AI item when there's a query
+    if (!this.query.trim()) {
+      return null;
+    }
+
+    const isSelected = this.selectedIndex === 0;
+    
+    return html`
+      <div class="results-section">
+        <div
+          class=${classMap({ "result-item": true, "ai-item": true, selected: isSelected })}
+          @click=${() => this._openAIChat()}
+          @mouseenter=${() => this._setSelectedIndex(0)}
+        >
+          <div class="result-icon ai-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <div class="result-content">
+            <div class="result-title">💬 Ask AI about "${this.query}"</div>
+            <div class="result-path">Start a conversation with AI assistant</div>
+          </div>
+          <span class="result-badge badge-ai">AI Chat</span>
+        </div>
+      </div>
+    `;
+  }
+
   private _renderApplicationItem(app: Application, index: number) {
-    const isSelected = index === this.selectedIndex;
+    // Adjust index to account for AI item (which is at index 0)
+    const adjustedIndex = this.query.trim() ? index + 1 : index;
+    const isSelected = adjustedIndex === this.selectedIndex;
     const iconContent = app.icon_base64
       ? html`<img src="${app.icon_base64}" alt="${app.name}" />`
       : html`${app.name.charAt(0).toUpperCase()}`;
@@ -750,7 +802,9 @@ export class ViewSearch extends LitElement {
   }
 
   private _renderFileItem(file: FileMatch, index: number) {
-    const isSelected = index === this.selectedIndex;
+    // Adjust index to account for AI item (which is at index 0)
+    const adjustedIndex = this.query.trim() ? index + 1 : index;
+    const isSelected = adjustedIndex === this.selectedIndex;
     return html`
       <div
         class=${classMap({ "result-item": true, selected: isSelected })}
@@ -789,7 +843,9 @@ export class ViewSearch extends LitElement {
 
   private _renderPluginCommandItem(cmd: PluginCommand, index: number) {
     const baseIndex = this.results.applications.length + this.results.files.length;
-    const isSelected = baseIndex + index === this.selectedIndex;
+    // Adjust index to account for AI item (which is at index 0)
+    const adjustedIndex = this.query.trim() ? baseIndex + index + 1 : baseIndex + index;
+    const isSelected = adjustedIndex === this.selectedIndex;
 
     return html`
       <div
@@ -968,14 +1024,16 @@ export class ViewSearch extends LitElement {
     }
   }
 
-  private _setSearchMode(mode: "all" | "apps" | "files") {
+  private _setSearchMode(mode: "all" | "apps" | "files" | "plugins") {
     this.searchMode = mode;
     this._performSearch();
   }
 
   private _handleKeyDown(e: KeyboardEvent) {
     const pluginResults = this._getFilteredPluginCommands();
-    const totalResults = this.results.applications.length + this.results.files.length + pluginResults.length;
+    // Add 1 to total results to account for AI item when there's a query
+    const aiItemCount = this.query.trim() ? 1 : 0;
+    const totalResults = aiItemCount + this.results.applications.length + this.results.files.length + pluginResults.length;
 
     // Handle keyboard shortcuts
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -1011,11 +1069,20 @@ export class ViewSearch extends LitElement {
   }
 
   private _openSelected() {
-    if (this.selectedIndex < this.results.applications.length) {
-      const app = this.results.applications[this.selectedIndex];
+    // If there's a query, AI item is at index 0
+    if (this.query.trim() && this.selectedIndex === 0) {
+      this._openAIChat();
+      return;
+    }
+
+    // Adjust indices to account for AI item
+    const adjustedIndex = this.query.trim() ? this.selectedIndex - 1 : this.selectedIndex;
+
+    if (adjustedIndex < this.results.applications.length) {
+      const app = this.results.applications[adjustedIndex];
       this._openApplication(app);
     } else {
-      const remainingIndex = this.selectedIndex - this.results.applications.length;
+      const remainingIndex = adjustedIndex - this.results.applications.length;
       
       if (remainingIndex < this.results.files.length) {
         const file = this.results.files[remainingIndex];
@@ -1051,6 +1118,24 @@ export class ViewSearch extends LitElement {
     } catch (error) {
       console.error("Failed to open application:", error);
     }
+  }
+
+  private _openAIChat() {
+    // Trigger a custom event to send the query to the chat panel
+    window.dispatchEvent(new CustomEvent('search:ai-chat', {
+      detail: { query: this.query }
+    }));
+    
+    // Open the chat panel if it's not already visible
+    const chatVisible = uiStore.get().panels.chat.visible;
+    if (!chatVisible) {
+      toggleChatPanel();
+    }
+    
+    // Add to recent searches
+    this._addToRecentSearches(this.query);
+    
+    console.log("Opening AI chat with query:", this.query);
   }
 
   private _handleFocus() {
