@@ -22,14 +22,6 @@ export class MyApp extends LitElement {
         `,
       },
       {
-        path: "/search",
-        render: () => html`
-          <launcher-layout>
-            <view-search></view-search>
-          </launcher-layout>
-        `,
-      },
-      {
         path: "/chat",
         render: () => html`
           <launcher-layout>

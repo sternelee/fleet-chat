@@ -4,12 +4,11 @@ mod gemini_agent;
 mod plugins;
 mod search;
 mod tauri_axum;
-mod window;
 use axum::Router;
 use axum_app::create_axum_app;
 use search::{
-    search_applications, search_files, unified_search, get_applications, get_frontmost_application,
-    get_running_applications, get_default_application
+    get_applications, get_default_application, get_frontmost_application, get_running_applications,
+    search_applications, search_files, unified_search,
 };
 use std::sync::Arc;
 use tauri::Manager;
@@ -48,12 +47,11 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder
-            .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {}))
-            .plugin(tauri_plugin_localhost::Builder::new(port).build())
-            .plugin(tauri_plugin_process::init())
             .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
                 let _ = app.get_webview_window("main").expect("no main window").set_focus();
-            }));
+            }))
+            .plugin(tauri_plugin_localhost::Builder::new(port).build())
+            .plugin(tauri_plugin_process::init());
     }
 
     builder
@@ -83,20 +81,13 @@ pub fn run() {
                 //     .title("Localhost Example")
                 //     .build()?;
             }
-            // Setup the customized main window
-            match window::setup_window(app) {
-                Ok(_) => {
-                    // Initialize plugin system
-                    match plugins::init_plugin_system(app) {
-                        Ok(_) => Ok(()),
-                        Err(e) => {
-                            eprintln!("Error setting up plugin system: {}", e);
-                            Err(e)
-                        }
-                    }
-                }
+            // Note: Window is now configured via tauri.conf.json (windows array)
+            // No need to manually create window here, as it causes duplicate window error
+            // Initialize plugin system
+            match plugins::init_plugin_system(app) {
+                Ok(_) => Ok(()),
                 Err(e) => {
-                    eprintln!("Error setting up window: {}", e);
+                    eprintln!("Error setting up plugin system: {}", e);
                     Err(e)
                 }
             }
