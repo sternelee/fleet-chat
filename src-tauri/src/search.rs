@@ -331,7 +331,7 @@ pub async fn unified_search(
 /// Get all applications installed on the system
 #[command]
 pub async fn get_applications() -> Result<Vec<Application>, String> {
-    use applications::{AppInfoContext, AppInfo, AppTrait};
+    use applications::{AppInfo, AppInfoContext, AppTrait};
 
     // Create context and refresh apps
     let mut ctx = AppInfoContext::new(vec![]);
@@ -379,7 +379,7 @@ pub async fn get_applications() -> Result<Vec<Application>, String> {
 /// Get the frontmost application
 #[command]
 pub async fn get_frontmost_application() -> Result<Option<Application>, String> {
-    use applications::{AppInfoContext, AppInfo, AppTrait};
+    use applications::{AppInfo, AppInfoContext, AppTrait};
 
     let mut ctx = AppInfoContext::new(vec![]);
     ctx.refresh_apps()
@@ -393,7 +393,7 @@ pub async fn get_frontmost_application() -> Result<Option<Application>, String> 
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_else(|| "Unknown".to_string());
 
-        let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
+            let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
                 if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
                     exe_path[..bundle_end + 4].to_string()
                 } else {
@@ -419,7 +419,7 @@ pub async fn get_frontmost_application() -> Result<Option<Application>, String> 
 /// Get all running applications
 #[command]
 pub async fn get_running_applications() -> Result<Vec<Application>, String> {
-    use applications::{AppInfoContext, AppInfo, AppTrait};
+    use applications::{AppInfo, AppInfoContext, AppTrait};
 
     let mut ctx = AppInfoContext::new(vec![]);
     ctx.refresh_apps()
@@ -463,7 +463,7 @@ pub async fn get_running_applications() -> Result<Vec<Application>, String> {
 /// Get default application for file extension
 #[command]
 pub async fn get_default_application(extension: String) -> Result<Option<Application>, String> {
-    use applications::{AppInfoContext, AppInfo, AppTrait};
+    use applications::{AppInfo, AppInfoContext, AppTrait};
 
     let mut ctx = AppInfoContext::new(vec![]);
     ctx.refresh_apps()

@@ -1,5 +1,9 @@
 use crate::a2ui::agent::{A2UIAgent, GeneratedResponse};
 use crate::a2ui::provider::{AIProvider, GeminiProvider, OpenAIProvider};
+use crate::rig_agent::{
+    AIOptions, AIResponse, ChatMessage, EmbeddingRequest, ImageAnalysisRequest, ImageGenerationRequest,
+    ModerationRequest, ModerationResponse, RigAgent, RigAgentError, TokenCountRequest,
+};
 use axum::{
     extract::{Path, State},
     http::{self},
@@ -249,6 +253,7 @@ pub struct AppState {
     pub surfaces: Arc<Mutex<HashMap<String, SurfaceState>>>,
     pub agent: Option<crate::gemini_agent::GeminiAgent>,
     pub a2ui_agent: Option<Arc<A2UIAgent>>,
+    pub rig_agent: Option<Arc<RigAgent>>,
 }
 
 impl Default for AppState {
@@ -257,6 +262,7 @@ impl Default for AppState {
             surfaces: Arc::new(Mutex::new(HashMap::new())),
             agent: Self::create_agent(),
             a2ui_agent: Self::create_a2ui_agent(),
+            rig_agent: Self::create_rig_agent(),
         }
     }
 }
@@ -284,6 +290,10 @@ impl AppState {
         }
 
         None
+    }
+
+    fn create_rig_agent() -> Option<Arc<RigAgent>> {
+        RigAgent::new().ok().map(Arc::new)
     }
 }
 
@@ -947,6 +957,16 @@ pub fn create_axum_app() -> Router {
         .route("/a2ui/agent/chat/stream", post(a2ui_agent_chat_stream))
         .route("/a2ui/agent/session/{id}", get(get_a2ui_session))
         .route("/a2ui/agent/sessions", get(list_a2ui_sessions))
+        // Rig AI Agent endpoints
+        .route("/ai/generate", post(ai_generate))
+        .route("/ai/generate/stream", post(ai_generate_stream))
+        .route("/ai/chat", post(ai_chat))
+        .route("/ai/embed", post(ai_embed))
+        .route("/ai/moderate", post(ai_moderate))
+        .route("/ai/generate_image", post(ai_generate_image))
+        .route("/ai/analyze_image", post(ai_analyze_image))
+        .route("/ai/count_tokens", post(ai_count_tokens))
+        .route("/ai/models", get(ai_get_models))
         .with_state(state)
 }
 
@@ -1187,3 +1207,173 @@ async fn list_a2ui_sessions(State(state): State<AppState>) -> Result<Json<serde_
         Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
+
+// ============================================================================
+// Rig AI Agent Handlers
+// ============================================================================
+
+// Helper function to convert RigAgentError to HTTP status
+fn rig_error_to_status(error: RigAgentError) -> http::StatusCode {
+    match error {
+        RigAgentError::ProviderNotConfigured => http::StatusCode::SERVICE_UNAVAILABLE,
+        RigAgentError::ApiKeyNotFound(_) => http::StatusCode::UNAUTHORIZED,
+        RigAgentError::InvalidModel(_) => http::StatusCode::BAD_REQUEST,
+        RigAgentError::NotSupported(_) => http::StatusCode::NOT_IMPLEMENTED,
+        RigAgentError::PromptError(_) => http::StatusCode::BAD_REQUEST,
+        RigAgentError::EmbeddingError(_) => http::StatusCode::BAD_REQUEST,
+        RigAgentError::HttpError(_) => http::StatusCode::BAD_GATEWAY,
+        RigAgentError::JsonError(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
+        RigAgentError::IoError(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
+        RigAgentError::Other(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+// AI Generate endpoint
+async fn ai_generate(
+    State(state): State<AppState>,
+    Json(options): Json<AIOptions>,
+) -> Result<Json<AIResponse>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    agent.generate(options).await.map(Json).map_err(rig_error_to_status)
+}
+
+// AI Generate Stream endpoint (SSE)
+async fn ai_generate_stream(
+    State(state): State<AppState>,
+    Json(options): Json<AIOptions>,
+) -> Result<Response, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let text = agent.generate_stream(options).await.map_err(rig_error_to_status)?;
+
+    // Convert the result to SSE
+    let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, std::convert::Infallible>>(32);
+
+    tokio::spawn(async move {
+        // Send the text as a single chunk
+        let data = json!({ "text": text });
+        if tx
+            .send(Ok(Event::default().data(data.to_string()).event("chunk")))
+            .await
+            .is_err()
+        {
+            return;
+        }
+
+        // Send completion event
+        let _ = tx.send(Ok(Event::default().event("done")));
+    });
+
+    let stream = tokio_stream::wrappers::ReceiverStream::new(rx);
+    Ok(Sse::new(stream).into_response())
+}
+
+// AI Chat endpoint
+async fn ai_chat(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<AIResponse>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let messages: Vec<ChatMessage> = serde_json::from_value(serde_json::Value::Array(
+        request
+            .get("messages")
+            .and_then(|v| v.as_array())
+            .ok_or(http::StatusCode::BAD_REQUEST)?
+            .to_owned(),
+    ))
+    .map_err(|_| http::StatusCode::BAD_REQUEST)?;
+
+    let options: Option<AIOptions> = request
+        .get("options")
+        .and_then(|v| v.as_object())
+        .and_then(|obj| serde_json::from_value(serde_json::Value::Object(obj.clone())).ok());
+
+    agent
+        .chat(messages, options)
+        .await
+        .map(Json)
+        .map_err(rig_error_to_status)
+}
+
+// AI Embed endpoint
+async fn ai_embed(
+    State(state): State<AppState>,
+    Json(request): Json<EmbeddingRequest>,
+) -> Result<Json<serde_json::Value>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let embedding = agent
+        .embed(request.text, request.model)
+        .await
+        .map_err(rig_error_to_status)?;
+
+    Ok(Json(json!({ "embedding": embedding })))
+}
+
+// AI Moderate endpoint
+async fn ai_moderate(
+    State(state): State<AppState>,
+    Json(request): Json<ModerationRequest>,
+) -> Result<Json<ModerationResponse>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    agent
+        .moderate(request.content)
+        .await
+        .map(Json)
+        .map_err(rig_error_to_status)
+}
+
+// AI Generate Image endpoint
+async fn ai_generate_image(
+    State(state): State<AppState>,
+    Json(request): Json<ImageGenerationRequest>,
+) -> Result<Json<serde_json::Value>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let urls = agent.generate_image(request).await.map_err(rig_error_to_status)?;
+
+    Ok(Json(json!({ "urls": urls })))
+}
+
+// AI Analyze Image endpoint
+async fn ai_analyze_image(
+    State(state): State<AppState>,
+    Json(request): Json<ImageAnalysisRequest>,
+) -> Result<Json<serde_json::Value>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let analysis = agent.analyze_image(request).await.map_err(rig_error_to_status)?;
+
+    Ok(Json(json!({ "analysis": analysis })))
+}
+
+// AI Count Tokens endpoint
+async fn ai_count_tokens(
+    State(state): State<AppState>,
+    Json(request): Json<TokenCountRequest>,
+) -> Result<Json<serde_json::Value>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let count = agent
+        .count_tokens(request.text, request.model)
+        .await
+        .map_err(rig_error_to_status)?;
+
+    Ok(Json(json!({ "count": count })))
+}
+
+// AI Get Models endpoint
+async fn ai_get_models(State(state): State<AppState>) -> Result<Json<serde_json::Value>, http::StatusCode> {
+    let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let models = agent.get_models().await.map_err(rig_error_to_status)?;
+
+    Ok(Json(json!({ "models": models })))
+}
+
+// ============================================================================
+// Router Creation
+// ============================================================================

@@ -1,4 +1,4 @@
-const { invoke } = window.__TAURI__.core;
+const { invoke } = (window as any).__TAURI__.core;
 
 let localAppRequestCommand = "local_app_request";
 
@@ -44,12 +44,23 @@ function proxyFetch() {
 
   window.fetch = async (...args) => {
     const [url, options] = args;
-    if (url.startsWith("ipc://")) {
+    // Handle Request objects, URL objects, and string URLs
+    let urlString: string;
+    if (typeof url === "string") {
+      urlString = url;
+    } else if (url instanceof Request) {
+      urlString = url.url;
+    } else {
+      // URL object
+      urlString = url.toString();
+    }
+
+    if (urlString.startsWith("ipc://")) {
       return originalFetch(...args);
     }
 
     const request = {
-      uri: url,
+      uri: urlString,
       method: options?.method || "GET",
       headers: options?.headers || {},
       ...(options?.body && { body: options.body }),

@@ -2,6 +2,7 @@ mod a2ui;
 mod axum_app;
 mod gemini_agent;
 mod plugins;
+mod rig_agent;
 mod search;
 mod tauri_axum;
 use axum::Router;

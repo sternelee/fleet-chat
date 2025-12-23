@@ -1,10 +1,9 @@
 /**
  * AI API
  *
- * Provides AI functionality for plugins
+ * Provides AI functionality for plugins via Rig agent backend
+ * Requests are proxied through Tauri backend via tauri_axum.ts
  */
-
-import { invoke } from "@tauri-apps/api/core";
 
 export interface AIOptions {
   prompt: string;
@@ -46,8 +45,15 @@ export class AI {
   static async generate(options: AIOptions): Promise<AIResponse> {
     try {
       const mergedOptions = { ...this.defaultOptions, ...options };
-      const response = await invoke<AIResponse>("ai_generate", { options: mergedOptions });
-      return response;
+      const response = await fetch(`/ai/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mergedOptions),
+      });
+      if (!response.ok) {
+        throw new Error(`AI generate failed: ${response.statusText}`);
+      }
+      return await response.json();
     } catch (error) {
       console.error("Failed to generate AI response:", error);
       throw error;
@@ -57,12 +63,56 @@ export class AI {
   static async generateStream(options: AIStreamOptions): Promise<void> {
     try {
       const mergedOptions = { ...this.defaultOptions, ...options };
-      await invoke("ai_generate_stream", {
-        options: mergedOptions,
-        onChunk: options.onChunk,
-        onComplete: options.onComplete,
-        onError: options.onError,
+      const response = await fetch(`/ai/generate/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mergedOptions),
       });
+
+      if (!response.ok) {
+        throw new Error(`AI generate stream failed: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      if (!reader) {
+        throw new Error("Response body is null");
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "done") {
+              options.onComplete?.({
+                text: "",
+                usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+              });
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.text && options.onChunk) {
+                options.onChunk(parsed.text);
+              }
+              if (parsed.error && options.onError) {
+                options.onError(new Error(parsed.error));
+              }
+            } catch (e) {
+              console.error("Failed to parse SSE data:", e);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error("Failed to generate AI stream:", error);
       if (options.onError) {
@@ -77,8 +127,15 @@ export class AI {
   ): Promise<AIResponse> {
     try {
       const mergedOptions = { ...this.defaultOptions, ...options };
-      const response = await invoke<AIResponse>("ai_chat", { messages, options: mergedOptions });
-      return response;
+      const response = await fetch(`/ai/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages, options: mergedOptions }),
+      });
+      if (!response.ok) {
+        throw new Error(`AI chat failed: ${response.statusText}`);
+      }
+      return await response.json();
     } catch (error) {
       console.error("Failed to generate AI chat response:", error);
       throw error;
@@ -87,8 +144,16 @@ export class AI {
 
   static async embed(text: string, model?: string): Promise<number[]> {
     try {
-      const embedding = await invoke<number[]>("ai_embed", { text, model });
-      return embedding;
+      const response = await fetch(`/ai/embed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, model }),
+      });
+      if (!response.ok) {
+        throw new Error(`AI embed failed: ${response.statusText}`);
+      }
+      const result = await response.json();
+      return result.embedding;
     } catch (error) {
       console.error("Failed to generate embedding:", error);
       throw error;
@@ -101,12 +166,15 @@ export class AI {
     categoryScores: Record<string, number>;
   }> {
     try {
-      const result = (await invoke("ai_moderate", { content })) as {
-        flagged: boolean;
-        categories: Record<string, boolean>;
-        categoryScores: Record<string, number>;
-      };
-      return result;
+      const response = await fetch(`/ai/moderate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!response.ok) {
+        throw new Error(`AI moderate failed: ${response.statusText}`);
+      }
+      return await response.json();
     } catch (error) {
       console.error("Failed to moderate content:", error);
       throw error;
@@ -123,11 +191,16 @@ export class AI {
     },
   ): Promise<string[]> {
     try {
-      const images = await invoke<string[]>("ai_generate_image", {
-        prompt,
-        options: options || {},
+      const response = await fetch(`/ai/generate_image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, ...options }),
       });
-      return images;
+      if (!response.ok) {
+        throw new Error(`AI generate image failed: ${response.statusText}`);
+      }
+      const result = await response.json();
+      return result.urls;
     } catch (error) {
       console.error("Failed to generate images:", error);
       throw error;
@@ -137,8 +210,16 @@ export class AI {
   // Image analysis
   static async analyzeImage(imageUrl: string, prompt: string): Promise<string> {
     try {
-      const analysis = await invoke<string>("ai_analyze_image", { imageUrl, prompt });
-      return analysis;
+      const response = await fetch(`/ai/analyze_image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl, prompt }),
+      });
+      if (!response.ok) {
+        throw new Error(`AI analyze image failed: ${response.statusText}`);
+      }
+      const result = await response.json();
+      return result.analysis;
     } catch (error) {
       console.error("Failed to analyze image:", error);
       throw error;
@@ -148,8 +229,16 @@ export class AI {
   // Token counting
   static async countTokens(text: string, model?: string): Promise<number> {
     try {
-      const count = await invoke<number>("ai_count_tokens", { text, model });
-      return count;
+      const response = await fetch(`/ai/count_tokens`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, model }),
+      });
+      if (!response.ok) {
+        throw new Error(`AI count tokens failed: ${response.statusText}`);
+      }
+      const result = await response.json();
+      return result.count;
     } catch (error) {
       console.error("Failed to count tokens:", error);
       throw error;
@@ -166,15 +255,12 @@ export class AI {
     }>
   > {
     try {
-      const models = await invoke<
-        Array<{
-          id: string;
-          name: string;
-          description: string;
-          contextLength: number;
-        }>
-      >("ai_get_models");
-      return models;
+      const response = await fetch(`/ai/models`);
+      if (!response.ok) {
+        throw new Error(`AI get models failed: ${response.statusText}`);
+      }
+      const result = await response.json();
+      return result.models;
     } catch (error) {
       console.error("Failed to get AI models:", error);
       return [];
