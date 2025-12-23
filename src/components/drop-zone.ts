@@ -4,8 +4,8 @@
  * Provides a drag-and-drop zone for installing .fcp plugin files
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { LitElement, html, css } from 'lit'
+import { customElement, property, state } from 'lit/decorators.js'
 
 @customElement('drop-zone')
 export class DropZone extends LitElement {
@@ -230,178 +230,179 @@ export class DropZone extends LitElement {
     .file-status.error {
       color: var(--error-color);
     }
-  `;
+  `
 
   @property({ type: Boolean })
-  disabled = false;
+  disabled = false
 
   @property({ type: String })
-  accept = '.fcp';
+  accept = '.fcp'
 
   @property({ type: Boolean })
-  multiple = false;
+  multiple = false
 
   @state()
-  private isDragOver = false;
+  private isDragOver = false
 
   @state()
-  private isDragReject = false;
+  private isDragReject = false
 
   @state()
-  private isProcessing = false;
+  private isProcessing = false
 
   @state()
-  private dragFiles: File[] = [];
+  private dragFiles: File[] = []
 
   @state()
-  private fileStatuses: Map<string, { status: 'pending' | 'success' | 'error', message?: string }> = new Map();
+  private fileStatuses: Map<string, { status: 'pending' | 'success' | 'error'; message?: string }> =
+    new Map()
 
   // Event handlers
-  private onFilesDrop?: (files: File[]) => Promise<void>;
+  private onFilesDrop?: (files: File[]) => Promise<void>
 
   constructor() {
-    super();
-    this.setupDragListeners();
+    super()
+    this.setupDragListeners()
   }
 
   connectedCallback() {
-    super.connectedCallback();
-    this.setupGlobalDragListeners();
+    super.connectedCallback()
+    this.setupGlobalDragListeners()
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
-    this.removeGlobalDragListeners();
+    super.disconnectedCallback()
+    this.removeGlobalDragListeners()
   }
 
   private setupDragListeners() {
-    this.addEventListener('dragenter', this.handleDragEnter.bind(this));
-    this.addEventListener('dragover', this.handleDragOver.bind(this));
-    this.addEventListener('dragleave', this.handleDragLeave.bind(this));
-    this.addEventListener('drop', this.handleDrop.bind(this));
+    this.addEventListener('dragenter', this.handleDragEnter.bind(this))
+    this.addEventListener('dragover', this.handleDragOver.bind(this))
+    this.addEventListener('dragleave', this.handleDragLeave.bind(this))
+    this.addEventListener('drop', this.handleDrop.bind(this))
   }
 
   private setupGlobalDragListeners() {
     // Listen for global drag events to show overlay
-    document.addEventListener('dragenter', this.handleGlobalDragEnter.bind(this));
-    document.addEventListener('dragover', this.handleGlobalDragOver.bind(this));
-    document.addEventListener('drop', this.handleGlobalDrop.bind(this));
+    document.addEventListener('dragenter', this.handleGlobalDragEnter.bind(this))
+    document.addEventListener('dragover', this.handleGlobalDragOver.bind(this))
+    document.addEventListener('drop', this.handleGlobalDrop.bind(this))
   }
 
   private removeGlobalDragListeners() {
-    document.removeEventListener('dragenter', this.handleGlobalDragEnter.bind(this));
-    document.removeEventListener('dragover', this.handleGlobalDragOver.bind(this));
-    document.removeEventListener('drop', this.handleGlobalDrop.bind(this));
+    document.removeEventListener('dragenter', this.handleGlobalDragEnter.bind(this))
+    document.removeEventListener('dragover', this.handleGlobalDragOver.bind(this))
+    document.removeEventListener('drop', this.handleGlobalDrop.bind(this))
   }
 
   private handleGlobalDragEnter(e: DragEvent) {
-    e.preventDefault();
-    const hasFiles = e.dataTransfer?.items &&
-                     Array.from(e.dataTransfer.items).some(item => item.kind === 'file');
+    e.preventDefault()
+    const hasFiles =
+      e.dataTransfer?.items && Array.from(e.dataTransfer.items).some((item) => item.kind === 'file')
     if (hasFiles) {
-      this.isDragOver = true;
+      this.isDragOver = true
     }
   }
 
   private handleGlobalDragOver(e: DragEvent) {
-    e.preventDefault();
+    e.preventDefault()
     if (this.isDragOver) {
-      this.isDragOver = true;
+      this.isDragOver = true
     }
   }
 
   private handleGlobalDrop(e: DragEvent) {
-    e.preventDefault();
-    this.isDragOver = false;
+    e.preventDefault()
+    this.isDragOver = false
   }
 
   private handleDragEnter(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
 
-    if (this.disabled || this.isProcessing) return;
+    if (this.disabled || this.isProcessing) return
 
-    const hasValid = this.hasValidDataTransfer(e.dataTransfer);
+    const hasValid = this.hasValidDataTransfer(e.dataTransfer)
     if (hasValid) {
-      this.isDragOver = true;
-      this.isDragReject = false;
+      this.isDragOver = true
+      this.isDragReject = false
     } else {
-      this.isDragReject = true;
+      this.isDragReject = true
     }
   }
 
   private handleDragOver(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
 
     if (this.disabled || this.isProcessing) {
-      e.dataTransfer!.dropEffect = 'none';
-      return;
+      e.dataTransfer!.dropEffect = 'none'
+      return
     }
 
-    const hasValid = this.hasValidDataTransfer(e.dataTransfer);
+    const hasValid = this.hasValidDataTransfer(e.dataTransfer)
     if (hasValid) {
-      e.dataTransfer!.dropEffect = 'copy';
-      this.isDragOver = true;
-      this.isDragReject = false;
+      e.dataTransfer!.dropEffect = 'copy'
+      this.isDragOver = true
+      this.isDragReject = false
     } else {
-      e.dataTransfer!.dropEffect = 'none';
-      this.isDragReject = true;
+      e.dataTransfer!.dropEffect = 'none'
+      this.isDragReject = true
     }
   }
 
   private handleDragLeave(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
 
     // Only reset if leaving the drop zone
     if (!this.contains(e.relatedTarget as Node)) {
-      this.isDragOver = false;
-      this.isDragReject = false;
+      this.isDragOver = false
+      this.isDragReject = false
     }
   }
 
   private async handleDrop(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
 
     if (this.disabled || this.isProcessing) {
-      return;
+      return
     }
 
-    this.isDragOver = false;
-    this.isDragReject = false;
+    this.isDragOver = false
+    this.isDragReject = false
 
-    const files = e.dataTransfer?.files;
-    if (!files || files.length === 0) return;
+    const files = e.dataTransfer?.files
+    if (!files || files.length === 0) return
 
     // Filter valid files
-    const validFiles = this.filterValidFiles(Array.from(files));
+    const validFiles = this.filterValidFiles(Array.from(files))
     if (validFiles.length === 0) {
-      this.showMessage('No valid plugin files found', 'error');
-      return;
+      this.showMessage('No valid plugin files found', 'error')
+      return
     }
 
     if (!this.multiple && validFiles.length > 1) {
-      this.showMessage('Only one file can be dropped at a time', 'error');
-      return;
+      this.showMessage('Only one file can be dropped at a time', 'error')
+      return
     }
 
-    this.dragFiles = validFiles;
-    await this.processFiles(validFiles);
+    this.dragFiles = validFiles
+    await this.processFiles(validFiles)
   }
 
   private hasValidDataTransfer(dataTransfer: DataTransfer | null | undefined): boolean {
-    if (!dataTransfer) return false;
+    if (!dataTransfer) return false
 
     // Check items first
     if (dataTransfer.items) {
       for (let i = 0; i < dataTransfer.items.length; i++) {
-        const item = dataTransfer.items[i];
+        const item = dataTransfer.items[i]
         if (item.kind === 'file') {
-          const file = item.getAsFile();
+          const file = item.getAsFile()
           if (file && this.isValidFile(file)) {
-            return true;
+            return true
           }
         }
       }
@@ -411,109 +412,116 @@ export class DropZone extends LitElement {
     if (dataTransfer.files) {
       for (let i = 0; i < dataTransfer.files.length; i++) {
         if (this.isValidFile(dataTransfer.files[i])) {
-          return true;
+          return true
         }
       }
     }
 
-    return false;
+    return false
   }
 
   private isValidFile(file: File): boolean {
-    return file.name.toLowerCase().endsWith('.fcp');
+    return file.name.toLowerCase().endsWith('.fcp')
   }
 
   private filterValidFiles(files: File[]): File[] {
-    return files.filter(file => this.isValidFile(file));
+    return files.filter((file) => this.isValidFile(file))
   }
 
   private async processFiles(files: File[]) {
-    if (!this.onFilesDrop) return;
+    if (!this.onFilesDrop) return
 
-    this.isProcessing = true;
+    this.isProcessing = true
 
     // Initialize file statuses
-    files.forEach(file => {
-      this.fileStatuses.set(file.name, { status: 'pending' });
-    });
-    this.requestUpdate();
+    files.forEach((file) => {
+      this.fileStatuses.set(file.name, { status: 'pending' })
+    })
+    this.requestUpdate()
 
     try {
-      await this.onFilesDrop(files);
+      await this.onFilesDrop(files)
 
       // Mark all as success
-      files.forEach(file => {
-        this.fileStatuses.set(file.name, { status: 'success' });
-      });
+      files.forEach((file) => {
+        this.fileStatuses.set(file.name, { status: 'success' })
+      })
 
-      this.showMessage(`Successfully installed ${files.length} plugin${files.length > 1 ? 's' : ''}`, 'success');
+      this.showMessage(
+        `Successfully installed ${files.length} plugin${files.length > 1 ? 's' : ''}`,
+        'success',
+      )
     } catch (error) {
       // Mark all as error
-      files.forEach(file => {
+      files.forEach((file) => {
         this.fileStatuses.set(file.name, {
           status: 'error',
-          message: error instanceof Error ? error.message : 'Installation failed'
-        });
-      });
+          message: error instanceof Error ? error.message : 'Installation failed',
+        })
+      })
 
-      this.showMessage('Failed to install plugin(s)', 'error');
-      console.error('Plugin installation error:', error);
+      this.showMessage('Failed to install plugin(s)', 'error')
+      console.error('Plugin installation error:', error)
     } finally {
-      this.isProcessing = false;
+      this.isProcessing = false
       setTimeout(() => {
-        this.dragFiles = [];
-        this.fileStatuses.clear();
-      }, 3000);
+        this.dragFiles = []
+        this.fileStatuses.clear()
+      }, 3000)
     }
   }
 
   private showMessage(text: string, type: 'success' | 'error') {
     // Dispatch custom event for parent to handle
-    this.dispatchEvent(new CustomEvent('drop-zone-message', {
-      detail: { text, type },
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent('drop-zone-message', {
+        detail: { text, type },
+        bubbles: true,
+        composed: true,
+      }),
+    )
   }
 
   private handleClick() {
-    if (this.disabled || this.isProcessing) return;
+    if (this.disabled || this.isProcessing) return
 
-    const input = this.shadowRoot!.querySelector('.file-input') as HTMLInputElement;
-    input.click();
+    const input = this.shadowRoot!.querySelector('.file-input') as HTMLInputElement
+    input.click()
   }
 
   private handleFileSelect(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const files = Array.from(input.files || []);
+    const input = e.target as HTMLInputElement
+    const files = Array.from(input.files || [])
 
     if (files.length > 0) {
-      this.dragFiles = files;
-      this.processFiles(files);
+      this.dragFiles = files
+      this.processFiles(files)
     }
   }
 
   private formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   // Public API
   public setFilesDropHandler(handler: (files: File[]) => Promise<void>) {
-    this.onFilesDrop = handler;
+    this.onFilesDrop = handler
   }
 
   render() {
-    const hasDragFiles = this.dragFiles.length > 0;
+    const hasDragFiles = this.dragFiles.length > 0
 
     return html`
       <div class="drop-zone ${this.isDragOver ? 'drag-over' : ''} ${this.isDragReject ? 'drag-reject' : ''}"
            @click="${this.handleClick}">
 
-        ${!hasDragFiles ? html`
+        ${
+          !hasDragFiles
+            ? html`
           <div class="drop-icon">📦</div>
           <div class="drop-text">Drop plugin files here</div>
           <div class="drop-subtext">or click to browse</div>
@@ -521,12 +529,16 @@ export class DropZone extends LitElement {
           <button class="drop-button" ?disabled="${this.disabled}">
             Browse Files
           </button>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${hasDragFiles ? html`
+        ${
+          hasDragFiles
+            ? html`
           <div class="file-list">
-            ${this.dragFiles.map(file => {
-              const status = this.fileStatuses.get(file.name) || { status: 'pending' };
+            ${this.dragFiles.map((file) => {
+              const status = this.fileStatuses.get(file.name) || { status: 'pending' }
               return html`
                 <div class="file-item">
                   <span class="file-name">${file.name}</span>
@@ -537,10 +549,12 @@ export class DropZone extends LitElement {
                     ${status.status === 'error' ? '✗' : ''}
                   </span>
                 </div>
-              `;
+              `
             })}
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <input type="file"
                class="file-input"
@@ -554,13 +568,17 @@ export class DropZone extends LitElement {
           <div class="drop-overlay-icon">📥</div>
           <div class="drop-overlay-text">Drop to install plugin</div>
           <div class="drop-subtext">Release to install</div>
-          ${this.isProcessing ? html`
+          ${
+            this.isProcessing
+              ? html`
             <div class="progress-bar">
               <div class="progress-fill" style="width: 60%"></div>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
-    `;
+    `
   }
 }

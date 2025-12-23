@@ -6,28 +6,28 @@
  */
 
 export interface ActionProps {
-  title: string;
-  onAction?: () => void | Promise<void>;
-  shortcut?: string;
-  icon?: string;
-  style?: "default" | "destructive";
+  title: string
+  onAction?: () => void | Promise<void>
+  shortcut?: string
+  icon?: string
+  style?: 'default' | 'destructive'
   dialog?: {
-    title: string;
-    message: string;
+    title: string
+    message: string
     primaryAction?: {
-      title: string;
-      action?: () => void | Promise<void>;
-    };
+      title: string
+      action?: () => void | Promise<void>
+    }
     secondaryAction?: {
-      title: string;
-      action?: () => void | Promise<void>;
-    };
-  };
+      title: string
+      action?: () => void | Promise<void>
+    }
+  }
 }
 
 export interface ActionPanelProps {
-  children?: any;
-  actions?: ActionProps[];
+  children?: any
+  actions?: ActionProps[]
 }
 
 // Stub Action component - actual implementation in UI components
@@ -35,16 +35,16 @@ export const Action = {
   // Placeholder for Action component
   create: (_props: ActionProps) => {
     // This would create an Action component
-    return null;
+    return null
   },
-};
+}
 
 // Stub ActionPanel component - actual implementation in UI components
 export const ActionPanel = {
   // Placeholder for ActionPanel component
   create: (_props: ActionPanelProps) => {
     // This would create an ActionPanel component
-    return null;
+    return null
   },
-};
-export default Action;
+}
+export default Action

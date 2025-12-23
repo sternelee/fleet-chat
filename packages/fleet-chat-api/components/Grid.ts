@@ -4,39 +4,39 @@
  * Raycast-compatible Grid component built with Lit
  */
 
-import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
+import { LitElement, html, css } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import { repeat } from 'lit/directives/repeat.js'
 
 export interface IconProps {
-  source: string;
-  tintColor?: string;
-  tooltip?: string;
+  source: string
+  tintColor?: string
+  tooltip?: string
 }
 
 export interface GridItemProps {
-  id: string;
-  title: string;
-  subtitle?: string;
-  text?: string;
-  image?: string;
-  icon?: string | IconProps;
-  actions?: GridActionProps[];
-  aspectRatio?: number;
-  content?: string;
+  id: string
+  title: string
+  subtitle?: string
+  text?: string
+  image?: string
+  icon?: string | IconProps
+  actions?: GridActionProps[]
+  aspectRatio?: number
+  content?: string
 }
 
 export interface GridActionProps {
-  title: string;
-  icon?: string | IconProps;
-  onAction?: () => void | Promise<void>;
-  style?: "default" | "destructive";
+  title: string
+  icon?: string | IconProps
+  onAction?: () => void | Promise<void>
+  style?: 'default' | 'destructive'
 }
 
-export type GridSize = "small" | "medium" | "large";
-export type GridColumns = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type GridSize = 'small' | 'medium' | 'large'
+export type GridColumns = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
-@customElement("fc-grid")
+@customElement('fc-grid')
 export class FCGrid extends LitElement {
   static styles = css`
     :host {
@@ -309,115 +309,116 @@ export class FCGrid extends LitElement {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
-  `;
+  `
 
   @property({ type: Array })
-  items: GridItemProps[] = [];
+  items: GridItemProps[] = []
 
   @property({ type: String })
-  searchBarPlaceholder = "Search...";
+  searchBarPlaceholder = 'Search...'
 
   @property({ type: Boolean })
-  filtering = true;
+  filtering = true
 
   @property({ type: String })
-  size: GridSize = "medium";
+  size: GridSize = 'medium'
 
   @property({ type: Number })
-  columns?: GridColumns;
+  columns?: GridColumns
 
   @property({ type: Number })
-  aspectRatio = 1;
+  aspectRatio = 1
 
   @property({ type: String })
-  filter = "";
+  filter = ''
 
   @property({ type: Number })
-  selectedIndex = -1;
+  selectedIndex = -1
 
   @property({ type: Boolean })
-  isLoading = false;
+  isLoading = false
 
   @property({ type: Boolean })
-  navigation = true;
+  navigation = true
 
-  private filteredItems: GridItemProps[] = [];
+  private filteredItems: GridItemProps[] = []
 
   static get Item() {
-    return FCGridItem;
+    return FCGridItem
   }
 
   willUpdate(changedProperties: Map<string, any>) {
-    if (changedProperties.has("items") || changedProperties.has("filter")) {
-      this.updateFilteredItems();
+    if (changedProperties.has('items') || changedProperties.has('filter')) {
+      this.updateFilteredItems()
     }
   }
 
   updateFilteredItems() {
     if (!this.filtering || !this.filter) {
-      this.filteredItems = this.items;
-      return;
+      this.filteredItems = this.items
+      return
     }
 
-    const filterLower = this.filter.toLowerCase();
+    const filterLower = this.filter.toLowerCase()
     this.filteredItems = this.items.filter((item) => {
-      const searchText = `${item.title} ${item.subtitle || ""} ${item.text || ""}`.toLowerCase();
-      return searchText.includes(filterLower);
-    });
+      const searchText = `${item.title} ${item.subtitle || ''} ${item.text || ''}`.toLowerCase()
+      return searchText.includes(filterLower)
+    })
   }
 
   private handleSearchInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    this.filter = target.value;
+    const target = event.target as HTMLInputElement
+    this.filter = target.value
   }
 
   private selectItem(item: GridItemProps) {
     this.dispatchEvent(
-      new CustomEvent("item-selected", {
+      new CustomEvent('item-selected', {
         detail: item,
         bubbles: true,
         composed: true,
       }),
-    );
+    )
   }
 
   private handleKeyDown(event: KeyboardEvent) {
-    if (!this.navigation) return;
+    if (!this.navigation) return
 
-    const totalItems = this.filteredItems.length;
+    const totalItems = this.filteredItems.length
 
     switch (event.key) {
-      case "ArrowDown":
-      case "ArrowRight":
-        event.preventDefault();
-        this.selectedIndex = Math.min(this.selectedIndex + 1, totalItems - 1);
-        break;
-      case "ArrowUp":
-      case "ArrowLeft":
-        event.preventDefault();
-        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-        break;
-      case "Enter":
-        event.preventDefault();
+      case 'ArrowDown':
+      case 'ArrowRight':
+        event.preventDefault()
+        this.selectedIndex = Math.min(this.selectedIndex + 1, totalItems - 1)
+        break
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        event.preventDefault()
+        this.selectedIndex = Math.max(this.selectedIndex - 1, 0)
+        break
+      case 'Enter':
+        event.preventDefault()
         if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
-          this.selectItem(this.filteredItems[this.selectedIndex]);
+          this.selectItem(this.filteredItems[this.selectedIndex])
         }
-        break;
+        break
     }
   }
 
   private getGridClassName(): string {
     if (this.columns) {
-      return `grid-items columns-${this.columns}`;
+      return `grid-items columns-${this.columns}`
     }
-    return `grid-items size-${this.size}`;
+    return `grid-items size-${this.size}`
   }
 
   render() {
     return html`
       <div class="grid-container" @keydown="${this.handleKeyDown}">
-        ${this.filtering
-        ? html`
+        ${
+          this.filtering
+            ? html`
               <div class="search-bar">
                 <input
                   type="text"
@@ -428,18 +429,21 @@ export class FCGrid extends LitElement {
                 />
               </div>
             `
-        : ""}
+            : ''
+        }
 
-        ${this.isLoading
-        ? this.renderLoadingSkeleton()
-        : html`
+        ${
+          this.isLoading
+            ? this.renderLoadingSkeleton()
+            : html`
               <div class="${this.getGridClassName()}">
-                ${this.filteredItems.length > 0
-            ? html`
+                ${
+                  this.filteredItems.length > 0
+                    ? html`
                       ${repeat(
-              this.filteredItems,
-              (item) => item.id,
-              (item, index) => html`
+                        this.filteredItems,
+                        (item) => item.id,
+                        (item, index) => html`
                           <fc-grid-item
                             .item="${item}"
                             .selected="${index === this.selectedIndex}"
@@ -447,27 +451,29 @@ export class FCGrid extends LitElement {
                             @click="${() => this.selectItem(item)}"
                           ></fc-grid-item>
                         `,
-            )}
+                      )}
                     `
-            : html`
+                    : html`
                       <div class="empty-state">
                         <div class="empty-icon">🔍</div>
                         <div class="empty-title">No Results</div>
                         <div class="empty-message">Try adjusting your search terms</div>
                       </div>
                     `
-          }
+                }
               </div>
             `
-      }
+        }
       </div>
-    `;
+    `
   }
 
   private renderLoadingSkeleton() {
     return html`
       <div class="loading-skeleton">
-        ${Array.from({ length: 8 }, () => html`
+        ${Array.from(
+          { length: 8 },
+          () => html`
           <div class="skeleton-item">
             <div class="skeleton-image"></div>
             <div class="skeleton-content">
@@ -475,13 +481,14 @@ export class FCGrid extends LitElement {
               <div class="skeleton-subtitle"></div>
             </div>
           </div>
-        `)}
+        `,
+        )}
       </div>
-    `;
+    `
   }
 }
 
-@customElement("fc-grid-item")
+@customElement('fc-grid-item')
 export class FCGridItem extends LitElement {
   static styles = css`
     :host {
@@ -510,93 +517,101 @@ export class FCGridItem extends LitElement {
       border-color: var(--color-primary);
       box-shadow: 0 0 0 2px var(--color-primary-alpha);
     }
-  `;
+  `
 
   @property({ type: Object })
-  item!: GridItemProps;
+  item!: GridItemProps
 
   @property({ type: Boolean })
-  selected = false;
+  selected = false
 
   @property({ type: Number })
-  aspectRatio = 1;
+  aspectRatio = 1
 
   private renderIcon(icon: string | IconProps | undefined) {
-    if (!icon) return html``;
+    if (!icon) return html``
 
-    const iconSrc = typeof icon === "string" ? icon : icon.source;
-    const iconTint = typeof icon === "object" && icon.tintColor
-      ? `color: ${icon.tintColor}`
-      : "";
+    const iconSrc = typeof icon === 'string' ? icon : icon.source
+    const iconTint = typeof icon === 'object' && icon.tintColor ? `color: ${icon.tintColor}` : ''
 
-    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
-      return html`<img src="${iconSrc}" alt="" style="${iconTint}" />`;
+    if (iconSrc.startsWith('http') || iconSrc.startsWith('/')) {
+      return html`<img src="${iconSrc}" alt="" style="${iconTint}" />`
     }
 
-    if (iconSrc.startsWith("<svg")) {
-      return html`<div style="${iconTint}">${iconSrc}</div>`;
+    if (iconSrc.startsWith('<svg')) {
+      return html`<div style="${iconTint}">${iconSrc}</div>`
     }
 
-    return html`<span style="${iconTint}">${iconSrc}</span>`;
+    return html`<span style="${iconTint}">${iconSrc}</span>`
   }
 
   private handleAction(action: GridActionProps, event: Event) {
-    event.preventDefault();
-    event.stopPropagation();
+    event.preventDefault()
+    event.stopPropagation()
 
     if (action.onAction) {
-      action.onAction();
+      action.onAction()
     }
   }
 
   render() {
-    const { title, subtitle, text, image, icon, actions } = this.item;
+    const { title, subtitle, text, image, icon, actions } = this.item
 
     return html`
       <div
-        class="grid-item ${this.selected ? "selected" : ""}"
-        style="${this.aspectRatio ? `--aspect-ratio: ${this.aspectRatio}` : ""}"
+        class="grid-item ${this.selected ? 'selected' : ''}"
+        style="${this.aspectRatio ? `--aspect-ratio: ${this.aspectRatio}` : ''}"
         @click="${(e: Event) => {
-        e.stopPropagation();
-        this.dispatchEvent(new CustomEvent("item-click", {
-          detail: this.item,
-          bubbles: true,
-          composed: true,
-        }));
-      }}"
+          e.stopPropagation()
+          this.dispatchEvent(
+            new CustomEvent('item-click', {
+              detail: this.item,
+              bubbles: true,
+              composed: true,
+            }),
+          )
+        }}"
       >
-        ${image
-        ? html` <img src="${image}" alt="${title}" class="grid-item-image" style="aspect-ratio: ${this.aspectRatio}" /> `
-        : icon
-          ? html`
+        ${
+          image
+            ? html` <img src="${image}" alt="${title}" class="grid-item-image" style="aspect-ratio: ${this.aspectRatio}" /> `
+            : icon
+              ? html`
                 <div class="grid-item-icon">
                   ${this.renderIcon(icon)}
                 </div>
               `
-          : ""}
+              : ''
+        }
 
         <div class="grid-item-content">
           <div class="grid-item-title">${title}</div>
-          ${subtitle ? html` <div class="grid-item-subtitle">${subtitle}</div> ` : ""}
-          ${text ? html` <div class="grid-item-text">${text}</div> ` : ""}
+          ${subtitle ? html` <div class="grid-item-subtitle">${subtitle}</div> ` : ''}
+          ${text ? html` <div class="grid-item-text">${text}</div> ` : ''}
         </div>
 
-        ${actions && actions.length > 0 ? html`
+        ${
+          actions && actions.length > 0
+            ? html`
           <div class="grid-item-actions">
-            ${actions.map(action => html`
+            ${actions.map(
+              (action) => html`
               <button
-                class="grid-action ${action.style === "destructive" ? "destructive" : ""}"
+                class="grid-action ${action.style === 'destructive' ? 'destructive' : ''}"
                 @click="${(e: Event) => this.handleAction(action, e)}"
               >
-                ${action.icon ? html`<span class="grid-action-icon">${this.renderIcon(action.icon)}</span>` : ""}
+                ${action.icon ? html`<span class="grid-action-icon">${this.renderIcon(action.icon)}</span>` : ''}
                 ${action.title}
               </button>
-            `)}
+            `,
+            )}
           </div>
-        ` : ""}
+        `
+            : ''
+        }
       </div>
-    `;
+    `
   }
 }
 
-export default FCGrid;
+export default FCGrid

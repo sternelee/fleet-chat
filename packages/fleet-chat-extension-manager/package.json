@@ -1,33 +1,33 @@
 {
-  "name": "@fleet-chat/extension-manager",
-  "version": "1.0.0",
-  "description": "Fleet Chat Extension Manager",
-  "main": "index.ts",
-  "type": "module",
-  "exports": {
-    ".": "./index.ts"
-  },
-  "files": [
-    "index.ts",
-    "README.md"
-  ],
-  "scripts": {
-    "build": "tsc --noEmit",
-    "dev": "tsc --noEmit --watch",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/plugin-shell": "^2.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^24.5.2",
-    "typescript": "^5.9.2"
-  },
-  "publishConfig": {
-    "access": "restricted"
-  },
-  "author": "Fleet Chat",
-  "license": "MIT"
+    "name": "@fleet-chat/extension-manager",
+    "version": "1.0.0",
+    "description": "Fleet Chat Extension Manager",
+    "main": "index.ts",
+    "type": "module",
+    "exports": {
+        ".": "./index.ts"
+    },
+    "files": [
+        "index.ts",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "tsc --noEmit",
+        "dev": "tsc --noEmit --watch",
+        "typecheck": "tsc --noEmit",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@tauri-apps/api": "^2.0.0",
+        "@tauri-apps/plugin-shell": "^2.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^24.5.2",
+        "typescript": "^5.9.2"
+    },
+    "publishConfig": {
+        "access": "restricted"
+    },
+    "author": "Fleet Chat",
+    "license": "MIT"
 }

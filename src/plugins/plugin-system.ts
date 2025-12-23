@@ -8,4 +8,4 @@
  */
 
 // Re-export all types from the centralized API package
-export * from "../../packages/fleet-chat-api/plugins/core/types.js";
+export * from '../../packages/fleet-chat-api/plugins/core/types.js'

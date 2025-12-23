@@ -12,40 +12,40 @@ export enum LogLevel {
 }
 
 export interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: Date;
-  context?: string;
-  error?: Error;
+  level: LogLevel
+  message: string
+  timestamp: Date
+  context?: string
+  error?: Error
 }
 
 export class Logger {
-  private static instance: Logger;
-  private logs: LogEntry[] = [];
-  private maxLogs = 1000;
-  private logLevel: LogLevel = LogLevel.INFO;
-  private context: string = 'Plugin';
+  private static instance: Logger
+  private logs: LogEntry[] = []
+  private maxLogs = 1000
+  private logLevel: LogLevel = LogLevel.INFO
+  private context: string = 'Plugin'
 
   private constructor() {}
 
   static getInstance(): Logger {
     if (!Logger.instance) {
-      Logger.instance = new Logger();
+      Logger.instance = new Logger()
     }
-    return Logger.instance;
+    return Logger.instance
   }
 
   setContext(context: string): Logger {
-    this.context = context;
-    return this;
+    this.context = context
+    return this
   }
 
   setLogLevel(level: LogLevel): void {
-    this.logLevel = level;
+    this.logLevel = level
   }
 
   private log(level: LogLevel, message: string, error?: Error): void {
-    if (level < this.logLevel) return;
+    if (level < this.logLevel) return
 
     const entry: LogEntry = {
       level,
@@ -53,174 +53,170 @@ export class Logger {
       timestamp: new Date(),
       context: this.context,
       error,
-    };
+    }
 
-    this.logs.push(entry);
+    this.logs.push(entry)
 
     // 保持日志数量在限制内
     if (this.logs.length > this.maxLogs) {
-      this.logs = this.logs.slice(-this.maxLogs);
+      this.logs = this.logs.slice(-this.maxLogs)
     }
 
     // 控制台输出
-    const timestamp = entry.timestamp.toISOString();
-    const contextStr = entry.context ? `[${entry.context}] ` : '';
-    let logMessage = `${timestamp} ${contextStr}${message}`;
+    const timestamp = entry.timestamp.toISOString()
+    const contextStr = entry.context ? `[${entry.context}] ` : ''
+    let logMessage = `${timestamp} ${contextStr}${message}`
 
     switch (level) {
       case LogLevel.DEBUG:
-        console.debug(logMessage);
-        break;
+        console.debug(logMessage)
+        break
       case LogLevel.INFO:
-        console.info(logMessage);
-        break;
+        console.info(logMessage)
+        break
       case LogLevel.WARN:
-        console.warn(logMessage);
-        break;
+        console.warn(logMessage)
+        break
       case LogLevel.ERROR:
-        console.error(logMessage);
+        console.error(logMessage)
         if (error) {
-          console.error(error.stack);
+          console.error(error.stack)
         }
-        break;
+        break
     }
   }
 
   debug(message: string): void {
-    this.log(LogLevel.DEBUG, message);
+    this.log(LogLevel.DEBUG, message)
   }
 
   info(message: string): void {
-    this.log(LogLevel.INFO, message);
+    this.log(LogLevel.INFO, message)
   }
 
   warn(message: string): void {
-    this.log(LogLevel.WARN, message);
+    this.log(LogLevel.WARN, message)
   }
 
   error(message: string, error?: Error): void {
-    this.log(LogLevel.ERROR, message, error);
+    this.log(LogLevel.ERROR, message, error)
   }
 
   getLogs(level?: LogLevel): LogEntry[] {
-    return level ? this.logs.filter(log => log.level >= level) : [...this.logs];
+    return level ? this.logs.filter((log) => log.level >= level) : [...this.logs]
   }
 
   clearLogs(): void {
-    this.logs = [];
+    this.logs = []
   }
 
   exportLogs(): string {
-    return JSON.stringify(this.logs, null, 2);
+    return JSON.stringify(this.logs, null, 2)
   }
 
   // 静态便捷方法
   static debug(message: string, context?: string): void {
-    const logger = Logger.getInstance();
-    if (context) logger.setContext(context);
-    logger.debug(message);
+    const logger = Logger.getInstance()
+    if (context) logger.setContext(context)
+    logger.debug(message)
   }
 
   static info(message: string, context?: string): void {
-    const logger = Logger.getInstance();
-    if (context) logger.setContext(context);
-    logger.info(message);
+    const logger = Logger.getInstance()
+    if (context) logger.setContext(context)
+    logger.info(message)
   }
 
   static warn(message: string, context?: string): void {
-    const logger = Logger.getInstance();
-    if (context) logger.setContext(context);
-    logger.warn(message);
+    const logger = Logger.getInstance()
+    if (context) logger.setContext(context)
+    logger.warn(message)
   }
 
   static error(message: string, error?: Error, context?: string): void {
-    const logger = Logger.getInstance();
-    if (context) logger.setContext(context);
-    logger.error(message, error);
+    const logger = Logger.getInstance()
+    if (context) logger.setContext(context)
+    logger.error(message, error)
   }
 }
 
 // 错误处理工具
 export class ErrorHandler {
-  private static logger = Logger.getInstance();
+  private static logger = Logger.getInstance()
 
   static async withErrorHandling<T>(
     operation: () => Promise<T> | T,
     errorMessage: string = '操作失败',
-    context?: string
+    context?: string,
   ): Promise<T | null> {
     try {
-      return await operation();
+      return await operation()
     } catch (error) {
-      this.logger.error(errorMessage, error as Error, context);
+      this.logger.error(errorMessage, error as Error, context)
 
       // 向用户显示友好的错误信息
       if (typeof window !== 'undefined' && window.showToast) {
         await window.showToast({
           title: '错误',
           message: errorMessage,
-          style: 'error'
-        });
+          style: 'error',
+        })
       }
 
-      return null;
+      return null
     }
   }
 
   static wrapFunction<T extends (...args: any[]) => any>(
     fn: T,
     errorMessage?: string,
-    context?: string
+    context?: string,
   ): T {
     return (async (...args: Parameters<T>) => {
-      return await this.withErrorHandling(
-        () => fn(...args),
-        errorMessage,
-        context
-      );
-    }) as T;
+      return await this.withErrorHandling(() => fn(...args), errorMessage, context)
+    }) as T
   }
 }
 
 // 性能监控
 export class PerformanceMonitor {
-  private static timers: Map<string, number> = new Map();
-  private static logger = Logger.getInstance();
+  private static timers: Map<string, number> = new Map()
+  private static logger = Logger.getInstance()
 
   static startTimer(name: string): void {
-    this.timers.set(name, performance.now());
+    this.timers.set(name, performance.now())
   }
 
   static endTimer(name: string, context?: string): number {
-    const startTime = this.timers.get(name);
+    const startTime = this.timers.get(name)
     if (startTime === undefined) {
-      this.logger.warn(`Timer "${name}" was not started`, context);
-      return 0;
+      this.logger.warn(`Timer "${name}" was not started`, context)
+      return 0
     }
 
-    const duration = performance.now() - startTime;
-    this.timers.delete(name);
+    const duration = performance.now() - startTime
+    this.timers.delete(name)
 
-    this.logger.debug(`Timer "${name}": ${duration.toFixed(2)}ms`, context);
-    return duration;
+    this.logger.debug(`Timer "${name}": ${duration.toFixed(2)}ms`, context)
+    return duration
   }
 
   static async measure<T>(
     name: string,
     operation: () => Promise<T> | T,
-    context?: string
+    context?: string,
   ): Promise<T> {
-    this.startTimer(name);
+    this.startTimer(name)
     try {
-      const result = await operation();
-      this.endTimer(name, context);
-      return result;
+      const result = await operation()
+      this.endTimer(name, context)
+      return result
     } catch (error) {
-      this.endTimer(name, context);
-      throw error;
+      this.endTimer(name, context)
+      throw error
     }
   }
 }
 
 // 默认导出
-export default Logger;
+export default Logger

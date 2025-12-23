@@ -1,7 +1,7 @@
-import { css, html, LitElement } from "lit";
-import { customElement } from "lit/decorators.js";
+import { css, html, LitElement } from 'lit'
+import { customElement } from 'lit/decorators.js'
 
-@customElement("error-browser")
+@customElement('error-browser')
 export class ErrorBrowser extends LitElement {
   render() {
     return html`
@@ -44,7 +44,7 @@ export class ErrorBrowser extends LitElement {
           <span>Open the Fleet Lit Tauri</span>
         </a>
       </div>
-    `;
+    `
   }
 
   static styles = css`
@@ -122,11 +122,11 @@ export class ErrorBrowser extends LitElement {
     .app-button:active {
       transform: translateY(0);
     }
-  `;
+  `
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "error-browser": ErrorBrowser;
+    'error-browser': ErrorBrowser
   }
 }

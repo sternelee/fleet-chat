@@ -4,12 +4,12 @@
  * Provides a user interface for managing Fleet Chat plugins
  */
 
-import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { PluginManager } from '../plugins/plugin-manager';
-import { PluginLoader } from '../plugins/plugin-loader';
-import { PluginManifest } from '../plugins/plugin-system';
-import './drop-zone.js';
+import { LitElement, html, css } from 'lit'
+import { customElement, state } from 'lit/decorators.js'
+import { PluginManager } from '../plugins/plugin-manager'
+import { PluginLoader } from '../plugins/plugin-loader'
+import { PluginManifest } from '../plugins/plugin-system'
+import './drop-zone.js'
 
 @customElement('plugin-manager-ui')
 export class PluginManagerUI extends LitElement {
@@ -370,156 +370,166 @@ export class PluginManagerUI extends LitElement {
       background-color: var(--border-color);
       margin: 16px 0;
     }
-  `;
+  `
 
   @state()
   private plugins: Array<{
-    manifest: PluginManifest;
-    status: string;
-    errors?: string[];
-  }> = [];
+    manifest: PluginManifest
+    status: string
+    errors?: string[]
+  }> = []
 
   @state()
-  private searchTerm: string = '';
+  private searchTerm: string = ''
 
   @state()
-  private showInstallModal: boolean = false;
+  private showInstallModal: boolean = false
 
   @state()
-  private installUrl: string = '';
+  private installUrl: string = ''
 
   @state()
-  private showToast: boolean = false;
+  private showToast: boolean = false
   @state()
-  private toastMessage: string = '';
+  private toastMessage: string = ''
   @state()
-  private toastType: 'success' | 'error' = 'success';
+  private toastType: 'success' | 'error' = 'success'
 
-  private pluginManager?: PluginManager;
-  private pluginLoader?: PluginLoader;
+  private pluginManager?: PluginManager
+  private pluginLoader?: PluginLoader
 
   async connectedCallback() {
-    super.connectedCallback();
-    await this.initializePluginManager();
-    this.loadPlugins();
+    super.connectedCallback()
+    await this.initializePluginManager()
+    this.loadPlugins()
   }
 
   private async initializePluginManager() {
     // Initialize plugin manager and loader
-    this.pluginManager = new PluginManager();
-    this.pluginLoader = new PluginLoader(this.pluginManager);
-    await this.pluginManager.initialize();
+    this.pluginManager = new PluginManager()
+    this.pluginLoader = new PluginLoader(this.pluginManager)
+    await this.pluginManager.initialize()
   }
 
   private async loadPlugins() {
-    if (!this.pluginLoader) return;
+    if (!this.pluginLoader) return
 
     try {
-      const loadedPlugins = this.pluginLoader.getInstalledPlugins();
-      this.plugins = loadedPlugins.map(p => ({
+      const loadedPlugins = this.pluginLoader.getInstalledPlugins()
+      this.plugins = loadedPlugins.map((p) => ({
         manifest: p.manifest,
         status: 'loaded',
-        errors: undefined
-      }));
+        errors: undefined,
+      }))
     } catch (error) {
-      console.error('Failed to load plugins:', error);
-      this.showToastMessage('Failed to load plugins', 'error');
+      console.error('Failed to load plugins:', error)
+      this.showToastMessage('Failed to load plugins', 'error')
     }
   }
 
   private filteredPlugins() {
-    if (!this.searchTerm) return this.plugins;
+    if (!this.searchTerm) return this.plugins
 
-    const term = this.searchTerm.toLowerCase();
-    return this.plugins.filter(p =>
-      p.manifest.name.toLowerCase().includes(term) ||
-      p.manifest.description.toLowerCase().includes(term) ||
-      (p.manifest.author && p.manifest.author.toLowerCase().includes(term))
-    );
+    const term = this.searchTerm.toLowerCase()
+    return this.plugins.filter(
+      (p) =>
+        p.manifest.name.toLowerCase().includes(term) ||
+        p.manifest.description.toLowerCase().includes(term) ||
+        (p.manifest.author && p.manifest.author.toLowerCase().includes(term)),
+    )
   }
 
   private showInstallDialog() {
-    this.showInstallModal = true;
-    this.installUrl = '';
+    this.showInstallModal = true
+    this.installUrl = ''
   }
 
   private hideInstallDialog() {
-    this.showInstallModal = false;
-    this.installUrl = '';
+    this.showInstallModal = false
+    this.installUrl = ''
   }
 
   private async installFromUrl() {
-    if (!this.installUrl || !this.pluginLoader) return;
+    if (!this.installUrl || !this.pluginLoader) return
 
     try {
-      await this.pluginLoader.loadPlugin(this.installUrl);
-      this.showToastMessage('Plugin installed successfully', 'success');
-      this.hideInstallDialog();
-      this.loadPlugins();
+      await this.pluginLoader.loadPlugin(this.installUrl)
+      this.showToastMessage('Plugin installed successfully', 'success')
+      this.hideInstallDialog()
+      this.loadPlugins()
     } catch (error) {
-      this.showToastMessage(`Failed to install plugin: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      this.showToastMessage(
+        `Failed to install plugin: ${error instanceof Error ? error.message : String(error)}`,
+        'error',
+      )
     }
   }
 
   private async uninstallPlugin(pluginName: string) {
-    if (!this.pluginLoader) return;
+    if (!this.pluginLoader) return
 
     if (!confirm(`Are you sure you want to uninstall "${pluginName}"?`)) {
-      return;
+      return
     }
 
     try {
-      await this.pluginLoader.uninstallPlugin(pluginName);
-      this.showToastMessage('Plugin uninstalled successfully', 'success');
-      this.loadPlugins();
+      await this.pluginLoader.uninstallPlugin(pluginName)
+      this.showToastMessage('Plugin uninstalled successfully', 'success')
+      this.loadPlugins()
     } catch (error) {
-      this.showToastMessage(`Failed to uninstall plugin: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      this.showToastMessage(
+        `Failed to uninstall plugin: ${error instanceof Error ? error.message : String(error)}`,
+        'error',
+      )
     }
   }
 
   private async refreshPlugins() {
-    this.showToastMessage('Refreshing plugins...', 'success');
-    await this.loadPlugins();
+    this.showToastMessage('Refreshing plugins...', 'success')
+    await this.loadPlugins()
   }
 
   private showToastMessage(message: string, type: 'success' | 'error' = 'success') {
-    this.toastMessage = message;
-    this.toastType = type;
-    this.showToast = true;
+    this.toastMessage = message
+    this.toastType = type
+    this.showToast = true
     setTimeout(() => {
-      this.showToast = false;
-    }, 3000);
+      this.showToast = false
+    }, 3000)
   }
 
   private async handleFilesDrop(files: File[]) {
-    if (!this.pluginLoader) return;
+    if (!this.pluginLoader) return
 
     for (const file of files) {
       try {
         // For local files, we need to get the file path
         // In a Tauri app, we can use the Tauri API to get the file path
         if ((window as any).__TAURI__) {
-          const filePath = (file as any).path || file.name;
-          await this.pluginLoader.loadPlugin(filePath);
-          this.showToastMessage(`Installed ${file.name}`, 'success');
+          const filePath = (file as any).path || file.name
+          await this.pluginLoader.loadPlugin(filePath)
+          this.showToastMessage(`Installed ${file.name}`, 'success')
         } else {
           // For web environment, use object URL
-          const url = URL.createObjectURL(file);
-          await this.pluginLoader.loadPlugin(url);
-          this.showToastMessage(`Installed ${file.name}`, 'success');
-          URL.revokeObjectURL(url);
+          const url = URL.createObjectURL(file)
+          await this.pluginLoader.loadPlugin(url)
+          this.showToastMessage(`Installed ${file.name}`, 'success')
+          URL.revokeObjectURL(url)
         }
       } catch (error) {
-        this.showToastMessage(`Failed to install ${file.name}: ${error instanceof Error ? error.message : String(error)}`, 'error');
+        this.showToastMessage(
+          `Failed to install ${file.name}: ${error instanceof Error ? error.message : String(error)}`,
+          'error',
+        )
       }
     }
 
-    this.loadPlugins();
+    this.loadPlugins()
   }
 
   private handleDropZoneMessage(e: CustomEvent) {
-    const { text, type } = e.detail;
-    this.showToastMessage(text, type);
+    const { text, type } = e.detail
+    this.showToastMessage(text, type)
   }
 
   render() {
@@ -542,7 +552,7 @@ export class PluginManagerUI extends LitElement {
             type="text"
             placeholder="Search plugins..."
             .value=${this.searchTerm}
-            @input=${(e: Event) => this.searchTerm = (e.target as HTMLInputElement).value}
+            @input=${(e: Event) => (this.searchTerm = (e.target as HTMLInputElement).value)}
           />
           <span class="search-icon">🔍</span>
         </div>
@@ -558,9 +568,10 @@ export class PluginManagerUI extends LitElement {
           <div class="divider"></div>
 
           <div class="plugin-list">
-            ${this.filteredPlugins().length > 0 ?
-              this.filteredPlugins().map(plugin => this.renderPlugin(plugin)) :
-              this.renderEmptyState()
+            ${
+              this.filteredPlugins().length > 0
+                ? this.filteredPlugins().map((plugin) => this.renderPlugin(plugin))
+                : this.renderEmptyState()
             }
           </div>
         </div>
@@ -568,16 +579,17 @@ export class PluginManagerUI extends LitElement {
 
       ${this.renderInstallModal()}
       ${this.renderToast()}
-    `;
+    `
   }
 
   private renderPlugin(plugin: any) {
     return html`
       <div class="plugin-item">
         <div class="plugin-icon">
-          ${plugin.manifest.icon ?
-            html`<img src="${plugin.manifest.icon}" alt="${plugin.manifest.name}" />` :
-            html`📦`
+          ${
+            plugin.manifest.icon
+              ? html`<img src="${plugin.manifest.icon}" alt="${plugin.manifest.name}" />`
+              : html`📦`
           }
         </div>
         <div class="plugin-info">
@@ -601,7 +613,7 @@ export class PluginManagerUI extends LitElement {
           </button>
         </div>
       </div>
-    `;
+    `
   }
 
   private renderEmptyState() {
@@ -617,11 +629,11 @@ export class PluginManagerUI extends LitElement {
           Drag .fcp files to the drop zone above or click "Install Plugin"
         </p>
       </div>
-    `;
+    `
   }
 
   private renderInstallModal() {
-    if (!this.showInstallModal) return '';
+    if (!this.showInstallModal) return ''
 
     return html`
       <div class="install-modal" @click=${this.hideInstallDialog}>
@@ -637,7 +649,7 @@ export class PluginManagerUI extends LitElement {
               type="text"
               placeholder="https://example.com/plugin.fcp or /path/to/plugin.fcp"
               .value=${this.installUrl}
-              @input=${(e: Event) => this.installUrl = (e.target as HTMLInputElement).value}
+              @input=${(e: Event) => (this.installUrl = (e.target as HTMLInputElement).value)}
             />
           </div>
 
@@ -651,31 +663,31 @@ export class PluginManagerUI extends LitElement {
           </div>
         </div>
       </div>
-    `;
+    `
   }
 
   private renderToast() {
-    if (!this.showToast) return '';
+    if (!this.showToast) return ''
 
     return html`
       <div class="toast ${this.toastType} show">
         ${this.toastMessage}
       </div>
-    `;
+    `
   }
 
   // Set up drop zone handler after first render
   firstUpdated() {
-    const dropZone = this.shadowRoot?.querySelector('drop-zone') as any;
+    const dropZone = this.shadowRoot?.querySelector('drop-zone') as any
     if (dropZone) {
-      dropZone.setFilesDropHandler(this.handleFilesDrop.bind(this));
+      dropZone.setFilesDropHandler(this.handleFilesDrop.bind(this))
     }
   }
 
   updated() {
-    const dropZone = this.shadowRoot?.querySelector('drop-zone') as any;
+    const dropZone = this.shadowRoot?.querySelector('drop-zone') as any
     if (dropZone && !dropZone.onFilesDrop) {
-      dropZone.setFilesDropHandler(this.handleFilesDrop.bind(this));
+      dropZone.setFilesDropHandler(this.handleFilesDrop.bind(this))
     }
   }
 }

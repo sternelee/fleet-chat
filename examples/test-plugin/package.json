@@ -1,15 +1,15 @@
 {
-  "name": "test-plugin",
-  "version": "1.0.0",
-  "description": "test-plugin plugin for Fleet Chat",
-  "author": "Fleet Chat Developer",
-  "commands": [
-    {
-      "name": "default",
-      "title": "Test Plugin",
-      "description": "test-plugin plugin functionality",
-      "mode": "view"
-    }
-  ],
-  "icon": "🚀"
+    "name": "test-plugin",
+    "version": "1.0.0",
+    "description": "test-plugin plugin for Fleet Chat",
+    "author": "Fleet Chat Developer",
+    "commands": [
+        {
+            "name": "default",
+            "title": "Test Plugin",
+            "description": "test-plugin plugin functionality",
+            "mode": "view"
+        }
+    ],
+    "icon": "🚀"
 }

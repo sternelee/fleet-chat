@@ -4,35 +4,35 @@
  * Raycast-compatible Detail component built with Lit
  */
 
-import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
-import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import { LitElement, html, css } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import { repeat } from 'lit/directives/repeat.js'
+import { unsafeHTML } from 'lit/directives/unsafe-html.js'
 
 export interface IconProps {
-  source: string;
-  tintColor?: string;
-  tooltip?: string;
+  source: string
+  tintColor?: string
+  tooltip?: string
 }
 
 export interface DetailMetadataProps {
-  label: string;
-  text: string;
-  icon?: string | IconProps;
-  href?: string;
+  label: string
+  text: string
+  icon?: string | IconProps
+  href?: string
 }
 
 export interface DetailActionProps {
-  title: string;
-  icon?: string | IconProps;
-  onAction?: () => void | Promise<void>;
-  style?: "default" | "primary" | "destructive";
-  shortcut?: string;
-  href?: string;
-  target?: string;
+  title: string
+  icon?: string | IconProps
+  onAction?: () => void | Promise<void>
+  style?: 'default' | 'primary' | 'destructive'
+  shortcut?: string
+  href?: string
+  target?: string
 }
 
-@customElement("fc-detail")
+@customElement('fc-detail')
 export class FCDetail extends LitElement {
   static styles = css`
     :host {
@@ -431,108 +431,109 @@ export class FCDetail extends LitElement {
       font-size: 12px;
       font-weight: 500;
     }
-  `;
+  `
 
   @property({ type: String })
-  markdown = "";
+  markdown = ''
 
   @property({ type: String })
-  html = "";
+  html = ''
 
   @property({ type: Boolean })
-  isLoading = false;
+  isLoading = false
 
   @property({ type: Array })
-  metadata: DetailMetadataProps[] = [];
+  metadata: DetailMetadataProps[] = []
 
   @property({ type: Array })
-  actions: DetailActionProps[] = [];
+  actions: DetailActionProps[] = []
 
   @property({ type: String })
-  title?: string;
+  title?: string
 
   @property({ type: String })
-  subtitle?: string;
+  subtitle?: string
 
   @property({ type: String })
-  icon?: string | IconProps;
+  icon?: string | IconProps
 
   @property({ type: Array })
-  tags: string[] = [];
+  tags: string[] = []
 
   @property({ type: String })
-  error?: string;
+  error?: string
 
   render() {
     if (this.isLoading) {
-      return this.renderLoadingState();
+      return this.renderLoadingState()
     }
 
     if (this.error) {
-      return this.renderErrorState();
+      return this.renderErrorState()
     }
 
     return html`
       <div class="detail-container">
-        ${this.title || this.icon ? this.renderHeader() : ""}
+        ${this.title || this.icon ? this.renderHeader() : ''}
 
-        ${this.markdown || this.html
-        ? html`
+        ${
+          this.markdown || this.html
+            ? html`
               <div class="content-area">
                 <div class="markdown-content">
-                  ${this.html
-            ? unsafeHTML(this.html)
-            : unsafeHTML(this.renderMarkdown(this.markdown))
-          }
+                  ${
+                    this.html
+                      ? unsafeHTML(this.html)
+                      : unsafeHTML(this.renderMarkdown(this.markdown))
+                  }
                 </div>
               </div>
             `
-        : ""}
+            : ''
+        }
 
-        ${this.tags.length > 0 ? this.renderTags() : ""}
+        ${this.tags.length > 0 ? this.renderTags() : ''}
 
-        ${this.metadata.length > 0 ? this.renderMetadata() : ""}
+        ${this.metadata.length > 0 ? this.renderMetadata() : ''}
 
-        ${this.actions.length > 0 ? this.renderActions() : ""}
+        ${this.actions.length > 0 ? this.renderActions() : ''}
       </div>
-    `;
+    `
   }
 
   private renderHeader() {
     return html`
       <div class="detail-header">
-        ${this.icon ? this.renderIcon(this.icon) : ""}
+        ${this.icon ? this.renderIcon(this.icon) : ''}
         <div class="detail-header-content">
-          <div class="detail-title">${this.title || ""}</div>
-          ${this.subtitle ? html`<div class="detail-subtitle">${this.subtitle}</div>` : ""}
+          <div class="detail-title">${this.title || ''}</div>
+          ${this.subtitle ? html`<div class="detail-subtitle">${this.subtitle}</div>` : ''}
         </div>
       </div>
-    `;
+    `
   }
 
   private renderIcon(icon: string | IconProps) {
-    const iconSrc = typeof icon === "string" ? icon : icon.source;
-    const iconTint = typeof icon === "object" && icon.tintColor
-      ? `color: ${icon.tintColor}`
-      : "";
+    const iconSrc = typeof icon === 'string' ? icon : icon.source
+    const iconTint = typeof icon === 'object' && icon.tintColor ? `color: ${icon.tintColor}` : ''
 
-    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
-      return html`<div class="detail-icon"><img src="${iconSrc}" alt="" /></div>`;
+    if (iconSrc.startsWith('http') || iconSrc.startsWith('/')) {
+      return html`<div class="detail-icon"><img src="${iconSrc}" alt="" /></div>`
     }
 
-    if (iconSrc.startsWith("<svg")) {
-      return html`<div class="detail-icon" style="${iconTint}">${iconSrc}</div>`;
+    if (iconSrc.startsWith('<svg')) {
+      return html`<div class="detail-icon" style="${iconTint}">${iconSrc}</div>`
     }
 
-    return html`<div class="detail-icon" style="${iconTint}">${iconSrc}</div>`;
+    return html`<div class="detail-icon" style="${iconTint}">${iconSrc}</div>`
   }
 
   private renderTags() {
     return html`
       <div class="tags">
-        ${this.tags.map(tag => html`<span class="tag">${tag}</span>`)}
+        ${this.tags.map((tag) => html`<span class="tag">${tag}</span>`)}
       </div>
-    `;
+    `
   }
 
   private renderMetadata() {
@@ -540,88 +541,90 @@ export class FCDetail extends LitElement {
       <div class="metadata">
         <div class="metadata-title">Information</div>
         ${repeat(
-      this.metadata,
-      (item) => item.label,
-      (item) => html`
+          this.metadata,
+          (item) => item.label,
+          (item) => html`
             <div class="metadata-item">
               <div class="metadata-label">
-                ${item.icon ? html`
+                ${
+                  item.icon
+                    ? html`
                   <div class="metadata-label-icon">
                     ${this.renderMetadataIcon(item.icon)}
                   </div>
-                ` : ""}
+                `
+                    : ''
+                }
                 ${item.label}
               </div>
-              ${item.href
-          ? html`<a class="metadata-link" href="${item.href}" target="_blank">${item.text}</a>`
-          : html`<div class="metadata-text">${item.text}</div>`
-        }
+              ${
+                item.href
+                  ? html`<a class="metadata-link" href="${item.href}" target="_blank">${item.text}</a>`
+                  : html`<div class="metadata-text">${item.text}</div>`
+              }
             </div>
           `,
-    )}
+        )}
       </div>
-    `;
+    `
   }
 
   private renderMetadataIcon(icon: string | IconProps) {
-    const iconSrc = typeof icon === "string" ? icon : icon.source;
-    const iconTint = typeof icon === "object" && icon.tintColor
-      ? `color: ${icon.tintColor}`
-      : "";
+    const iconSrc = typeof icon === 'string' ? icon : icon.source
+    const iconTint = typeof icon === 'object' && icon.tintColor ? `color: ${icon.tintColor}` : ''
 
-    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
-      return html`<img src="${iconSrc}" alt="" style="${iconTint}; width: 100%; height: 100%; object-fit: contain;" />`;
+    if (iconSrc.startsWith('http') || iconSrc.startsWith('/')) {
+      return html`<img src="${iconSrc}" alt="" style="${iconTint}; width: 100%; height: 100%; object-fit: contain;" />`
     }
 
-    return html`<span style="${iconTint}">${iconSrc}</span>`;
+    return html`<span style="${iconTint}">${iconSrc}</span>`
   }
 
   private renderActions() {
     return html`
       <div class="actions">
         ${repeat(
-      this.actions,
-      (action) => action.title,
-      (action) => html`
-            ${action.href
-          ? html`
+          this.actions,
+          (action) => action.title,
+          (action) => html`
+            ${
+              action.href
+                ? html`
                   <a
-                    class="action-button ${action.style === "primary" ? "primary" : ""} ${action.style === "destructive" ? "destructive" : ""}"
+                    class="action-button ${action.style === 'primary' ? 'primary' : ''} ${action.style === 'destructive' ? 'destructive' : ''}"
                     href="${action.href}"
-                    target="${action.target || "_blank"}"
+                    target="${action.target || '_blank'}"
                   >
-                    ${action.icon ? this.renderActionIcon(action.icon) : ""}
+                    ${action.icon ? this.renderActionIcon(action.icon) : ''}
                     ${action.title}
                   </a>
                 `
-          : html`
+                : html`
                   <button
-                    class="action-button ${action.style === "primary" ? "primary" : ""} ${action.style === "destructive" ? "destructive" : ""}"
+                    class="action-button ${action.style === 'primary' ? 'primary' : ''} ${action.style === 'destructive' ? 'destructive' : ''}"
                     @click="${() => this.handleAction(action)}"
                   >
-                    ${action.icon ? this.renderActionIcon(action.icon) : ""}
+                    ${action.icon ? this.renderActionIcon(action.icon) : ''}
                     ${action.title}
-                    ${action.shortcut ? html`<span class="action-shortcut">${action.shortcut}</span>` : ""}
+                    ${action.shortcut ? html`<span class="action-shortcut">${action.shortcut}</span>` : ''}
                   </button>
                 `
-        }
+            }
           `,
-    )}
+        )}
       </div>
-    `;
+    `
   }
 
   private renderActionIcon(icon: string | IconProps) {
-    const iconSrc = typeof icon === "string" ? icon : icon.source;
-    const iconTint = typeof icon === "object" && icon.tintColor
-      ? `color: ${icon.tintColor}`
-      : "";
+    const iconSrc = typeof icon === 'string' ? icon : icon.source
+    const iconTint = typeof icon === 'object' && icon.tintColor ? `color: ${icon.tintColor}` : ''
 
-    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
-      return html`<img src="${iconSrc}" alt="" style="width: 14px; height: 14px; object-fit: contain;" />`;
+    if (iconSrc.startsWith('http') || iconSrc.startsWith('/')) {
+      return html`<img src="${iconSrc}" alt="" style="width: 14px; height: 14px; object-fit: contain;" />`
     }
 
-    return html`<span class="action-icon" style="${iconTint}">${iconSrc}</span>`;
+    return html`<span class="action-icon" style="${iconTint}">${iconSrc}</span>`
   }
 
   private renderLoadingState() {
@@ -630,7 +633,7 @@ export class FCDetail extends LitElement {
         <div class="loading-spinner"></div>
         <div>Loading...</div>
       </div>
-    `;
+    `
   }
 
   private renderErrorState() {
@@ -640,7 +643,7 @@ export class FCDetail extends LitElement {
         <div class="error-title">Error</div>
         <div class="error-message">${this.error}</div>
       </div>
-    `;
+    `
   }
 
   private renderMarkdown(markdown: string): string {
@@ -648,58 +651,58 @@ export class FCDetail extends LitElement {
     return (
       markdown
         // Escape HTML first to prevent XSS
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
         // Headers
-        .replace(/^#### (.*$)/gim, "<h4>$1</h4>")
-        .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-        .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-        .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+        .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
         // Bold
-        .replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>")
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         // Italic
-        .replace(/\*(.*?)\*/g, "<em>$1</em>")
-        .replace(/_(.*?)_/g, "<em>$1</em>")
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/_(.*?)_/g, '<em>$1</em>')
         // Strikethrough
-        .replace(/~~(.*?)~~/g, "<del>$1</del>")
+        .replace(/~~(.*?)~~/g, '<del>$1</del>')
         // Code (inline)
-        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
         // Code blocks
-        .replace(/```(\w+)?\n([\s\S]*?)```/g, "<pre><code>$2</code></pre>")
+        .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
         // Links
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
         // Images
         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
         // Blockquotes
-        .replace(/^&gt; (.*$)/gim, "<blockquote>$1</blockquote>")
+        .replace(/^&gt; (.*$)/gim, '<blockquote>$1</blockquote>')
         // Unordered lists
-        .replace(/^\* (.*$)/gim, "<ul><li>$1</li></ul>")
-        .replace(/^- (.*$)/gim, "<ul><li>$1</li></ul>")
+        .replace(/^\* (.*$)/gim, '<ul><li>$1</li></ul>')
+        .replace(/^- (.*$)/gim, '<ul><li>$1</li></ul>')
         // Fix adjacent lists
-        .replace(/<\/ul>\s*<ul>/g, "")
+        .replace(/<\/ul>\s*<ul>/g, '')
         // Ordered lists
-        .replace(/^\d+\. (.*$)/gim, "<ol><li>$1</li></ol>")
-        .replace(/<\/ol>\s*<ol>/g, "")
+        .replace(/^\d+\. (.*$)/gim, '<ol><li>$1</li></ol>')
+        .replace(/<\/ol>\s*<ol>/g, '')
         // Horizontal rules
-        .replace(/^---$/gim, "<hr />")
-        .replace(/^\*\*\*$/gim, "<hr />")
+        .replace(/^---$/gim, '<hr />')
+        .replace(/^\*\*\*$/gim, '<hr />')
         // Line breaks and paragraphs
-        .replace(/\n\n/g, "</p><p>")
-        .replace(/\n/g, "<br>")
-    );
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+    )
   }
 
   private async handleAction(action: DetailActionProps) {
     try {
       if (action.onAction) {
-        await action.onAction();
+        await action.onAction()
       }
     } catch (error) {
-      console.error("Action failed:", error);
+      console.error('Action failed:', error)
     }
   }
 }
 
-export default FCDetail;
+export default FCDetail

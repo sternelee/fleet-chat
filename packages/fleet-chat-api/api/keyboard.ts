@@ -3,11 +3,11 @@
  * Provides Raycast-compatible keyboard utilities
  */
 
-export type KeyModifier = "cmd" | "ctrl" | "alt" | "shift" | "meta";
+export type KeyModifier = 'cmd' | 'ctrl' | 'alt' | 'shift' | 'meta'
 
 export interface KeyboardShortcut {
-  key: string;
-  modifiers?: KeyModifier[];
+  key: string
+  modifiers?: KeyModifier[]
 }
 
 /**
@@ -15,17 +15,17 @@ export interface KeyboardShortcut {
  */
 export function isModifierKeyPressed(event: KeyboardEvent, modifier: KeyModifier): boolean {
   switch (modifier) {
-    case "cmd":
-    case "meta":
-      return event.metaKey;
-    case "ctrl":
-      return event.ctrlKey;
-    case "alt":
-      return event.altKey;
-    case "shift":
-      return event.shiftKey;
+    case 'cmd':
+    case 'meta':
+      return event.metaKey
+    case 'ctrl':
+      return event.ctrlKey
+    case 'alt':
+      return event.altKey
+    case 'shift':
+      return event.shiftKey
     default:
-      return false;
+      return false
   }
 }
 
@@ -33,15 +33,15 @@ export function isModifierKeyPressed(event: KeyboardEvent, modifier: KeyModifier
  * Get a human-readable string representation of a keyboard event
  */
 export function getKeyComboString(event: KeyboardEvent): string {
-  const modifiers: KeyModifier[] = [];
+  const modifiers: KeyModifier[] = []
 
-  if (event.metaKey) modifiers.push("cmd");
-  if (event.ctrlKey) modifiers.push("ctrl");
-  if (event.altKey) modifiers.push("alt");
-  if (event.shiftKey) modifiers.push("shift");
+  if (event.metaKey) modifiers.push('cmd')
+  if (event.ctrlKey) modifiers.push('ctrl')
+  if (event.altKey) modifiers.push('alt')
+  if (event.shiftKey) modifiers.push('shift')
 
-  const key = event.key.toUpperCase();
-  return [...modifiers, key].join("+");
+  const key = event.key.toUpperCase()
+  return [...modifiers, key].join('+')
 }
 
 /**
@@ -49,25 +49,25 @@ export function getKeyComboString(event: KeyboardEvent): string {
  */
 export function formatShortcut(shortcut: string): string {
   return shortcut
-    .split("+")
+    .split('+')
     .map((key) => {
-      const upperKey = key.trim().toUpperCase();
+      const upperKey = key.trim().toUpperCase()
       switch (upperKey) {
-        case "CMD":
-          return "⌘";
-        case "CTRL":
-          return "⌃";
-        case "ALT":
-          return "⌥";
-        case "SHIFT":
-          return "⇧";
-        case "META":
-          return "◆";
+        case 'CMD':
+          return '⌘'
+        case 'CTRL':
+          return '⌃'
+        case 'ALT':
+          return '⌥'
+        case 'SHIFT':
+          return '⇧'
+        case 'META':
+          return '◆'
         default:
-          return upperKey;
+          return upperKey
       }
     })
-    .join("");
+    .join('')
 }
 
 /**
@@ -76,15 +76,15 @@ export function formatShortcut(shortcut: string): string {
 export function parseShortcut(shortcut: string): KeyboardShortcut {
   const parts = shortcut
     .toLowerCase()
-    .split("+")
-    .map((p) => p.trim());
-  const key = parts.pop() || "";
+    .split('+')
+    .map((p) => p.trim())
+  const key = parts.pop() || ''
 
   const modifiers: KeyModifier[] = parts.filter((part) =>
-    ["cmd", "ctrl", "alt", "shift", "meta"].includes(part),
-  ) as KeyModifier[];
+    ['cmd', 'ctrl', 'alt', 'shift', 'meta'].includes(part),
+  ) as KeyModifier[]
 
-  return { key, modifiers };
+  return { key, modifiers }
 }
 
 /**
@@ -92,11 +92,11 @@ export function parseShortcut(shortcut: string): KeyboardShortcut {
  */
 export function shortcutsMatch(a: KeyboardShortcut, b: KeyboardShortcut): boolean {
   if (a.key.toLowerCase() !== b.key.toLowerCase()) {
-    return false;
+    return false
   }
 
-  const aModifiers = new Set(a.modifiers || []);
-  const bModifiers = new Set(b.modifiers || []);
+  const aModifiers = new Set(a.modifiers || [])
+  const bModifiers = new Set(b.modifiers || [])
 
-  return aModifiers.size === bModifiers.size && [...aModifiers].every((mod) => bModifiers.has(mod));
+  return aModifiers.size === bModifiers.size && [...aModifiers].every((mod) => bModifiers.has(mod))
 }
