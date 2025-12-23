@@ -57,7 +57,7 @@ export class LauncherLayout extends LitElement {
         position: relative;
         z-index: 1;
       }
-    `
+    `,
   ]
 }
 

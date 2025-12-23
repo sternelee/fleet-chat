@@ -10,12 +10,10 @@ export {
   LocalStorage,
   Cache,
   preferences,
-} from '../api/storage.js';
+} from '../api/storage.js'
 
 // Re-export types
-export type {
-  Preferences
-} from '../api/storage.js';
+export type { Preferences } from '../api/storage.js'
 
 // For plugin compatibility, also provide browser-based fallbacks
 // when running outside of Tauri environment
@@ -27,62 +25,62 @@ export type {
 export class BrowserLocalStorage {
   static async get(key: string): Promise<string | null> {
     try {
-      return localStorage.getItem(key);
+      return localStorage.getItem(key)
     } catch (error) {
-      console.error('BrowserLocalStorage get error:', error);
-      return null;
+      console.error('BrowserLocalStorage get error:', error)
+      return null
     }
   }
 
   static async set(key: string, value: string): Promise<void> {
     try {
-      localStorage.setItem(key, value);
+      localStorage.setItem(key, value)
     } catch (error) {
-      console.error('BrowserLocalStorage set error:', error);
-      throw error;
+      console.error('BrowserLocalStorage set error:', error)
+      throw error
     }
   }
 
   static async remove(key: string): Promise<void> {
     try {
-      localStorage.removeItem(key);
+      localStorage.removeItem(key)
     } catch (error) {
-      console.error('BrowserLocalStorage remove error:', error);
-      throw error;
+      console.error('BrowserLocalStorage remove error:', error)
+      throw error
     }
   }
 
   static async clear(): Promise<void> {
     try {
-      localStorage.clear();
+      localStorage.clear()
     } catch (error) {
-      console.error('BrowserLocalStorage clear error:', error);
-      throw error;
+      console.error('BrowserLocalStorage clear error:', error)
+      throw error
     }
   }
 
   static async getAllKeys(): Promise<string[]> {
     try {
-      const keys: string[] = [];
+      const keys: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+        const key = localStorage.key(i)
         if (key) {
-          keys.push(key);
+          keys.push(key)
         }
       }
-      return keys;
+      return keys
     } catch (error) {
-      console.error('BrowserLocalStorage getAllKeys error:', error);
-      return [];
+      console.error('BrowserLocalStorage getAllKeys error:', error)
+      return []
     }
   }
 
   static async has(key: string): Promise<boolean> {
     try {
-      return localStorage.getItem(key) !== null;
+      return localStorage.getItem(key) !== null
     } catch (error) {
-      console.error('BrowserLocalStorage has error:', error);
-      return false;
+      console.error('BrowserLocalStorage has error:', error)
+      return false
     }
   }
 }
@@ -92,105 +90,105 @@ export class BrowserLocalStorage {
  * This is only used when Tauri APIs are not available
  */
 export interface CacheEntry {
-  value: string;
-  timestamp: number;
-  ttl?: number;
+  value: string
+  timestamp: number
+  ttl?: number
 }
 
 export class BrowserCache {
-  private static readonly CACHE_PREFIX = 'fc_cache_';
-  private static memoryCache = new Map<string, CacheEntry>();
+  private static readonly CACHE_PREFIX = 'fc_cache_'
+  private static memoryCache = new Map<string, CacheEntry>()
 
   static async get(key: string): Promise<string | null> {
     try {
-      const fullKey = this.CACHE_PREFIX + key;
+      const fullKey = this.CACHE_PREFIX + key
 
       // Check memory cache first
-      const memoryEntry = this.memoryCache.get(fullKey);
+      const memoryEntry = this.memoryCache.get(fullKey)
       if (memoryEntry && !this.isExpired(memoryEntry)) {
-        return memoryEntry.value;
+        return memoryEntry.value
       }
 
       // Check localStorage
-      const stored = localStorage.getItem(fullKey);
+      const stored = localStorage.getItem(fullKey)
       if (stored) {
-        const entry: CacheEntry = JSON.parse(stored);
+        const entry: CacheEntry = JSON.parse(stored)
         if (!this.isExpired(entry)) {
           // Restore to memory cache
-          this.memoryCache.set(fullKey, entry);
-          return entry.value;
+          this.memoryCache.set(fullKey, entry)
+          return entry.value
         } else {
           // Remove expired entry
-          localStorage.removeItem(fullKey);
+          localStorage.removeItem(fullKey)
         }
       }
 
-      return null;
+      return null
     } catch (error) {
-      console.error('BrowserCache get error:', error);
-      return null;
+      console.error('BrowserCache get error:', error)
+      return null
     }
   }
 
   static async set(key: string, value: string, ttl?: number): Promise<void> {
     try {
-      const fullKey = this.CACHE_PREFIX + key;
+      const fullKey = this.CACHE_PREFIX + key
       const entry: CacheEntry = {
         value,
         timestamp: Date.now(),
-        ttl
-      };
+        ttl,
+      }
 
       // Store in memory cache
-      this.memoryCache.set(fullKey, entry);
+      this.memoryCache.set(fullKey, entry)
 
       // Store in localStorage
-      const serialized = JSON.stringify(entry);
-      localStorage.setItem(fullKey, serialized);
+      const serialized = JSON.stringify(entry)
+      localStorage.setItem(fullKey, serialized)
     } catch (error) {
-      console.error('BrowserCache set error:', error);
-      throw error;
+      console.error('BrowserCache set error:', error)
+      throw error
     }
   }
 
   static async remove(key: string): Promise<void> {
     try {
-      const fullKey = this.CACHE_PREFIX + key;
-      this.memoryCache.delete(fullKey);
-      localStorage.removeItem(fullKey);
+      const fullKey = this.CACHE_PREFIX + key
+      this.memoryCache.delete(fullKey)
+      localStorage.removeItem(fullKey)
     } catch (error) {
-      console.error('BrowserCache remove error:', error);
-      throw error;
+      console.error('BrowserCache remove error:', error)
+      throw error
     }
   }
 
   static async clear(): Promise<void> {
     try {
-      this.memoryCache.clear();
+      this.memoryCache.clear()
 
       // Clear localStorage cache entries
-      const keys: string[] = [];
+      const keys: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+        const key = localStorage.key(i)
         if (key && key.startsWith(this.CACHE_PREFIX)) {
-          keys.push(key);
+          keys.push(key)
         }
       }
 
-      keys.forEach(key => localStorage.removeItem(key));
+      keys.forEach((key) => localStorage.removeItem(key))
     } catch (error) {
-      console.error('BrowserCache clear error:', error);
-      throw error;
+      console.error('BrowserCache clear error:', error)
+      throw error
     }
   }
 
   static async has(key: string): Promise<boolean> {
     try {
-      const value = await this.get(key);
-      return value !== null;
+      const value = await this.get(key)
+      return value !== null
     } catch (error) {
-      console.error('BrowserCache has error:', error);
-      return false;
+      console.error('BrowserCache has error:', error)
+      return false
     }
   }
 
@@ -199,8 +197,8 @@ export class BrowserCache {
    */
   private static isExpired(entry: CacheEntry): boolean {
     if (!entry.ttl) {
-      return false;
+      return false
     }
-    return Date.now() - entry.timestamp > entry.ttl;
+    return Date.now() - entry.timestamp > entry.ttl
   }
 }

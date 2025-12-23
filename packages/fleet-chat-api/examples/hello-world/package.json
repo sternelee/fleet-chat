@@ -1,57 +1,62 @@
 {
-  "$schema": "https://developers.raycast.com/schemas/extension-manifest.json",
-  "icon": "👋",
-  "name": "hello-world",
-  "title": "Hello World",
-  "description": "A simple hello world plugin for Fleet Chat",
-  "author": "Fleet Chat Team",
-  "license": "MIT",
-  "version": "1.0.0",
-  "categories": ["Productivity"],
-  "commands": [
-    {
-      "name": "hello",
-      "title": "Hello World",
-      "description": "Shows a greeting message",
-      "mode": "view",
-      "keywords": ["greeting", "welcome"]
-    },
-    {
-      "name": "hello-list",
-      "title": "Hello List",
-      "description": "Shows a list of greeting options",
-      "mode": "view"
-    },
-    {
-      "name": "hello-detail",
-      "title": "Hello Details",
-      "description": "Shows detailed information about greetings",
-      "mode": "view"
-    },
-    {
-      "name": "hello-action",
-      "title": "Hello Action",
-      "description": "Shows a toast notification",
-      "mode": "no-view"
-    }
-  ],
-  "preferences": [
-    {
-      "name": "greeting_name",
-      "type": "textfield",
-      "required": false,
-      "title": "Default Name",
-      "description": "The default name to greet",
-      "placeholder": "World",
-      "default": "World"
-    },
-    {
-      "name": "show_emoji",
-      "type": "checkbox",
-      "required": false,
-      "title": "Show Emoji",
-      "description": "Whether to include emoji in greetings",
-      "default": true
-    }
-  ]
+    "$schema": "https://developers.raycast.com/schemas/extension-manifest.json",
+    "icon": "👋",
+    "name": "hello-world",
+    "title": "Hello World",
+    "description": "A simple hello world plugin for Fleet Chat",
+    "author": "Fleet Chat Team",
+    "license": "MIT",
+    "version": "1.0.0",
+    "categories": [
+        "Productivity"
+    ],
+    "commands": [
+        {
+            "name": "hello",
+            "title": "Hello World",
+            "description": "Shows a greeting message",
+            "mode": "view",
+            "keywords": [
+                "greeting",
+                "welcome"
+            ]
+        },
+        {
+            "name": "hello-list",
+            "title": "Hello List",
+            "description": "Shows a list of greeting options",
+            "mode": "view"
+        },
+        {
+            "name": "hello-detail",
+            "title": "Hello Details",
+            "description": "Shows detailed information about greetings",
+            "mode": "view"
+        },
+        {
+            "name": "hello-action",
+            "title": "Hello Action",
+            "description": "Shows a toast notification",
+            "mode": "no-view"
+        }
+    ],
+    "preferences": [
+        {
+            "name": "greeting_name",
+            "type": "textfield",
+            "required": false,
+            "title": "Default Name",
+            "description": "The default name to greet",
+            "placeholder": "World",
+            "default": "World"
+        },
+        {
+            "name": "show_emoji",
+            "type": "checkbox",
+            "required": false,
+            "title": "Show Emoji",
+            "description": "Whether to include emoji in greetings",
+            "default": true
+        }
+    ]
 }

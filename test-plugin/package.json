@@ -1,17 +1,19 @@
 {
-  "name": "test-plugin",
-  "version": "1.0.0",
-  "description": "A simple test plugin for Fleet Chat",
-  "author": "Fleet Chat Team",
-  "license": "MIT",
-  "commands": [
-    {
-      "name": "test-command",
-      "title": "Test Command",
-      "description": "A simple test command",
-      "mode": "no-view"
-    }
-  ],
-  "icon": "🧪",
-  "categories": ["Productivity"]
+    "name": "test-plugin",
+    "version": "1.0.0",
+    "description": "A simple test plugin for Fleet Chat",
+    "author": "Fleet Chat Team",
+    "license": "MIT",
+    "commands": [
+        {
+            "name": "test-command",
+            "title": "Test Command",
+            "description": "A simple test command",
+            "mode": "no-view"
+        }
+    ],
+    "icon": "🧪",
+    "categories": [
+        "Productivity"
+    ]
 }

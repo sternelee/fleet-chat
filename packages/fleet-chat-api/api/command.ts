@@ -4,7 +4,7 @@
  */
 
 export interface CommandMetadata {
-  subtitle?: string | null;
+  subtitle?: string | null
 }
 
 /**
@@ -25,12 +25,12 @@ export interface CommandMetadata {
  */
 export async function updateCommandMetadata(metadata: CommandMetadata): Promise<void> {
   // Dispatch event to main thread to update command metadata
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     window.dispatchEvent(
-      new CustomEvent("plugin:updateCommandMetadata", {
+      new CustomEvent('plugin:updateCommandMetadata', {
         detail: metadata,
       }),
-    );
+    )
   }
 }
 
@@ -40,5 +40,5 @@ export async function updateCommandMetadata(metadata: CommandMetadata): Promise<
 export async function getCommandMetadata(): Promise<CommandMetadata> {
   // In a real implementation, this would fetch current metadata
   // For now, return empty object
-  return {};
+  return {}
 }

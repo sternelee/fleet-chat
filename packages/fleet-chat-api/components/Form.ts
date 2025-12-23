@@ -4,60 +4,71 @@
  * Raycast-compatible Form component built with Lit
  */
 
-import { LitElement, html, css, TemplateResult } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { LitElement, html, css, TemplateResult } from 'lit'
+import { customElement, property, state } from 'lit/decorators.js'
 
 export interface IconProps {
-  source: string;
-  tintColor?: string;
-  tooltip?: string;
+  source: string
+  tintColor?: string
+  tooltip?: string
 }
 
 export interface FormFieldProps {
-  id: string;
-  label?: string;
-  type: "text" | "password" | "email" | "number" | "textarea" | "checkbox" | "dropdown" | "date" | "file" | "slider" | "radio";
-  placeholder?: string;
-  defaultValue?: string | number | boolean;
-  required?: boolean;
-  options?: Array<{ title: string; value: string }>;
-  help?: string;
-  error?: string;
-  icon?: string | IconProps;
-  min?: number;
-  max?: number;
-  step?: number;
-  accept?: string;
-  multiple?: boolean;
-  rows?: number;
-  onChange?: (value: any) => void;
-  onValidate?: (value: any) => string | null;
+  id: string
+  label?: string
+  type:
+    | 'text'
+    | 'password'
+    | 'email'
+    | 'number'
+    | 'textarea'
+    | 'checkbox'
+    | 'dropdown'
+    | 'date'
+    | 'file'
+    | 'slider'
+    | 'radio'
+  placeholder?: string
+  defaultValue?: string | number | boolean
+  required?: boolean
+  options?: Array<{ title: string; value: string }>
+  help?: string
+  error?: string
+  icon?: string | IconProps
+  min?: number
+  max?: number
+  step?: number
+  accept?: string
+  multiple?: boolean
+  rows?: number
+  onChange?: (value: any) => void
+  onValidate?: (value: any) => string | null
 }
 
 export interface FormProps {
-  actions?: TemplateResult;
-  children?: TemplateResult[];
-  onSubmit?: (values: Record<string, any>) => void | Promise<void>;
-  validate?: (values: Record<string, any>) => Record<string, string> | null;
+  actions?: TemplateResult
+  children?: TemplateResult[]
+  onSubmit?: (values: Record<string, any>) => void | Promise<void>
+  validate?: (values: Record<string, any>) => Record<string, string> | null
 }
 
 export interface ValidationResult {
-  valid: boolean;
-  errors: Record<string, string>;
+  valid: boolean
+  errors: Record<string, string>
 }
 
-@customElement("fleet-form")
+@customElement('fleet-form')
 export class FCForm extends LitElement {
   @property({ attribute: false })
-  private formChildren: TemplateResult[] = [];
+  private formChildren: TemplateResult[] = []
 
   set children(value: TemplateResult[]) {
-    this.formChildren = value;
-    this.requestUpdate();
+    this.formChildren = value
+    this.requestUpdate()
   }
 
   get children(): TemplateResult[] {
-    return this.formChildren;
+    return this.formChildren
   }
 
   static styles = css`
@@ -128,123 +139,126 @@ export class FCForm extends LitElement {
       0% { transform: translate(-50%, -50%) rotate(0deg); }
       100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
-  `;
+  `
 
   @property({ type: Object })
-  actions?: TemplateResult;
+  actions?: TemplateResult
 
   @property({ type: Function })
-  onSubmit?: (values: Record<string, any>) => void | Promise<void>;
+  onSubmit?: (values: Record<string, any>) => void | Promise<void>
 
   @property({ type: Function })
-  validate?: (values: Record<string, any>) => Record<string, string> | null;
+  validate?: (values: Record<string, any>) => Record<string, string> | null
 
   @property({ type: String })
-  title?: string;
+  title?: string
 
   @property({ type: String })
-  description?: string;
+  description?: string
 
   @state()
-  private formData: Record<string, any> = {};
+  private formData: Record<string, any> = {}
 
   @state()
-  private errors: Record<string, string> = {};
+  private errors: Record<string, string> = {}
 
   @state()
-  private isSubmitting = false;
+  private isSubmitting = false
 
-  private fieldValidators: Map<string, (value: any) => string | null> = new Map();
+  private fieldValidators: Map<string, (value: any) => string | null> = new Map()
 
   registerFieldValidator(id: string, validator: (value: any) => string | null) {
-    this.fieldValidators.set(id, validator);
+    this.fieldValidators.set(id, validator)
   }
 
   unregisterFieldValidator(id: string) {
-    this.fieldValidators.delete(id);
+    this.fieldValidators.delete(id)
   }
 
   private async handleSubmit() {
-    if (this.isSubmitting) return;
+    if (this.isSubmitting) return
 
     // Validate all fields
-    const validationErrors: Record<string, string> = {};
+    const validationErrors: Record<string, string> = {}
 
     // Run individual field validators
     this.fieldValidators.forEach((validator, fieldId) => {
-      const error = validator(this.formData[fieldId]);
+      const error = validator(this.formData[fieldId])
       if (error) {
-        validationErrors[fieldId] = error;
+        validationErrors[fieldId] = error
       }
-    });
+    })
 
     // Run form-level validation if provided
     if (this.validate) {
-      const formErrors = this.validate(this.formData);
+      const formErrors = this.validate(this.formData)
       if (formErrors) {
-        Object.assign(validationErrors, formErrors);
+        Object.assign(validationErrors, formErrors)
       }
     }
 
     if (Object.keys(validationErrors).length > 0) {
-      this.errors = validationErrors;
-      this.requestUpdate();
-      return;
+      this.errors = validationErrors
+      this.requestUpdate()
+      return
     }
 
     // Clear errors on successful validation
-    this.errors = {};
-    this.isSubmitting = true;
+    this.errors = {}
+    this.isSubmitting = true
 
     try {
       if (this.onSubmit) {
-        await Promise.resolve(this.onSubmit(this.formData));
+        await Promise.resolve(this.onSubmit(this.formData))
       }
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error('Form submission error:', error)
     } finally {
-      this.isSubmitting = false;
+      this.isSubmitting = false
     }
   }
 
   private updateFieldValue(id: string, value: any) {
-    this.formData = { ...this.formData, [id]: value };
+    this.formData = { ...this.formData, [id]: value }
 
     // Clear error for this field when value changes
     if (this.errors[id]) {
-      const newErrors = { ...this.errors };
-      delete newErrors[id];
-      this.errors = newErrors;
+      const newErrors = { ...this.errors }
+      delete newErrors[id]
+      this.errors = newErrors
     }
 
-    this.requestUpdate();
+    this.requestUpdate()
   }
 
   private handleFieldChange(event: CustomEvent) {
-    const { id, value } = event.detail;
-    this.updateFieldValue(id, value);
+    const { id, value } = event.detail
+    this.updateFieldValue(id, value)
   }
 
   render() {
     return html`
       <form
-        class="form ${this.isSubmitting ? "form-submitting" : ""}"
-        @submit=${(e: Event) => { e.preventDefault(); this.handleSubmit(); }}
+        class="form ${this.isSubmitting ? 'form-submitting' : ''}"
+        @submit=${(e: Event) => {
+          e.preventDefault()
+          this.handleSubmit()
+        }}
         @field-change=${this.handleFieldChange}
       >
-        ${this.title ? html`<div class="form-title">${this.title}</div>` : ""}
-        ${this.description ? html`<div class="form-description">${this.description}</div>` : ""}
+        ${this.title ? html`<div class="form-title">${this.title}</div>` : ''}
+        ${this.description ? html`<div class="form-description">${this.description}</div>` : ''}
 
         ${this.formChildren.map((child) => child)}
 
-        ${this.actions ? html` <div class="form-actions">${this.actions}</div> ` : ""}
-        ${this.isSubmitting ? html`<div class="submit-spinner"></div>` : ""}
+        ${this.actions ? html` <div class="form-actions">${this.actions}</div> ` : ''}
+        ${this.isSubmitting ? html`<div class="submit-spinner"></div>` : ''}
       </form>
-    `;
+    `
   }
 }
 
-@customElement("fleet-form-field")
+@customElement('fleet-form-field')
 export class FCFormField extends LitElement {
   static styles = css`
     :host {
@@ -459,158 +473,170 @@ export class FCFormField extends LitElement {
       width: 12px;
       height: 12px;
     }
-  `;
+  `
 
   @property({ type: String })
-  id!: string;
+  id!: string
 
   @property({ type: String })
-  label?: string;
+  label?: string
 
   @property({ type: String })
-  type: "text" | "password" | "email" | "number" | "textarea" | "checkbox" | "dropdown" | "date" | "file" | "slider" | "radio" = "text";
+  type:
+    | 'text'
+    | 'password'
+    | 'email'
+    | 'number'
+    | 'textarea'
+    | 'checkbox'
+    | 'dropdown'
+    | 'date'
+    | 'file'
+    | 'slider'
+    | 'radio' = 'text'
 
   @property({ type: String })
-  placeholder?: string;
+  placeholder?: string
 
   @property({ type: String })
-  defaultValue?: string | number | boolean;
+  defaultValue?: string | number | boolean
 
   @property({ type: Boolean })
-  required = false;
+  required = false
 
   @property({ type: Array })
-  options?: Array<{ title: string; value: string }>;
+  options?: Array<{ title: string; value: string }>
 
   @property({ type: String })
-  help?: string;
+  help?: string
 
   @property({ type: String })
-  error?: string;
+  error?: string
 
   @property({ type: String })
-  icon?: string | IconProps;
+  icon?: string | IconProps
 
   @property({ type: Number })
-  min?: number;
+  min?: number
 
   @property({ type: Number })
-  max?: number;
+  max?: number
 
   @property({ type: Number })
-  step?: number;
+  step?: number
 
   @property({ type: String })
-  accept?: string;
+  accept?: string
 
   @property({ type: Boolean })
-  multiple = false;
+  multiple = false
 
   @property({ type: Number })
-  rows = 3;
+  rows = 3
 
   @property({ type: Function })
-  onChange?: (value: any) => void;
+  onChange?: (value: any) => void
 
   @property({ type: Function })
-  onValidate?: (value: any) => string | null;
+  onValidate?: (value: any) => string | null
 
   @property({ type: String })
-  value?: string | number | boolean;
+  value?: string | number | boolean
 
   @property({ type: Boolean })
-  disabled = false;
+  disabled = false
 
   connectedCallback() {
-    super.connectedCallback();
+    super.connectedCallback()
     // Register validator with parent form
-    const form = this.closest("fleet-form") as FCForm;
+    const form = this.closest('fleet-form') as FCForm
     if (form && this.onValidate) {
-      form.registerFieldValidator(this.id, this.onValidate);
+      form.registerFieldValidator(this.id, this.onValidate)
     }
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
+    super.disconnectedCallback()
     // Unregister validator from parent form
-    const form = this.closest("fleet-form") as FCForm;
+    const form = this.closest('fleet-form') as FCForm
     if (form) {
-      form.unregisterFieldValidator(this.id);
+      form.unregisterFieldValidator(this.id)
     }
   }
 
   private handleInputChange(event: Event) {
-    const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-    let value: any;
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    let value: any
 
     switch (this.type) {
-      case "checkbox":
-        value = (target as HTMLInputElement).checked;
-        break;
-      case "number":
-      case "slider":
-        value = Number((target as HTMLInputElement).value);
-        break;
-      case "file":
-        value = (target as HTMLInputElement).files;
-        break;
+      case 'checkbox':
+        value = (target as HTMLInputElement).checked
+        break
+      case 'number':
+      case 'slider':
+        value = Number((target as HTMLInputElement).value)
+        break
+      case 'file':
+        value = (target as HTMLInputElement).files
+        break
       default:
-        value = target.value;
+        value = target.value
     }
 
-    this.value = value;
+    this.value = value
 
     if (this.onChange) {
-      this.onChange(value);
+      this.onChange(value)
     }
 
     // Dispatch event for parent form
     this.dispatchEvent(
-      new CustomEvent("field-change", {
+      new CustomEvent('field-change', {
         detail: { id: this.id, value },
         bubbles: true,
       }),
-    );
+    )
   }
 
   private renderIcon(icon: string | IconProps | undefined) {
-    if (!icon) return html``;
+    if (!icon) return html``
 
-    const iconSrc = typeof icon === "string" ? icon : icon.source;
-    const iconTint = typeof icon === "object" && icon.tintColor
-      ? `color: ${icon.tintColor}`
-      : "";
+    const iconSrc = typeof icon === 'string' ? icon : icon.source
+    const iconTint = typeof icon === 'object' && icon.tintColor ? `color: ${icon.tintColor}` : ''
 
-    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
-      return html`<img src="${iconSrc}" alt="" style="width: 100%; height: 100%; object-fit: contain; ${iconTint}" />`;
+    if (iconSrc.startsWith('http') || iconSrc.startsWith('/')) {
+      return html`<img src="${iconSrc}" alt="" style="width: 100%; height: 100%; object-fit: contain; ${iconTint}" />`
     }
 
-    return html`<span style="${iconTint}">${iconSrc}</span>`;
+    return html`<span style="${iconTint}">${iconSrc}</span>`
   }
 
   render() {
-    const fieldValue = this.value ?? this.defaultValue ?? (this.type === "checkbox" ? false : "");
-    const displayError = this.error;
+    const fieldValue = this.value ?? this.defaultValue ?? (this.type === 'checkbox' ? false : '')
+    const displayError = this.error
 
     return html`
       <div class="field-container">
-        ${this.label
-        ? html`
+        ${
+          this.label
+            ? html`
               <div class="field-header">
-                ${this.icon ? html`<div class="field-icon">${this.renderIcon(this.icon)}</div>` : ""}
+                ${this.icon ? html`<div class="field-icon">${this.renderIcon(this.icon)}</div>` : ''}
                 <label class="field-label" for="${this.id}">
-                  ${this.label} ${this.required ? html`<span class="field-required">*</span>` : ""}
+                  ${this.label} ${this.required ? html`<span class="field-required">*</span>` : ''}
                 </label>
               </div>
             `
-        : ""}
+            : ''
+        }
 
-        ${this.type === "textarea"
-        ? html`
+        ${
+          this.type === 'textarea'
+            ? html`
               <textarea
-                class="field-textarea ${displayError ? "error" : ""}"
+                class="field-textarea ${displayError ? 'error' : ''}"
                 id="${this.id}"
-                placeholder="${this.placeholder || ""}"
+                placeholder="${this.placeholder || ''}"
                 .value="${String(fieldValue)}"
                 rows="${this.rows}"
                 ?required=${this.required}
@@ -618,8 +644,8 @@ export class FCFormField extends LitElement {
                 @input=${this.handleInputChange}
               ></textarea>
             `
-        : this.type === "checkbox"
-          ? html`
+            : this.type === 'checkbox'
+              ? html`
                   <label class="field-checkbox">
                     <input
                       class="field-checkbox-input"
@@ -629,13 +655,13 @@ export class FCFormField extends LitElement {
                       ?disabled=${this.disabled}
                       @change=${this.handleInputChange}
                     />
-                    ${this.placeholder || "Check this option"}
+                    ${this.placeholder || 'Check this option'}
                   </label>
                 `
-          : this.type === "dropdown"
-            ? html`
+              : this.type === 'dropdown'
+                ? html`
                     <select
-                      class="field-select ${displayError ? "error" : ""}"
+                      class="field-select ${displayError ? 'error' : ''}"
                       id="${this.id}"
                       .value="${String(fieldValue)}"
                       ?required=${this.required}
@@ -643,14 +669,15 @@ export class FCFormField extends LitElement {
                       @change=${this.handleInputChange}
                     >
                       ${this.options?.map(
-              (option) => html` <option value="${option.value}">${option.title}</option> `,
-            )}
+                        (option) =>
+                          html` <option value="${option.value}">${option.title}</option> `,
+                      )}
                     </select>
                   `
-            : this.type === "date"
-              ? html`
+                : this.type === 'date'
+                  ? html`
                       <input
-                        class="field-date ${displayError ? "error" : ""}"
+                        class="field-date ${displayError ? 'error' : ''}"
                         type="date"
                         id="${this.id}"
                         .value="${String(fieldValue)}"
@@ -659,8 +686,8 @@ export class FCFormField extends LitElement {
                         @change=${this.handleInputChange}
                       />
                     `
-              : this.type === "slider"
-                ? html`
+                  : this.type === 'slider'
+                    ? html`
                         <input
                           class="field-slider"
                           type="range"
@@ -674,14 +701,14 @@ export class FCFormField extends LitElement {
                         />
                         <div class="field-slider-value">${fieldValue}</div>
                       `
-                : this.type === "file"
-                  ? html`
+                    : this.type === 'file'
+                      ? html`
                           <div class="field-file">
                             <input
                               class="field-file-input"
                               type="file"
                               id="${this.id}"
-                              accept="${this.accept || ""}"
+                              accept="${this.accept || ''}"
                               ?multiple=${this.multiple}
                               ?disabled=${this.disabled}
                               @change=${this.handleInputChange}
@@ -689,15 +716,16 @@ export class FCFormField extends LitElement {
                             <label class="field-file-label" for="${this.id}">
                               <div class="field-file-icon">📁</div>
                               <div class="field-file-text">
-                                ${this.placeholder || "Choose a file or drag it here"}
+                                ${this.placeholder || 'Choose a file or drag it here'}
                               </div>
                             </label>
                           </div>
                         `
-                  : this.type === "radio"
-                    ? html`
+                      : this.type === 'radio'
+                        ? html`
                           <div class="field-radio-group">
-                            ${this.options?.map((option, index) => html`
+                            ${this.options?.map(
+                              (option, index) => html`
                               <label class="field-radio">
                                 <input
                                   class="field-radio-input"
@@ -710,112 +738,117 @@ export class FCFormField extends LitElement {
                                 />
                                 ${option.title}
                               </label>
-                            `)}
+                            `,
+                            )}
                           </div>
                         `
-                    : html`
+                        : html`
                             <input
-                              class="field-input ${displayError ? "error" : ""}"
+                              class="field-input ${displayError ? 'error' : ''}"
                               type="${this.type}"
                               id="${this.id}"
-                              placeholder="${this.placeholder || ""}"
+                              placeholder="${this.placeholder || ''}"
                               .value="${String(fieldValue)}"
                               ?required=${this.required}
                               ?disabled=${this.disabled}
                               @input=${this.handleInputChange}
                             />
                           `
-      }
+        }
 
-        ${this.help ? html`<div class="field-help">${this.help}</div>` : ""}
-        ${displayError ? html`
+        ${this.help ? html`<div class="field-help">${this.help}</div>` : ''}
+        ${
+          displayError
+            ? html`
           <div class="field-error">
             <span class="field-error-icon">⚠</span>
             ${displayError}
           </div>
-        ` : ""}
+        `
+            : ''
+        }
       </div>
-    `;
+    `
   }
 }
 
-@customElement("fleet-form-textarea")
+@customElement('fleet-form-textarea')
 export class FCFormTextarea extends FCFormField {
   constructor() {
-    super();
-    this.type = "textarea";
+    super()
+    this.type = 'textarea'
   }
 }
 
-@customElement("fleet-form-checkbox")
+@customElement('fleet-form-checkbox')
 export class FCFormCheckbox extends FCFormField {
   constructor() {
-    super();
-    this.type = "checkbox";
+    super()
+    this.type = 'checkbox'
   }
 }
 
-@customElement("fleet-form-dropdown")
+@customElement('fleet-form-dropdown')
 export class FCFormDropdown extends FCFormField {
   constructor() {
-    super();
-    this.type = "dropdown";
+    super()
+    this.type = 'dropdown'
   }
 }
 
-@customElement("fleet-form-date")
+@customElement('fleet-form-date')
 export class FCFormDate extends FCFormField {
   constructor() {
-    super();
-    this.type = "date";
+    super()
+    this.type = 'date'
   }
 }
 
-@customElement("fleet-form-file")
+@customElement('fleet-form-file')
 export class FCFormFile extends FCFormField {
   constructor() {
-    super();
-    this.type = "file";
+    super()
+    this.type = 'file'
   }
 }
 
-@customElement("fleet-form-slider")
+@customElement('fleet-form-slider')
 export class FCFormSlider extends FCFormField {
   constructor() {
-    super();
-    this.type = "slider";
+    super()
+    this.type = 'slider'
   }
 }
 
-@customElement("fleet-form-radio")
+@customElement('fleet-form-radio')
 export class FCFormRadio extends FCFormField {
   constructor() {
-    super();
-    this.type = "radio";
+    super()
+    this.type = 'radio'
   }
 }
 
 // Type definitions for external use
-export { FormFieldProps, FormProps };
+export { FormFieldProps, FormProps }
 
 // Raycast-compatible exports
-export const Form = FCForm;
-export const FormField = FCFormField;
-export const Textarea = FCFormTextarea;
-export const Checkbox = FCFormCheckbox;
-export const Dropdown = FCFormDropdown;
-export const DateField = FCFormDate;
-export const FileField = FCFormFile;
-export const Slider = FCFormSlider;
-export const Radio = FCFormRadio;
+export const Form = FCForm
+export const FormField = FCFormField
+export const Textarea = FCFormTextarea
+export const Checkbox = FCFormCheckbox
+export const Dropdown = FCFormDropdown
+export const DateField = FCFormDate
+export const FileField = FCFormFile
+export const Slider = FCFormSlider
+export const Radio = FCFormRadio
 
 // Add displayName for debugging
-(FCForm as any).displayName = "Form";
-(FCFormField as any).displayName = "FormField";
-(FCFormTextarea as any).displayName = "Textarea";
-(FCFormCheckbox as any).displayName = "Checkbox";
-(FCFormDropdown as any).displayName = "Dropdown";
-(FCFormDate as any).displayName = "DateField";
-(FCFormFile as any).displayName = "FileField";
-(FCFormSlider as any).displayName = "Slider";
-(FCFormRadio as any).displayName = "Radio";
+;(FCForm as any).displayName = 'Form'
+;(FCFormField as any).displayName = 'FormField'
+;(FCFormTextarea as any).displayName = 'Textarea'
+;(FCFormCheckbox as any).displayName = 'Checkbox'
+;(FCFormDropdown as any).displayName = 'Dropdown'
+;(FCFormDate as any).displayName = 'DateField'
+;(FCFormFile as any).displayName = 'FileField'
+;(FCFormSlider as any).displayName = 'Slider'
+;(FCFormRadio as any).displayName = 'Radio'

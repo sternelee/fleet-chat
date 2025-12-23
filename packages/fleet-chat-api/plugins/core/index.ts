@@ -5,10 +5,10 @@
  */
 
 // Export all types
-export * from './types.js';
+export * from './types.js'
 
 // Export plugin manager
-export { PluginManager } from './manager.js';
+export { PluginManager } from './manager.js'
 
 // Re-export commonly used types for convenience
 export type {
@@ -23,4 +23,4 @@ export type {
   PluginManagerConfig,
   SecurityPolicy,
   Application,
-} from './types.js';
+} from './types.js'

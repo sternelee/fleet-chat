@@ -2,10 +2,10 @@
  * testplugin Plugin for Fleet Chat
  */
 
-import { showToast } from '../../index.js';
+import { showToast } from '../../index.js'
 
-export default async function() {
-  console.log('testplugin plugin initialized');
+export default async function () {
+  console.log('testplugin plugin initialized')
 }
 
 /**
@@ -31,31 +31,31 @@ This is your new plugin. Start building amazing functionality!
 - [API Reference](https://github.com/sternelee/fleet-chat/blob/main/packages/fleet-chat-api/)
 - [Plugin Examples](https://github.com/sternelee/fleet-chat/tree/main/src/plugins/examples/)
 
-Have fun building your plugin!`;
-  
+Have fun building your plugin!`
+
   return {
     type: 'Detail',
     props: {
-      markdown: markdownContent
-    }
-  };
+      markdown: markdownContent,
+    },
+  }
 }
 
 export async function testpluginList() {
   const items = [
     {
-      title: "Item 1",
-      subtitle: "This is the first item",
-      icon: "🎯",
-      keywords: ["first", "example"]
+      title: 'Item 1',
+      subtitle: 'This is the first item',
+      icon: '🎯',
+      keywords: ['first', 'example'],
     },
     {
-      title: "Item 2", 
-      subtitle: "This is the second item",
-      icon: "⚡",
-      keywords: ["second", "example"]
-    }
-  ];
+      title: 'Item 2',
+      subtitle: 'This is the second item',
+      icon: '⚡',
+      keywords: ['second', 'example'],
+    },
+  ]
 
   return {
     type: 'List',
@@ -73,49 +73,49 @@ export async function testpluginList() {
               {
                 type: 'Action',
                 props: {
-                  title: "Select Item",
-                  icon: "✅",
+                  title: 'Select Item',
+                  icon: '✅',
                   onAction: () => {
                     showToast({
-                      title: "Selected",
+                      title: 'Selected',
                       message: `You selected ${item.title}`,
-                      style: "success"
-                    });
-                  }
-                }
+                      style: 'success',
+                    })
+                  },
+                },
               },
               {
                 type: 'Action',
                 props: {
-                  title: "More Info",
-                  icon: "ℹ️",
+                  title: 'More Info',
+                  icon: 'ℹ️',
                   onAction: () => {
                     showToast({
-                      title: "Item Info",
+                      title: 'Item Info',
                       message: `Keywords: ${item.keywords.join(', ')}`,
-                      style: "info"
-                    });
-                  }
-                }
-              }
-            ]
-          }
-        }
-      }))
-    }
-  };
+                      style: 'info',
+                    })
+                  },
+                },
+              },
+            ],
+          },
+        },
+      })),
+    },
+  }
 }
 
 export const utils = {
   formatGreeting: (name: string) => {
-    return `Hello, ${name}! Welcome to testplugin plugin.`;
+    return `Hello, ${name}! Welcome to testplugin plugin.`
   },
-  
+
   getRandomNumber: () => {
-    return Math.floor(Math.random() * 1000);
+    return Math.floor(Math.random() * 1000)
   },
-  
+
   getCurrentTime: () => {
-    return new Date().toLocaleTimeString();
-  }
-};
+    return new Date().toLocaleTimeString()
+  },
+}

@@ -9,7 +9,7 @@ export enum SnackType {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR',
   WARNING = 'WARNING',
-  INFO = 'INFO'
+  INFO = 'INFO',
 }
 
 export type SnackTypeType = 'NONE' | 'PENDING' | 'SUCCESS' | 'ERROR' | 'WARNING' | 'INFO'

@@ -4,92 +4,92 @@
  * Raycast-compatible Toast notification component built with Lit
  */
 
-import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { LitElement, html, css } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
 
-export type ToastStyle = "success" | "failure" | "info" | "warning";
+export type ToastStyle = 'success' | 'failure' | 'info' | 'warning'
 
 export interface ToastProps {
-  style?: ToastStyle;
-  title: string;
-  message?: string;
+  style?: ToastStyle
+  title: string
+  message?: string
   primaryAction?: {
-    title: string;
-    onAction: () => void;
-  };
+    title: string
+    onAction: () => void
+  }
   secondaryAction?: {
-    title: string;
-    onAction: () => void;
-  };
+    title: string
+    onAction: () => void
+  }
 }
 
 /**
  * Toast manager for handling multiple toasts
  */
 class ToastManager {
-  private static instance: ToastManager;
-  private containers: Map<string, HTMLElement> = new Map();
-  private toasts: Map<string, HTMLElement[]> = new Map();
+  private static instance: ToastManager
+  private containers: Map<string, HTMLElement> = new Map()
+  private toasts: Map<string, HTMLElement[]> = new Map()
 
-  private constructor() { }
+  private constructor() {}
 
   static getInstance(): ToastManager {
     if (!ToastManager.instance) {
-      ToastManager.instance = new ToastManager();
+      ToastManager.instance = new ToastManager()
     }
-    return ToastManager.instance;
+    return ToastManager.instance
   }
 
   registerContainer(rootId: string, container: HTMLElement) {
-    this.containers.set(rootId, container);
-    this.toasts.set(rootId, []);
+    this.containers.set(rootId, container)
+    this.toasts.set(rootId, [])
   }
 
   showToast(rootId: string, props: ToastProps, duration: number = 3000) {
-    const container = this.containers.get(rootId);
+    const container = this.containers.get(rootId)
     if (!container) {
-      console.warn(`No toast container found for root: ${rootId}`);
-      return;
+      console.warn(`No toast container found for root: ${rootId}`)
+      return
     }
 
     // Create toast element
-    const toast = document.createElement("fc-toast") as FCToast;
-    Object.assign(toast, props);
-    container.appendChild(toast);
+    const toast = document.createElement('fc-toast') as FCToast
+    Object.assign(toast, props)
+    container.appendChild(toast)
 
     // Animate in
     requestAnimationFrame(() => {
-      toast.classList.add("visible");
-    });
+      toast.classList.add('visible')
+    })
 
     // Auto-dismiss after duration
     if (duration > 0) {
       setTimeout(() => {
-        this.dismissToast(toast);
-      }, duration);
+        this.dismissToast(toast)
+      }, duration)
     }
 
-    return toast;
+    return toast
   }
 
   dismissToast(toast: HTMLElement) {
-    toast.classList.remove("visible");
-    toast.classList.add("hiding");
+    toast.classList.remove('visible')
+    toast.classList.add('hiding')
     setTimeout(() => {
-      toast.remove();
-    }, 300);
+      toast.remove()
+    }, 300)
   }
 
   clearAll(rootId?: string) {
     if (rootId) {
-      const container = this.containers.get(rootId);
+      const container = this.containers.get(rootId)
       if (container) {
-        container.innerHTML = "";
+        container.innerHTML = ''
       }
     } else {
       this.containers.forEach((container) => {
-        container.innerHTML = "";
-      });
+        container.innerHTML = ''
+      })
     }
   }
 }
@@ -97,35 +97,38 @@ class ToastManager {
 /**
  * showToast function - main API for showing toasts
  */
-export function showToast(props: ToastProps | string, options?: { duration?: number; rootId?: string }): void {
-  const manager = ToastManager.getInstance();
+export function showToast(
+  props: ToastProps | string,
+  options?: { duration?: number; rootId?: string },
+): void {
+  const manager = ToastManager.getInstance()
 
-  let toastProps: ToastProps;
+  let toastProps: ToastProps
 
-  if (typeof props === "string") {
+  if (typeof props === 'string') {
     toastProps = {
       title: props,
-      style: "info",
-    };
+      style: 'info',
+    }
   } else {
-    toastProps = props;
+    toastProps = props
   }
 
-  const rootId = options?.rootId || "default";
-  manager.showToast(rootId, toastProps, options?.duration);
+  const rootId = options?.rootId || 'default'
+  manager.showToast(rootId, toastProps, options?.duration)
 }
 
 /**
  * showActionSheet function - for showing actionable toasts
  */
 export function showActionSheet(props: {
-  title: string;
-  message?: string;
+  title: string
+  message?: string
   actions: Array<{
-    title: string;
-    style?: ToastStyle;
-    onAction: () => void;
-  }>;
+    title: string
+    style?: ToastStyle
+    onAction: () => void
+  }>
 }): void {
   // Convert to multiple toasts or create a special action sheet toast
   props.actions.forEach((action, index) => {
@@ -133,14 +136,14 @@ export function showActionSheet(props: {
       showToast({
         title: action.title,
         message: props.message,
-        style: action.style || "info",
+        style: action.style || 'info',
         primaryAction: {
-          title: "OK",
+          title: 'OK',
           onAction: action.onAction,
         },
-      });
-    }, index * 100);
-  });
+      })
+    }, index * 100)
+  })
 }
 
 /**
@@ -148,16 +151,19 @@ export function showActionSheet(props: {
  */
 export async function alert(message: string): Promise<void> {
   return new Promise((resolve) => {
-    showToast({
-      title: "Alert",
-      message: message,
-      style: "info",
-      primaryAction: {
-        title: "OK",
-        onAction: () => resolve(),
+    showToast(
+      {
+        title: 'Alert',
+        message: message,
+        style: 'info',
+        primaryAction: {
+          title: 'OK',
+          onAction: () => resolve(),
+        },
       },
-    }, { duration: 0 });
-  });
+      { duration: 0 },
+    )
+  })
 }
 
 /**
@@ -165,44 +171,47 @@ export async function alert(message: string): Promise<void> {
  */
 export async function confirm(message: string): Promise<boolean> {
   return new Promise((resolve) => {
-    showToast({
-      title: "Confirm",
-      message: message,
-      style: "info",
-      primaryAction: {
-        title: "OK",
-        onAction: () => resolve(true),
+    showToast(
+      {
+        title: 'Confirm',
+        message: message,
+        style: 'info',
+        primaryAction: {
+          title: 'OK',
+          onAction: () => resolve(true),
+        },
+        secondaryAction: {
+          title: 'Cancel',
+          onAction: () => resolve(false),
+        },
       },
-      secondaryAction: {
-        title: "Cancel",
-        onAction: () => resolve(false),
-      },
-    }, { duration: 0 });
-  });
+      { duration: 0 },
+    )
+  })
 }
 
-@customElement("fc-toast")
+@customElement('fc-toast')
 export class FCToast extends LitElement {
   @property({ type: String })
-  style?: ToastStyle = "info";
+  style?: ToastStyle = 'info'
 
   @property({ type: String })
-  title!: string;
+  title!: string
 
   @property({ type: String })
-  message?: string;
+  message?: string
 
   @property({ type: Object })
   primaryAction?: {
-    title: string;
-    onAction: () => void;
-  };
+    title: string
+    onAction: () => void
+  }
 
   @property({ type: Object })
   secondaryAction?: {
-    title: string;
-    onAction: () => void;
-  };
+    title: string
+    onAction: () => void
+  }
 
   static styles = css`
     :host {
@@ -353,76 +362,80 @@ export class FCToast extends LitElement {
     .toast-close:hover {
       opacity: 1;
     }
-  `;
+  `
 
   private _getIcon(): string {
     const icons = {
-      success: "✓",
-      failure: "✕",
-      info: "ⓘ",
-      warning: "⚠",
-    };
-    return icons[this.style || "info"];
+      success: '✓',
+      failure: '✕',
+      info: 'ⓘ',
+      warning: '⚠',
+    }
+    return icons[this.style || 'info']
   }
 
   private _handlePrimaryAction() {
     if (this.primaryAction?.onAction) {
-      this.primaryAction.onAction();
+      this.primaryAction.onAction()
     }
-    this._dismiss();
+    this._dismiss()
   }
 
   private _handleSecondaryAction() {
     if (this.secondaryAction?.onAction) {
-      this.secondaryAction.onAction();
+      this.secondaryAction.onAction()
     }
-    this._dismiss();
+    this._dismiss()
   }
 
   private _dismiss() {
-    const manager = ToastManager.getInstance();
-    manager.dismissToast(this);
+    const manager = ToastManager.getInstance()
+    manager.dismissToast(this)
   }
 
   render() {
     return html`
-      <div class="toast ${this.style || ""}">
+      <div class="toast ${this.style || ''}">
         <div class="toast-icon">${this._getIcon()}</div>
 
         <div class="toast-content">
           <div class="toast-title">${this.title}</div>
-          ${this.message
-        ? html` <div class="toast-message">${this.message}</div> `
-        : ""}
+          ${this.message ? html` <div class="toast-message">${this.message}</div> ` : ''}
 
-          ${(this.primaryAction || this.secondaryAction)
-        ? html`
+          ${
+            this.primaryAction || this.secondaryAction
+              ? html`
                 <div class="toast-actions">
-                  ${this.secondaryAction
-            ? html`
+                  ${
+                    this.secondaryAction
+                      ? html`
                         <button class="toast-action" @click=${this._handleSecondaryAction}>
                           ${this.secondaryAction.title}
                         </button>
                       `
-            : ""}
-                  ${this.primaryAction
-            ? html`
+                      : ''
+                  }
+                  ${
+                    this.primaryAction
+                      ? html`
                         <button class="toast-action primary" @click=${this._handlePrimaryAction}>
                           ${this.primaryAction.title}
                         </button>
                       `
-            : ""}
+                      : ''
+                  }
                 </div>
               `
-        : ""}
+              : ''
+          }
         </div>
       </div>
-    `;
+    `
   }
 }
 
 // Toast container for managing toast placement
-@customElement("fc-toast-container")
+@customElement('fc-toast-container')
 export class FCToastContainer extends LitElement {
   static styles = css`
     :host {
@@ -470,26 +483,26 @@ export class FCToastContainer extends LitElement {
     ::slotted(*) {
       pointer-events: auto;
     }
-  `;
+  `
 
   @property({ type: String })
-  position: "top-right" | "top-left" | "bottom-right" | "bottom-left" | "center" = "bottom-right";
+  position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center' = 'bottom-right'
 
   connectedCallback() {
-    super.connectedCallback();
-    const manager = ToastManager.getInstance();
-    manager.registerContainer("default", this);
+    super.connectedCallback()
+    const manager = ToastManager.getInstance()
+    manager.registerContainer('default', this)
   }
 
   render() {
-    return html` <slot></slot> `;
+    return html` <slot></slot> `
   }
 }
 
 // Export for Raycast compatibility
-export const Toast = FCToast;
-export const ToastContainer = FCToastContainer;
+export const Toast = FCToast
+export const ToastContainer = FCToastContainer
 
 // Add displayName for debugging
-(FCToast as any).displayName = "Toast";
-(FCToastContainer as any).displayName = "ToastContainer";
+;(FCToast as any).displayName = 'Toast'
+;(FCToastContainer as any).displayName = 'ToastContainer'

@@ -3,53 +3,56 @@
  * Integrates the plugin system with the main Fleet Chat application
  */
 
-import { PluginManager } from "../../packages/fleet-chat-api/plugins/core/manager.js";
-import type { PluginAPI } from "../../packages/fleet-chat-api/plugins/core/types.js";
+import { PluginManager } from '../../packages/fleet-chat-api/plugins/core/manager.js'
+import type { PluginAPI } from '../../packages/fleet-chat-api/plugins/core/types.js'
 
 /**
  * Plugin Integration Service
  * Bridges the plugin system with the main Fleet Chat UI
  */
 export class PluginIntegration {
-  private pluginManager: PluginManager;
-  private integrationApi!: PluginAPI;
-  private initialized = false;
+  private pluginManager: PluginManager
+  private integrationApi!: PluginAPI
+  private initialized = false
 
   constructor() {
     this.pluginManager = new PluginManager({
       maxWorkers: 3,
-      enableHotReload: process.env.NODE_ENV === "development",
-      pluginPaths: ["/plugins", "/Users/sternelee/www/github/fleet-chat/packages/fleet-chat-api/examples"],
+      enableHotReload: process.env.NODE_ENV === 'development',
+      pluginPaths: [
+        '/plugins',
+        '/Users/sternelee/www/github/fleet-chat/packages/fleet-chat-api/examples',
+      ],
       securityPolicy: {
         allowedDomains: [],
         allowFileSystem: true,
         allowNetwork: true,
         maxMemoryUsage: 100,
       },
-    });
+    })
   }
 
   /**
    * Initialize the plugin integration
    */
   async initialize(): Promise<void> {
-    if (this.initialized) return;
+    if (this.initialized) return
 
     try {
       // Initialize plugin manager
-      await this.pluginManager.initialize();
+      await this.pluginManager.initialize()
 
       // Set up integration API
-      await this.setupIntegrationAPI();
+      await this.setupIntegrationAPI()
 
       // Set up event listeners
-      this.setupEventListeners();
+      this.setupEventListeners()
 
-      this.initialized = true;
-      console.log("Plugin integration initialized successfully");
+      this.initialized = true
+      console.log('Plugin integration initialized successfully')
     } catch (error) {
-      console.error("Failed to initialize plugin integration:", error);
-      throw error;
+      console.error('Failed to initialize plugin integration:', error)
+      throw error
     }
   }
 
@@ -59,20 +62,20 @@ export class PluginIntegration {
   async executeCommand(
     pluginId: string,
     commandName: string,
-    args?: Record<string, any>
+    args?: Record<string, any>,
   ): Promise<HTMLElement | void> {
     if (!this.initialized) {
-      await this.initialize();
+      await this.initialize()
     }
 
-    return await this.pluginManager.executeCommand(pluginId, commandName, args);
+    return await this.pluginManager.executeCommand(pluginId, commandName, args)
   }
 
   /**
    * Get the plugin manager instance
    */
   getPluginManager(): PluginManager {
-    return this.pluginManager;
+    return this.pluginManager
   }
 
   /**
@@ -80,9 +83,9 @@ export class PluginIntegration {
    */
   getIntegrationAPI(): PluginAPI {
     if (!this.integrationApi) {
-      throw new Error("Integration API not initialized. Call initialize() first.");
+      throw new Error('Integration API not initialized. Call initialize() first.')
     }
-    return this.integrationApi;
+    return this.integrationApi
   }
 
   /**
@@ -90,10 +93,10 @@ export class PluginIntegration {
    */
   getAvailableCommands(): Array<{ key: string; pluginId: string; command: any }> {
     if (!this.initialized) {
-      return [];
+      return []
     }
 
-    return this.pluginManager.getAvailableCommands();
+    return this.pluginManager.getAvailableCommands()
   }
 
   /**
@@ -115,42 +118,42 @@ export class PluginIntegration {
       // Navigation - use Fleet Chat navigation
       pop: async () => {
         // Integrate with Fleet Chat navigation
-        console.log("Navigation.pop called by plugin");
+        console.log('Navigation.pop called by plugin')
       },
       push: async (_view: HTMLElement, _options?: any) => {
         // Integrate with Fleet Chat navigation
-        console.log("Navigation.push called by plugin");
+        console.log('Navigation.push called by plugin')
       },
       replace: async (_view: HTMLElement, _options?: any) => {
         // Integrate with Fleet Chat navigation
-        console.log("Navigation.replace called by plugin");
+        console.log('Navigation.replace called by plugin')
       },
-      popToRoot: async (_type?: "immediate" | "animated") => {
+      popToRoot: async (_type?: 'immediate' | 'animated') => {
         // Integrate with Fleet Chat navigation
-        console.log("Navigation.popToRoot called by plugin");
+        console.log('Navigation.popToRoot called by plugin')
       },
       clear: async () => {
         // Integrate with Fleet Chat navigation
-        console.log("Navigation.clear called by plugin");
+        console.log('Navigation.clear called by plugin')
       },
 
       // System APIs - use Fleet Chat enhanced APIs
       showToast: async (options: any) => {
         // Integrate with Fleet Chat toast system
-        console.log("showToast called by plugin:", options);
+        console.log('showToast called by plugin:', options)
       },
       showHUD: async (message: string) => {
         // Integrate with Fleet Chat HUD system
-        console.log("showHUD called by plugin:", message);
+        console.log('showHUD called by plugin:', message)
       },
       getApplications: async () => {
         // Use Fleet Chat application management
-        console.log("getApplications called by plugin");
-        return [];
+        console.log('getApplications called by plugin')
+        return []
       },
       openApplication: async (path: string) => {
         // Use Fleet Chat application launching
-        console.log("openApplication called by plugin:", path);
+        console.log('openApplication called by plugin:', path)
       },
 
       // Data Storage - use Fleet Chat storage
@@ -160,7 +163,7 @@ export class PluginIntegration {
       // Environment - use Fleet Chat environment
       environment: {
         supports: true,
-        theme: "dark",
+        theme: 'dark',
         launchContext: null,
       } as any,
 
@@ -169,7 +172,7 @@ export class PluginIntegration {
 
       // File System - use Fleet Chat filesystem
       FileSystem: {} as any,
-    };
+    }
   }
 
   /**
@@ -177,58 +180,58 @@ export class PluginIntegration {
    */
   private setupEventListeners(): void {
     // Listen to plugin manager events
-    this.pluginManager.on("pluginLoaded", (event: any) => {
-      console.log("Plugin loaded:", event.pluginId);
+    this.pluginManager.on('pluginLoaded', (event: any) => {
+      console.log('Plugin loaded:', event.pluginId)
       // Update Fleet Chat state to reflect new plugin
-    });
+    })
 
-    this.pluginManager.on("pluginError", (event: any) => {
-      console.error("Plugin error:", event);
+    this.pluginManager.on('pluginError', (event: any) => {
+      console.error('Plugin error:', event)
       // Show error to user in Fleet Chat
-    });
+    })
 
-    this.pluginManager.on("commandExecuted", (event: any) => {
-      console.log("Command executed:", event);
+    this.pluginManager.on('commandExecuted', (event: any) => {
+      console.log('Command executed:', event)
       // Handle command results
-    });
+    })
   }
 
   /**
    * Shutdown the plugin integration
    */
   async shutdown(): Promise<void> {
-    if (!this.initialized) return;
+    if (!this.initialized) return
 
     try {
-      await this.pluginManager.shutdown();
-      this.initialized = false;
-      console.log("Plugin integration shut down successfully");
+      await this.pluginManager.shutdown()
+      this.initialized = false
+      console.log('Plugin integration shut down successfully')
     } catch (error) {
-      console.error("Failed to shutdown plugin integration:", error);
+      console.error('Failed to shutdown plugin integration:', error)
     }
   }
 }
 
 // Create singleton instance
-let pluginIntegrationInstance: PluginIntegration | null = null;
+let pluginIntegrationInstance: PluginIntegration | null = null
 
 /**
  * Get the plugin integration instance
  */
 export function getPluginIntegration(): PluginIntegration {
   if (!pluginIntegrationInstance) {
-    pluginIntegrationInstance = new PluginIntegration();
+    pluginIntegrationInstance = new PluginIntegration()
   }
-  return pluginIntegrationInstance;
+  return pluginIntegrationInstance
 }
 
 /**
  * Initialize plugin integration (convenience function)
  */
 export async function initializePluginIntegration(): Promise<PluginIntegration> {
-  const integration = getPluginIntegration();
-  await integration.initialize();
-  return integration;
+  const integration = getPluginIntegration()
+  await integration.initialize()
+  return integration
 }
 
 /**
@@ -237,21 +240,21 @@ export async function initializePluginIntegration(): Promise<PluginIntegration> 
 export async function executePluginCommand(
   pluginId: string,
   commandName: string,
-  args?: Record<string, any>
+  args?: Record<string, any>,
 ): Promise<HTMLElement | void> {
-  const integration = getPluginIntegration();
-  return await integration.executeCommand(pluginId, commandName, args);
+  const integration = getPluginIntegration()
+  return await integration.executeCommand(pluginId, commandName, args)
 }
 
 /**
  * Get available plugin commands (convenience function)
  */
 export function getPluginCommands(): Array<{ key: string; pluginId: string; command: any }> {
-  const integration = getPluginIntegration();
-  return integration.getAvailableCommands();
+  const integration = getPluginIntegration()
+  return integration.getAvailableCommands()
 }
 
 /**
  * Export the singleton plugin integration instance for direct use
  */
-export const pluginIntegration = getPluginIntegration();
+export const pluginIntegration = getPluginIntegration()

@@ -5,20 +5,20 @@
 
 // Import React in a compatible way
 // @ts-ignore - React types are provided by the compatibility layer
-import * as React from 'react';
-import { List, Detail, showToast } from '../../index.js';
+import * as React from 'react'
+import { List, Detail, showToast } from '../../index.js'
 
-export default async function() {
+export default async function () {
   // Plugin initialization logic
-  console.log('Hello World Plugin initialized');
+  console.log('Hello World Plugin initialized')
 }
 
 /**
  * Simple hello command using Detail component
  */
 export async function hello() {
-  const name = 'World'; // Would come from preferences or arguments
-  
+  const name = 'World' // Would come from preferences or arguments
+
   return React.createElement(Detail, {
     markdown: `# Hello, ${name}! 👋
 
@@ -55,19 +55,19 @@ export async function hello() {
 *Built with ❤️ for Fleet Chat*`,
     metadata: [
       {
-        label: "Plugin Name",
-        text: "Hello World"
+        label: 'Plugin Name',
+        text: 'Hello World',
       },
       {
-        label: "Version",
-        text: "1.0.0"
+        label: 'Version',
+        text: '1.0.0',
       },
       {
-        label: "License",
-        text: "MIT"
-      }
-    ]
-  });
+        label: 'License',
+        text: 'MIT',
+      },
+    ],
+  })
 }
 
 /**
@@ -76,43 +76,45 @@ export async function hello() {
 export async function helloList() {
   const greetings = [
     {
-      title: "Hello World",
-      subtitle: "A classic greeting",
-      icon: "🌍",
-      keywords: ["classic", "basic"]
+      title: 'Hello World',
+      subtitle: 'A classic greeting',
+      icon: '🌍',
+      keywords: ['classic', 'basic'],
     },
     {
-      title: "Hello Fleet Chat",
-      subtitle: "Greeting for our application",
-      icon: "💬",
-      keywords: ["fleet", "chat", "app"]
+      title: 'Hello Fleet Chat',
+      subtitle: 'Greeting for our application',
+      icon: '💬',
+      keywords: ['fleet', 'chat', 'app'],
     },
     {
-      title: "Hello Developer",
-      subtitle: "A greeting for plugin developers",
-      icon: "👨‍💻",
-      keywords: ["developer", "coder", "programmer"]
+      title: 'Hello Developer',
+      subtitle: 'A greeting for plugin developers',
+      icon: '👨‍💻',
+      keywords: ['developer', 'coder', 'programmer'],
     },
     {
-      title: "Hello Friend",
-      subtitle: "A friendly greeting",
-      icon: "👋",
-      keywords: ["friend", "friendly"]
-    }
-  ];
+      title: 'Hello Friend',
+      subtitle: 'A friendly greeting',
+      icon: '👋',
+      keywords: ['friend', 'friendly'],
+    },
+  ]
 
-  return React.createElement(List, null, 
-    greetings.map((greeting, index) => 
+  return React.createElement(
+    List,
+    null,
+    greetings.map((greeting, index) =>
       React.createElement(List.Item, {
         key: index,
         title: greeting.title,
         subtitle: greeting.subtitle,
         icon: greeting.icon,
         keywords: greeting.keywords,
-        actions: null
-      })
-    )
-  );
+        actions: null,
+      }),
+    ),
+  )
 }
 
 /**
@@ -162,23 +164,23 @@ This example demonstrates the **Detail** component with comprehensive markdown s
     actions: null,
     metadata: [
       {
-        label: "Component",
-        text: "Detail"
+        label: 'Component',
+        text: 'Detail',
       },
       {
-        label: "Renderer",
-        text: "Custom Markdown Parser"
+        label: 'Renderer',
+        text: 'Custom Markdown Parser',
       },
       {
-        label: "Features",
-        text: "Headers, Lists, Code, Tables, Links"
+        label: 'Features',
+        text: 'Headers, Lists, Code, Tables, Links',
       },
       {
-        label: "Status",
-        text: "✅ Working"
-      }
-    ]
-  });
+        label: 'Status',
+        text: '✅ Working',
+      },
+    ],
+  })
 }
 
 /**
@@ -186,10 +188,10 @@ This example demonstrates the **Detail** component with comprehensive markdown s
  */
 export async function helloAction() {
   await showToast({
-    title: "Hello from Plugin! 🎉",
-    message: "This is a no-view command that shows a notification",
-    style: "success"
-  });
+    title: 'Hello from Plugin! 🎉',
+    message: 'This is a no-view command that shows a notification',
+    style: 'success',
+  })
 }
 
 // Additional utility functions for plugin development
@@ -198,29 +200,22 @@ export const utils = {
    * Format greeting message
    */
   formatGreeting: (name: string, includeEmoji = true): string => {
-    const emoji = includeEmoji ? "👋" : "";
-    return `${emoji} Hello, ${name}!`;
+    const emoji = includeEmoji ? '👋' : ''
+    return `${emoji} Hello, ${name}!`
   },
 
   /**
    * Generate random greeting
    */
   randomGreeting: (): string => {
-    const greetings = [
-      "Hello there!",
-      "Hi there!",
-      "Hey there!",
-      "Greetings!",
-      "Howdy!",
-      "Yo!"
-    ];
-    return greetings[Math.floor(Math.random() * greetings.length)];
+    const greetings = ['Hello there!', 'Hi there!', 'Hey there!', 'Greetings!', 'Howdy!', 'Yo!']
+    return greetings[Math.floor(Math.random() * greetings.length)]
   },
 
   /**
    * Validate greeting input
    */
   validateName: (name: string): boolean => {
-    return name.trim().length > 0 && name.length <= 50;
-  }
-};
+    return name.trim().length > 0 && name.length <= 50
+  },
+}

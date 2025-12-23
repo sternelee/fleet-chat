@@ -1,33 +1,33 @@
 {
-  "name": "advanced-demo",
-  "version": "1.0.0",
-  "description": "Advanced demo plugin showcasing Fleet Chat plugin features",
-  "author": "Fleet Chat Team",
-  "commands": [
-    {
-      "name": "default",
-      "title": "Advanced Demo",
-      "description": "Showcase advanced plugin features",
-      "mode": "view"
-    },
-    {
-      "name": "file-browser",
-      "title": "File Browser",
-      "description": "Browse and manage files",
-      "mode": "view"
-    },
-    {
-      "name": "clipboard-history",
-      "title": "Clipboard History",
-      "description": "Access clipboard history",
-      "mode": "view"
-    },
-    {
-      "name": "system-info",
-      "title": "System Info",
-      "description": "View system information",
-      "mode": "no-view"
-    }
-  ],
-  "icon": "🛠️"
+    "name": "advanced-demo",
+    "version": "1.0.0",
+    "description": "Advanced demo plugin showcasing Fleet Chat plugin features",
+    "author": "Fleet Chat Team",
+    "commands": [
+        {
+            "name": "default",
+            "title": "Advanced Demo",
+            "description": "Showcase advanced plugin features",
+            "mode": "view"
+        },
+        {
+            "name": "file-browser",
+            "title": "File Browser",
+            "description": "Browse and manage files",
+            "mode": "view"
+        },
+        {
+            "name": "clipboard-history",
+            "title": "Clipboard History",
+            "description": "Access clipboard history",
+            "mode": "view"
+        },
+        {
+            "name": "system-info",
+            "title": "System Info",
+            "description": "View system information",
+            "mode": "no-view"
+        }
+    ],
+    "icon": "🛠️"
 }

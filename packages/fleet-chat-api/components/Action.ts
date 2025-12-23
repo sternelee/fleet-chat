@@ -3,32 +3,32 @@
  * Raycast-compatible Action component built with Lit
  */
 
-import { LitElement, html, css } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { LitElement, html, css } from 'lit'
+import { customElement, property, state } from 'lit/decorators.js'
 
 export interface IconProps {
-  source: string;
-  tintColor?: string;
-  tooltip?: string;
+  source: string
+  tintColor?: string
+  tooltip?: string
 }
 
 export interface ActionProps {
-  title: string;
-  icon?: string | IconProps;
-  shortcut?: string | KeyboardShortcut;
-  onAction?: () => void | Promise<void>;
-  disabled?: boolean;
-  destructive?: boolean;
-  tooltip?: string;
-  style?: "default" | "destructive" | "secondary";
+  title: string
+  icon?: string | IconProps
+  shortcut?: string | KeyboardShortcut
+  onAction?: () => void | Promise<void>
+  disabled?: boolean
+  destructive?: boolean
+  tooltip?: string
+  style?: 'default' | 'destructive' | 'secondary'
 }
 
 export interface KeyboardShortcut {
-  key: string;
-  modifiers?: ("cmd" | "ctrl" | "opt" | "alt" | "shift")[];
+  key: string
+  modifiers?: ('cmd' | 'ctrl' | 'opt' | 'alt' | 'shift')[]
 }
 
-@customElement("fc-action")
+@customElement('fc-action')
 export class FCAction extends LitElement {
   static styles = css`
     :host {
@@ -192,205 +192,205 @@ export class FCAction extends LitElement {
     .action-tooltip.visible {
       opacity: 1;
     }
-  `;
+  `
 
   @property({ type: String })
-  title: string = "";
+  title: string = ''
 
   @property({ type: String })
-  icon?: string | IconProps;
+  icon?: string | IconProps
 
   @property({ type: String })
-  shortcut?: string | KeyboardShortcut;
+  shortcut?: string | KeyboardShortcut
 
   @property({ type: Function })
-  onAction?: () => void | Promise<void>;
+  onAction?: () => void | Promise<void>
 
   @property({ type: Boolean })
-  disabled: boolean = false;
+  disabled: boolean = false
 
   @property({ type: Boolean })
-  destructive: boolean = false;
+  destructive: boolean = false
 
   @property({ type: String })
-  tooltip?: string;
+  tooltip?: string
 
   @property({ type: String })
-  style: "default" | "destructive" | "secondary" = "default";
+  style: 'default' | 'destructive' | 'secondary' = 'default'
 
   @property({ type: Boolean })
-  isLoading: boolean = false;
+  isLoading: boolean = false
 
   @state()
-  private tooltipVisible = false;
+  private tooltipVisible = false
 
   @state()
-  private tooltipPosition: { top: number; left: number } = { top: 0, left: 0 };
+  private tooltipPosition: { top: number; left: number } = { top: 0, left: 0 }
 
-  private tooltipElement: HTMLElement | null = null;
+  private tooltipElement: HTMLElement | null = null
 
   connectedCallback() {
-    super.connectedCallback();
-    this.createTooltipElement();
+    super.connectedCallback()
+    this.createTooltipElement()
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback();
-    this.removeTooltip();
+    super.disconnectedCallback()
+    this.removeTooltip()
   }
 
   private createTooltipElement() {
     if (this.tooltip) {
-      this.tooltipElement = document.createElement("div");
-      this.tooltipElement.className = "action-tooltip";
-      this.tooltipElement.textContent = this.tooltip;
-      document.body.appendChild(this.tooltipElement);
+      this.tooltipElement = document.createElement('div')
+      this.tooltipElement.className = 'action-tooltip'
+      this.tooltipElement.textContent = this.tooltip
+      document.body.appendChild(this.tooltipElement)
     }
   }
 
   private removeTooltip() {
     if (this.tooltipElement) {
-      this.tooltipElement.remove();
-      this.tooltipElement = null;
+      this.tooltipElement.remove()
+      this.tooltipElement = null
     }
   }
 
   private formatShortcut(shortcut: string | KeyboardShortcut | undefined): ReturnType<typeof html> {
-    if (!shortcut) return html``;
+    if (!shortcut) return html``
 
-    let modifiers: string[] = [];
-    let key: string = "";
+    let modifiers: string[] = []
+    let key: string = ''
 
-    if (typeof shortcut === "string") {
-      const parts = shortcut.split("+");
-      key = parts.pop() || "";
-      modifiers = parts;
+    if (typeof shortcut === 'string') {
+      const parts = shortcut.split('+')
+      key = parts.pop() || ''
+      modifiers = parts
     } else {
-      key = shortcut.key;
-      modifiers = shortcut.modifiers || [];
+      key = shortcut.key
+      modifiers = shortcut.modifiers || []
     }
 
     // Normalize modifiers
-    const normalizedModifiers = modifiers.map(m => {
-      const lower = m.toLowerCase();
-      if (lower === "cmd" || lower === "command") return "⌘";
-      if (lower === "ctrl" || lower === "control") return "⌃";
-      if (lower === "opt" || lower === "option" || lower === "alt") return "⌥";
-      if (lower === "shift") return "⇧";
-      return m;
-    });
+    const normalizedModifiers = modifiers.map((m) => {
+      const lower = m.toLowerCase()
+      if (lower === 'cmd' || lower === 'command') return '⌘'
+      if (lower === 'ctrl' || lower === 'control') return '⌃'
+      if (lower === 'opt' || lower === 'option' || lower === 'alt') return '⌥'
+      if (lower === 'shift') return '⇧'
+      return m
+    })
 
     // Normalize key
-    const normalizedKey = this.formatKey(key);
+    const normalizedKey = this.formatKey(key)
 
     return html`
       <div class="action-shortcut">
-        ${normalizedModifiers.map((mod, i) => html`
-          ${i > 0 ? html`<span class="shortcut-plus">+</span>` : ""}
+        ${normalizedModifiers.map(
+          (mod, i) => html`
+          ${i > 0 ? html`<span class="shortcut-plus">+</span>` : ''}
           <span class="shortcut-key">${mod}</span>
-        `)}
-        ${normalizedModifiers.length > 0 ? html`<span class="shortcut-plus">+</span>` : ""}
+        `,
+        )}
+        ${normalizedModifiers.length > 0 ? html`<span class="shortcut-plus">+</span>` : ''}
         <span class="shortcut-key">${normalizedKey}</span>
       </div>
-    `;
+    `
   }
 
   private formatKey(key: string): string {
-    const upper = key.toUpperCase();
+    const upper = key.toUpperCase()
     const keyMap: Record<string, string> = {
-      "ENTER": "↩",
-      "RETURN": "↩",
-      "ESC": "⎋",
-      "ESCAPE": "⎋",
-      "SPACE": "␣",
-      "TAB": "⇥",
-      "DELETE": "⌫",
-      "BACKSPACE": "⌫",
-      "UP": "↑",
-      "DOWN": "↓",
-      "LEFT": "←",
-      "RIGHT": "→",
-      "HOME": "↖",
-      "END": "↘",
-      "PAGEUP": "⇞",
-      "PAGEDOWN": "⇟",
-    };
-    return keyMap[upper] || upper;
+      ENTER: '↩',
+      RETURN: '↩',
+      ESC: '⎋',
+      ESCAPE: '⎋',
+      SPACE: '␣',
+      TAB: '⇥',
+      DELETE: '⌫',
+      BACKSPACE: '⌫',
+      UP: '↑',
+      DOWN: '↓',
+      LEFT: '←',
+      RIGHT: '→',
+      HOME: '↖',
+      END: '↘',
+      PAGEUP: '⇞',
+      PAGEDOWN: '⇟',
+    }
+    return keyMap[upper] || upper
   }
 
   private renderIcon(icon: string | IconProps | undefined) {
-    if (!icon) return html``;
+    if (!icon) return html``
 
-    const iconSrc = typeof icon === "string" ? icon : icon.source;
-    const iconTint = typeof icon === "object" && icon.tintColor
-      ? `color: ${icon.tintColor}`
-      : "";
+    const iconSrc = typeof icon === 'string' ? icon : icon.source
+    const iconTint = typeof icon === 'object' && icon.tintColor ? `color: ${icon.tintColor}` : ''
 
-    if (iconSrc.startsWith("http") || iconSrc.startsWith("/")) {
-      return html`<img src="${iconSrc}" alt="" style="${iconTint}" />`;
+    if (iconSrc.startsWith('http') || iconSrc.startsWith('/')) {
+      return html`<img src="${iconSrc}" alt="" style="${iconTint}" />`
     }
 
-    if (iconSrc.startsWith("<svg")) {
-      return html`<div style="${iconTint}">${iconSrc}</div>`;
+    if (iconSrc.startsWith('<svg')) {
+      return html`<div style="${iconTint}">${iconSrc}</div>`
     }
 
-    return html`<span style="${iconTint}">${iconSrc}</span>`;
+    return html`<span style="${iconTint}">${iconSrc}</span>`
   }
 
   private async handleClick(event: Event) {
-    event.preventDefault();
-    event.stopPropagation();
+    event.preventDefault()
+    event.stopPropagation()
 
     if (this.disabled || this.isLoading) {
-      return;
+      return
     }
 
     if (this.onAction) {
-      this.isLoading = true;
+      this.isLoading = true
 
       try {
-        await Promise.resolve(this.onAction());
+        await Promise.resolve(this.onAction())
       } catch (error) {
-        console.error("Action execution error:", error);
+        console.error('Action execution error:', error)
       } finally {
-        this.isLoading = false;
+        this.isLoading = false
       }
     }
   }
 
   private handleMouseEnter(event: MouseEvent) {
     if (this.tooltip && this.tooltipElement) {
-      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
       this.tooltipPosition = {
         top: rect.bottom + 8,
         left: rect.left + rect.width / 2,
-      };
+      }
 
-      this.tooltipElement.style.top = `${this.tooltipPosition.top}px`;
-      this.tooltipElement.style.left = `${this.tooltipPosition.left}px`;
-      this.tooltipElement.style.transform = "translateX(-50%)";
-      this.tooltipElement.classList.add("visible");
-      this.tooltipVisible = true;
+      this.tooltipElement.style.top = `${this.tooltipPosition.top}px`
+      this.tooltipElement.style.left = `${this.tooltipPosition.left}px`
+      this.tooltipElement.style.transform = 'translateX(-50%)'
+      this.tooltipElement.classList.add('visible')
+      this.tooltipVisible = true
     }
   }
 
   private handleMouseLeave() {
     if (this.tooltipElement) {
-      this.tooltipElement.classList.remove("visible");
-      this.tooltipVisible = false;
+      this.tooltipElement.classList.remove('visible')
+      this.tooltipVisible = false
     }
   }
 
   render() {
     const classes = [
-      "action-item",
-      this.disabled ? "disabled" : "",
-      this.destructive || this.style === "destructive" ? "destructive" : "",
-      this.style === "secondary" ? "secondary" : "",
-      this.isLoading ? "action-loading" : "",
+      'action-item',
+      this.disabled ? 'disabled' : '',
+      this.destructive || this.style === 'destructive' ? 'destructive' : '',
+      this.style === 'secondary' ? 'secondary' : '',
+      this.isLoading ? 'action-loading' : '',
     ]
       .filter(Boolean)
-      .join(" ");
+      .join(' ')
 
     return html`
       <div
@@ -403,17 +403,17 @@ export class FCAction extends LitElement {
         aria-label="${this.title}"
         aria-disabled="${this.disabled}"
       >
-        ${this.icon ? html` <div class="action-icon">${this.renderIcon(this.icon)}</div> ` : ""}
+        ${this.icon ? html` <div class="action-icon">${this.renderIcon(this.icon)}</div> ` : ''}
 
         <div class="action-text">${this.title}</div>
 
-        ${this.shortcut ? this.formatShortcut(this.shortcut) : ""}
+        ${this.shortcut ? this.formatShortcut(this.shortcut) : ''}
       </div>
-    `;
+    `
   }
 }
 
-@customElement("fc-action-panel")
+@customElement('fc-action-panel')
 export class FCActionPanel extends LitElement {
   static styles = css`
     :host {
@@ -449,94 +449,94 @@ export class FCActionPanel extends LitElement {
       border-bottom: 1px solid var(--color-border);
       margin-bottom: 4px;
     }
-  `;
+  `
 
   @property({ type: String })
-  position: "top-right" | "top-left" | "bottom-right" | "bottom-left" = "top-right";
+  position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' = 'top-right'
 
   @property({ type: Boolean, reflect: true })
-  visible: boolean = false;
+  visible: boolean = false
 
   @property({ type: Object })
-  anchorPosition: { top: number; left: number } = { top: 0, left: 0 };
+  anchorPosition: { top: number; left: number } = { top: 0, left: 0 }
 
   @property({ type: String })
-  title?: string;
+  title?: string
 
   willUpdate(changedProperties: Map<string, any>) {
-    if (changedProperties.has("visible") || changedProperties.has("anchorPosition")) {
-      this.updatePosition();
+    if (changedProperties.has('visible') || changedProperties.has('anchorPosition')) {
+      this.updatePosition()
     }
   }
 
   private updatePosition() {
-    if (!this.visible) return;
+    if (!this.visible) return
 
-    const { top, left } = this.anchorPosition;
-    const panelWidth = 240; // approximate width
-    const panelHeight = Math.min(400, window.innerHeight - top - 20);
+    const { top, left } = this.anchorPosition
+    const panelWidth = 240 // approximate width
+    const panelHeight = Math.min(400, window.innerHeight - top - 20)
 
-    let finalTop = top;
-    let finalLeft = left;
+    let finalTop = top
+    let finalLeft = left
 
     switch (this.position) {
-      case "top-right":
-        finalLeft = Math.min(left, window.innerWidth - panelWidth - 20);
-        break;
-      case "top-left":
-        finalLeft = Math.max(20, left - panelWidth);
-        break;
-      case "bottom-right":
-        finalLeft = Math.min(left, window.innerWidth - panelWidth - 20);
-        finalTop = Math.max(20, top - panelHeight);
-        break;
-      case "bottom-left":
-        finalLeft = Math.max(20, left - panelWidth);
-        finalTop = Math.max(20, top - panelHeight);
-        break;
+      case 'top-right':
+        finalLeft = Math.min(left, window.innerWidth - panelWidth - 20)
+        break
+      case 'top-left':
+        finalLeft = Math.max(20, left - panelWidth)
+        break
+      case 'bottom-right':
+        finalLeft = Math.min(left, window.innerWidth - panelWidth - 20)
+        finalTop = Math.max(20, top - panelHeight)
+        break
+      case 'bottom-left':
+        finalLeft = Math.max(20, left - panelWidth)
+        finalTop = Math.max(20, top - panelHeight)
+        break
     }
 
-    this.style.top = `${finalTop}px`;
-    this.style.left = `${finalLeft}px`;
-    this.style.maxHeight = `${panelHeight}px`;
-    this.style.overflowY = "auto";
+    this.style.top = `${finalTop}px`
+    this.style.left = `${finalLeft}px`
+    this.style.maxHeight = `${panelHeight}px`
+    this.style.overflowY = 'auto'
   }
 
   private handleClickOutside(event: MouseEvent) {
     if (!this.contains(event.target as Node) && this.visible) {
-      this.visible = false;
+      this.visible = false
     }
   }
 
   connectedCallback() {
-    super.connectedCallback();
-    document.addEventListener("click", this.handleClickOutside.bind(this));
-    document.addEventListener("keydown", this.handleKeydown.bind(this));
+    super.connectedCallback()
+    document.addEventListener('click', this.handleClickOutside.bind(this))
+    document.addEventListener('keydown', this.handleKeydown.bind(this))
   }
 
   disconnectedCallback() {
-    document.removeEventListener("click", this.handleClickOutside.bind(this));
-    document.removeEventListener("keydown", this.handleKeydown.bind(this));
+    document.removeEventListener('click', this.handleClickOutside.bind(this))
+    document.removeEventListener('keydown', this.handleKeydown.bind(this))
   }
 
   private handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Escape" && this.visible) {
-      this.visible = false;
+    if (event.key === 'Escape' && this.visible) {
+      this.visible = false
     }
   }
 
   render() {
     return html`
       <div class="action-panel">
-        ${this.title ? html`<div class="panel-header">${this.title}</div>` : ""}
+        ${this.title ? html`<div class="panel-header">${this.title}</div>` : ''}
         <slot></slot>
       </div>
-    `;
+    `
   }
 }
 
 // Separator component for action panels
-@customElement("fc-action-separator")
+@customElement('fc-action-separator')
 export class FCActionSeparator extends LitElement {
   static styles = css`
     :host {
@@ -549,26 +549,26 @@ export class FCActionSeparator extends LitElement {
       background: var(--color-border);
       margin: 4px 0;
     }
-  `;
+  `
 
   render() {
-    return html`<div class="action-separator"></div>`;
+    return html`<div class="action-separator"></div>`
   }
 }
 
 // Create ActionPanelItem component for easier usage
 export interface ActionPanelItemProps {
-  title: string;
-  icon?: string | IconProps;
-  shortcut?: string | KeyboardShortcut;
-  onAction?: () => void | Promise<void>;
-  disabled?: boolean;
-  destructive?: boolean;
-  tooltip?: string;
-  id?: string;
+  title: string
+  icon?: string | IconProps
+  shortcut?: string | KeyboardShortcut
+  onAction?: () => void | Promise<void>
+  disabled?: boolean
+  destructive?: boolean
+  tooltip?: string
+  id?: string
 }
 
-@customElement("fc-action-panel-item")
+@customElement('fc-action-panel-item')
 export class FCActionPanelItem extends FCAction {
   // Inherit from FCAction but add panel-specific styling
   static styles = [
@@ -579,23 +579,23 @@ export class FCActionPanelItem extends FCAction {
         width: 100%;
       }
     `,
-  ];
+  ]
 
   @property({ type: String })
-  id?: string;
+  id?: string
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "fc-action": FCAction;
-    "fc-action-panel": FCActionPanel;
-    "fc-action-separator": FCActionSeparator;
-    "fc-action-panel-item": FCActionPanelItem;
+    'fc-action': FCAction
+    'fc-action-panel': FCActionPanel
+    'fc-action-separator': FCActionSeparator
+    'fc-action-panel-item': FCActionPanelItem
   }
 }
 
 // Export for Raycast compatibility
-export const Action = FCAction;
-export const ActionPanel = FCActionPanel;
-export const ActionPanelItem = FCActionPanelItem;
-export const ActionPanelSeparator = FCActionSeparator;
+export const Action = FCAction
+export const ActionPanel = FCActionPanel
+export const ActionPanelItem = FCActionPanelItem
+export const ActionPanelSeparator = FCActionSeparator

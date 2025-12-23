@@ -4,26 +4,26 @@
  * Provides access to system applications and application management
  */
 
-import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { invoke } from '@tauri-apps/api/core'
+import { openPath } from '@tauri-apps/plugin-opener'
 
 export interface Application {
-  name: string;
-  path: string;
-  icon_path?: string;
-  icon_base64?: string;
+  name: string
+  path: string
+  icon_path?: string
+  icon_base64?: string
 }
 
 export interface FileMatch {
-  path: string;
-  line_number?: number;
-  line_content?: string;
-  match_type: string; // "name" or "content"
+  path: string
+  line_number?: number
+  line_content?: string
+  match_type: string // "name" or "content"
 }
 
 export interface SearchResult {
-  applications: Application[];
-  files: FileMatch[];
+  applications: Application[]
+  files: FileMatch[]
 }
 
 /**
@@ -31,11 +31,11 @@ export interface SearchResult {
  */
 export async function searchApplications(query: string): Promise<Application[]> {
   try {
-    const applications = await invoke<Application[]>("search_applications", { query });
-    return applications;
+    const applications = await invoke<Application[]>('search_applications', { query })
+    return applications
   } catch (error) {
-    console.error("Failed to search applications:", error);
-    return [];
+    console.error('Failed to search applications:', error)
+    return []
   }
 }
 
@@ -45,20 +45,20 @@ export async function searchApplications(query: string): Promise<Application[]> 
 export async function searchFiles(
   query: string,
   options?: {
-    searchPath?: string;
-    searchContent?: boolean;
-  }
+    searchPath?: string
+    searchContent?: boolean
+  },
 ): Promise<FileMatch[]> {
   try {
-    const files = await invoke<FileMatch[]>("search_files", {
+    const files = await invoke<FileMatch[]>('search_files', {
       query,
       search_path: options?.searchPath,
       search_content: options?.searchContent || false,
-    });
-    return files;
+    })
+    return files
   } catch (error) {
-    console.error("Failed to search files:", error);
-    return [];
+    console.error('Failed to search files:', error)
+    return []
   }
 }
 
@@ -68,23 +68,23 @@ export async function searchFiles(
 export async function unifiedSearch(
   query: string,
   options?: {
-    searchPath?: string;
-    includeFiles?: boolean;
-  }
+    searchPath?: string
+    includeFiles?: boolean
+  },
 ): Promise<SearchResult> {
   try {
-    const result = await invoke<SearchResult>("unified_search", {
+    const result = await invoke<SearchResult>('unified_search', {
       query,
       search_path: options?.searchPath,
       include_files: options?.includeFiles !== false, // default to true
-    });
-    return result;
+    })
+    return result
   } catch (error) {
-    console.error("Failed to perform unified search:", error);
+    console.error('Failed to perform unified search:', error)
     return {
       applications: [],
       files: [],
-    };
+    }
   }
 }
 
@@ -93,11 +93,11 @@ export async function unifiedSearch(
  */
 export async function getApplications(): Promise<Application[]> {
   try {
-    const applications = await invoke<Application[]>("get_applications");
-    return applications;
+    const applications = await invoke<Application[]>('get_applications')
+    return applications
   } catch (error) {
-    console.error("Failed to get applications:", error);
-    return [];
+    console.error('Failed to get applications:', error)
+    return []
   }
 }
 
@@ -106,11 +106,11 @@ export async function getApplications(): Promise<Application[]> {
  */
 export async function getFrontmostApplication(): Promise<Application | null> {
   try {
-    const app = await invoke<Application | null>("get_frontmost_application");
-    return app;
+    const app = await invoke<Application | null>('get_frontmost_application')
+    return app
   } catch (error) {
-    console.error("Failed to get frontmost application:", error);
-    return null;
+    console.error('Failed to get frontmost application:', error)
+    return null
   }
 }
 
@@ -119,11 +119,11 @@ export async function getFrontmostApplication(): Promise<Application | null> {
  */
 export async function getRunningApplications(): Promise<Application[]> {
   try {
-    const applications = await invoke<Application[]>("get_running_applications");
-    return applications;
+    const applications = await invoke<Application[]>('get_running_applications')
+    return applications
   } catch (error) {
-    console.error("Failed to get running applications:", error);
-    return [];
+    console.error('Failed to get running applications:', error)
+    return []
   }
 }
 
@@ -132,11 +132,11 @@ export async function getRunningApplications(): Promise<Application[]> {
  */
 export async function getDefaultApplication(extension: string): Promise<Application | null> {
   try {
-    const app = await invoke<Application | null>("get_default_application", { extension });
-    return app;
+    const app = await invoke<Application | null>('get_default_application', { extension })
+    return app
   } catch (error) {
-    console.error("Failed to get default application:", error);
-    return null;
+    console.error('Failed to get default application:', error)
+    return null
   }
 }
 
@@ -145,10 +145,10 @@ export async function getDefaultApplication(extension: string): Promise<Applicat
  */
 export async function launchApplication(app: Application | string): Promise<void> {
   try {
-    const path = typeof app === "string" ? app : app.path;
-    await openPath(path);
+    const path = typeof app === 'string' ? app : app.path
+    await openPath(path)
   } catch (error) {
-    console.error("Failed to launch application:", error);
-    throw error;
+    console.error('Failed to launch application:', error)
+    throw error
   }
 }
