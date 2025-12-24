@@ -162,16 +162,15 @@ async function loadPluginModule(pluginId, sourcePath) {
     if (pluginId === 'hello-world') {
       // Create mock hello-world plugin functions
       return {
-        hello: async function () {
-          return createMockReactElement(
+        hello: async () =>
+          createMockReactElement(
             'div',
             {},
             createMockReactElement('h1', {}, 'Hello, World! 👋'),
             createMockReactElement('p', {}, 'Welcome to Fleet Chat plugin system!'),
-          )
-        },
+          ),
 
-        helloList: async function () {
+        helloList: async () => {
           const greetings = [
             { title: 'Hello World', subtitle: 'A classic greeting' },
             { title: 'Hello Fleet Chat', subtitle: 'Greeting for our application' },
@@ -192,8 +191,8 @@ async function loadPluginModule(pluginId, sourcePath) {
           return createMockReactElement('div', {}, ...listItems)
         },
 
-        helloDetail: async function () {
-          return createMockReactElement(
+        helloDetail: async () =>
+          createMockReactElement(
             'div',
             {},
             createMockReactElement('h1', {}, 'Greeting Details 🎉'),
@@ -206,10 +205,9 @@ async function loadPluginModule(pluginId, sourcePath) {
               createMockReactElement('li', {}, 'Lit web components'),
               createMockReactElement('li', {}, 'TypeScript support'),
             ),
-          )
-        },
+          ),
 
-        helloAction: async function () {
+        helloAction: async () => {
           // This would show a toast - handled by the main thread
           return {
             action: 'showToast',
@@ -293,7 +291,7 @@ self.onmessage = async (event) => {
 
   try {
     switch (type) {
-      case 'initialize':
+      case 'initialize': {
         console.log('[Worker] Received initialize message:', data)
         // API object is not passed directly, will use message-based communication
         currentApi = null
@@ -306,8 +304,9 @@ self.onmessage = async (event) => {
         console.log('[Worker] Sending initialization response:', response)
         self.postMessage(response)
         break
+      }
 
-      case 'loadPlugin':
+      case 'loadPlugin': {
         // Store plugin data if provided
         if (data.code || data.manifest) {
           console.log(`[Worker] Loading plugin ${data.pluginId} with code and manifest`)
@@ -325,8 +324,9 @@ self.onmessage = async (event) => {
           data: { pluginId: data.pluginId },
         })
         break
+      }
 
-      case 'execute':
+      case 'execute': {
         console.log(
           `[Worker] Executing command: ${data.pluginId}/${data.commandName}, mode: ${data.mode}, executionId: ${data.executionId}`,
         )
@@ -389,6 +389,7 @@ self.onmessage = async (event) => {
           })
         }
         break
+      }
 
       case 'cleanup':
         loadedPlugins.clear()

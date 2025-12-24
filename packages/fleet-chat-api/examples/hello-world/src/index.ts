@@ -4,9 +4,9 @@
  */
 
 // Import React in a compatible way
-// @ts-ignore - React types are provided by the compatibility layer
+// @ts-expect-error - React types are provided by the compatibility layer
 import * as React from 'react'
-import { List, Detail, showToast } from '../../index.js'
+import { Detail, List, showToast } from '../../index.js'
 
 export default async function () {
   // Plugin initialization logic

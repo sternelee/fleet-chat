@@ -5,8 +5,8 @@
  */
 
 import { unzip } from 'unzipit'
-import type { PluginManifest, Plugin } from '../../packages/fleet-chat-api/plugins/core/types.js'
-import { PluginManager } from './plugin-manager.js'
+import type { Plugin, PluginManifest } from '../../packages/fleet-chat-api/plugins/core/types.js'
+import type { PluginManager } from './plugin-manager.js'
 
 // Plugin loader specific interface
 export interface LoadedPlugin {
@@ -119,7 +119,7 @@ export class PluginLoader {
     const manifest: PluginManifest = JSON.parse(manifestJson)
 
     // Extract metadata (optional)
-    let metadata: PackageMetadata | undefined = undefined
+    let metadata: PackageMetadata | undefined
     try {
       const metadataEntry = entries['metadata.json']
       if (metadataEntry) {

@@ -7,13 +7,13 @@
 
 import type {
   Plugin,
-  PluginManifest,
-  PluginManagerConfig,
-  PluginState,
-  PluginRegistry,
-  PluginContext,
-  PluginWorker,
   PluginAPI,
+  PluginContext,
+  PluginManagerConfig,
+  PluginManifest,
+  PluginRegistry,
+  PluginState,
+  PluginWorker,
 } from './types.js'
 
 // Event emitter implementation for non-Node environments

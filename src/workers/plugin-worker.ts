@@ -4,8 +4,8 @@
  */
 
 import type {
-  PluginContext,
   PluginAPI,
+  PluginContext,
   PluginManifest,
 } from '../../packages/fleet-chat-api/plugins/core/types.js'
 

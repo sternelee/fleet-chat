@@ -7,19 +7,19 @@
  * that creates .fcp files from plugin source code
  */
 
+import archiver from 'archiver'
 import {
-  readFileSync,
-  writeFileSync,
-  readdirSync,
-  statSync,
+  createWriteStream,
   existsSync,
   mkdirSync,
-  createWriteStream,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
 } from 'fs'
-import { join, relative, extname, basename } from 'path'
-import { createGzip } from 'zlib'
+import { basename, extname, join, relative } from 'path'
 import { pipeline } from 'stream/promises'
-import archiver from 'archiver'
+import { createGzip } from 'zlib'
 
 // 简化的日志记录
 class SimpleLogger {

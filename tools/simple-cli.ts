@@ -6,11 +6,10 @@
  * Simplified command-line interface for the new plugin system
  */
 
-import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync, readdirSync } from 'fs'
-import { join, basename, dirname } from 'path'
 import { spawn } from 'child_process'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import path, { basename, dirname, join } from 'path'
 import { fileURLToPath } from 'url'
-import path from 'path'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

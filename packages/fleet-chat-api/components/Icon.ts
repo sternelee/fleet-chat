@@ -4,7 +4,7 @@
  * Raycast-compatible Icon component supporting multiple icon types
  */
 
-import { LitElement, html, css } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
 export type IconType = 'emoji' | 'image' | 'symbol' | 'lucide' | 'text'
@@ -428,9 +428,13 @@ export { IconUtils }
 
 // Export for Raycast compatibility
 export const Icon = FCIcon
-export { IconSymbol, IconImage, IconText }
+export type {
+  IconSymbol,
+  IconImage,
+  IconText,
 
-// Add displayName for debugging
+  // Add displayName for debugging
+}
 ;(FCIcon as any).displayName = 'Icon'
 ;(FCIconSymbol as any).displayName = 'Icon.Symbol'
 ;(FCIconImage as any).displayName = 'Icon.Image'

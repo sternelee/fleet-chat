@@ -4,7 +4,7 @@
  * Raycast-compatible Form component built with Lit
  */
 
-import { LitElement, html, css, TemplateResult } from 'lit'
+import { css, html, LitElement, type TemplateResult } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 
 export interface IconProps {
@@ -829,7 +829,7 @@ export class FCFormRadio extends FCFormField {
 }
 
 // Type definitions for external use
-export { FormFieldProps, FormProps }
+export type { FormFieldProps, FormProps }
 
 // Raycast-compatible exports
 export const Form = FCForm

@@ -6,13 +6,13 @@
 import { EventEmitter } from 'events'
 import type {
   Plugin,
-  PluginManifest,
-  PluginManagerConfig,
-  PluginState,
-  PluginRegistry,
-  PluginContext,
-  PluginWorker,
   PluginAPI,
+  PluginContext,
+  PluginManagerConfig,
+  PluginManifest,
+  PluginRegistry,
+  PluginState,
+  PluginWorker,
 } from '../../packages/fleet-chat-api/plugins/core/types.js'
 
 export class PluginManager extends EventEmitter {

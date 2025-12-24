@@ -110,7 +110,7 @@ function createDebugUI() {
 
   // 重定向console.log到调试面板
   const originalLog = console.log
-  console.log = function (...args) {
+  console.log = (...args) => {
     originalLog.apply(console, args)
     const output = document.getElementById('debug-output')
     if (output) {

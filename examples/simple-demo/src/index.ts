@@ -5,7 +5,7 @@
  * using @fleet-chat/raycast-api for direct React support
  */
 
-import { List, ActionPanel, Action, showToast, Clipboard } from '@fleet-chat/raycast-api';
+import { type Action, ActionPanel, Clipboard, List, showToast } from '@fleet-chat/raycast-api';
 
 export default function Command() {
   const items = [

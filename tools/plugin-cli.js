@@ -9,16 +9,16 @@
 
 import { spawn } from 'child_process'
 import {
-  readFileSync,
-  writeFileSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
-  statSync,
-  copyFileSync,
+  readFileSync,
   rmSync,
+  statSync,
+  writeFileSync,
 } from 'fs'
-import { join, dirname, relative } from 'path'
+import { dirname, join, relative } from 'path'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)

@@ -354,7 +354,7 @@ export function attachKeyboardNavigation(): (() => void) | void {
           navigationManager.pop()
         }
         break
-      case 'Backspace':
+      case 'Backspace': {
         // Allow backspace navigation only when not focused on input elements
         const activeElement = document.activeElement
         if (
@@ -369,6 +369,7 @@ export function attachKeyboardNavigation(): (() => void) | void {
           }
         }
         break
+      }
     }
   }
 

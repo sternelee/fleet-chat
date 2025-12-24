@@ -51,7 +51,7 @@ export class OAuth {
    */
   static async authorize(options: OAuthOptions): Promise<OAuthToken> {
     try {
-      const mergedOptions = { ...this.defaultOptions, ...options }
+      const mergedOptions = { ...OAuth.defaultOptions, ...options }
       const token = await invoke<OAuthToken>('oauth_authorize', { options: mergedOptions })
       return token
     } catch (error) {

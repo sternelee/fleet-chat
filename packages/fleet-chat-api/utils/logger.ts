@@ -65,7 +65,7 @@ export class Logger {
     // 控制台输出
     const timestamp = entry.timestamp.toISOString()
     const contextStr = entry.context ? `[${entry.context}] ` : ''
-    let logMessage = `${timestamp} ${contextStr}${message}`
+    const logMessage = `${timestamp} ${contextStr}${message}`
 
     switch (level) {
       case LogLevel.DEBUG:
@@ -152,7 +152,7 @@ export class ErrorHandler {
     try {
       return await operation()
     } catch (error) {
-      this.logger.error(errorMessage, error as Error, context)
+      ErrorHandler.logger.error(errorMessage, error as Error, context)
 
       // 向用户显示友好的错误信息
       if (typeof window !== 'undefined' && window.showToast) {
@@ -173,7 +173,7 @@ export class ErrorHandler {
     context?: string,
   ): T {
     return (async (...args: Parameters<T>) => {
-      return await this.withErrorHandling(() => fn(...args), errorMessage, context)
+      return await ErrorHandler.withErrorHandling(() => fn(...args), errorMessage, context)
     }) as T
   }
 }
@@ -184,20 +184,20 @@ export class PerformanceMonitor {
   private static logger = Logger.getInstance()
 
   static startTimer(name: string): void {
-    this.timers.set(name, performance.now())
+    PerformanceMonitor.timers.set(name, performance.now())
   }
 
   static endTimer(name: string, context?: string): number {
-    const startTime = this.timers.get(name)
+    const startTime = PerformanceMonitor.timers.get(name)
     if (startTime === undefined) {
-      this.logger.warn(`Timer "${name}" was not started`, context)
+      PerformanceMonitor.logger.warn(`Timer "${name}" was not started`, context)
       return 0
     }
 
     const duration = performance.now() - startTime
-    this.timers.delete(name)
+    PerformanceMonitor.timers.delete(name)
 
-    this.logger.debug(`Timer "${name}": ${duration.toFixed(2)}ms`, context)
+    PerformanceMonitor.logger.debug(`Timer "${name}": ${duration.toFixed(2)}ms`, context)
     return duration
   }
 
@@ -206,13 +206,13 @@ export class PerformanceMonitor {
     operation: () => Promise<T> | T,
     context?: string,
   ): Promise<T> {
-    this.startTimer(name)
+    PerformanceMonitor.startTimer(name)
     try {
       const result = await operation()
-      this.endTimer(name, context)
+      PerformanceMonitor.endTimer(name, context)
       return result
     } catch (error) {
-      this.endTimer(name, context)
+      PerformanceMonitor.endTimer(name, context)
       throw error
     }
   }

@@ -3,7 +3,7 @@
  * 测试合并后的 API 集成
  */
 
-import { readFileSync, existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 
 console.log('🧪 Testing Merged API Integration\n')
 

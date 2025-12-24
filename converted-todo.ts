@@ -1,12 +1,11 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-
 import { List } from '@fleet-chat/api/raycast-compat';
-import { editingAtom, selectedTagAtom, searchBarTextAtom, searchModeAtom } from "./atoms";
 import { useAtom } from "jotai";
-import TodoSection from "./todo_section";
+import { css, html, LitElement } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { editingAtom, searchBarTextAtom, searchModeAtom, selectedTagAtom } from "./atoms";
 import ListActions from "./list_actions";
 import ListTags from "./list_tags";
+import TodoSection from "./todo_section";
 
 @customElement("TodoList".toLowerCase())
 class TodoList extends LitElement {() {
@@ -20,7 +19,7 @@ class TodoList extends LitElement {() {
       actions={<ListActions />}
       filtering={searchMode}
       key={searchMode ? "search" : "nosearch"}
-      navigationTitle={`Manage Todo List${editing !== false ? " • Editing" : searchMode ? " • Searching" : ""}`}
+      navigationTitle={`Manage Todo List$editing !== false ? " • Editing" : searchMode ? " • Searching" : ""`}
       onSearchTextChange={(text: string) => setSearchBarText(text)}
       searchBarAccessory={<ListTags />}
       searchBarPlaceholder={searchMode ? "Search todos" : "Type and hit enter to add an item to your list"}

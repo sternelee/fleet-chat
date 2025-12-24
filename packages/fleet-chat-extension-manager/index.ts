@@ -5,9 +5,9 @@
  * Inspired by Vicinae's extension-manager architecture but adapted for Tauri
  */
 
+import { randomId } from '@fleet-chat/raycast-api/utils.js'
 import { invoke } from '@tauri-apps/api/core'
 import { emit, listen } from '@tauri-apps/api/event'
-import { randomId } from '@fleet-chat/raycast-api/utils.js'
 
 // Message types for extension communication
 export interface ExtensionMessage {

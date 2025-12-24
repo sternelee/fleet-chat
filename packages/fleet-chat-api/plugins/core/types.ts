@@ -160,9 +160,7 @@ export interface PluginEvent {
   timestamp: number
 }
 
-export interface PluginEventListener {
-  (event: PluginEvent): void
-}
+export type PluginEventListener = (event: PluginEvent) => void
 
 // Plugin State Types
 export interface PluginState {

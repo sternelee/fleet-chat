@@ -4,7 +4,7 @@
  * Provides local storage and cache functionality for plugins using @tauri-apps/plugin-store
  */
 
-import { Store, load } from '@tauri-apps/plugin-store'
+import { load, type Store } from '@tauri-apps/plugin-store'
 
 // Store cache to avoid creating multiple instances
 const storeCache = new Map<string, Store>()

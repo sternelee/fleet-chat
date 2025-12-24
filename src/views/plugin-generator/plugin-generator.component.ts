@@ -1,53 +1,53 @@
-import { css, html, LitElement } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { invoke } from '@tauri-apps/api/core';
-import { 
-  initializeA2UIBridge, 
-  getA2UIBridge,
+import { invoke } from '@tauri-apps/api/core'
+import { css, html, LitElement } from 'lit'
+import { customElement, state } from 'lit/decorators.js'
+import {
   downloadGeneratedPlugin,
+  type GeneratedPluginData,
+  getA2UIBridge,
+  initializeA2UIBridge,
   previewGeneratedPlugin,
-  type GeneratedPluginData 
-} from '../../plugins/a2ui-plugin-bridge.js';
+} from '../../plugins/a2ui-plugin-bridge.js'
 
 interface PluginGenerationRequest {
-  description: string;
-  name?: string;
-  plugin_type?: string;
-  requirements?: string[];
-  include_sample_data?: boolean;
+  description: string
+  name?: string
+  plugin_type?: string
+  requirements?: string[]
+  include_sample_data?: boolean
 }
 
 interface PluginGenerationResponse {
   manifest: {
-    name: string;
-    version: string;
-    description: string;
-    author: string;
-    icon: string;
+    name: string
+    version: string
+    description: string
+    author: string
+    icon: string
     commands: Array<{
-      name: string;
-      title: string;
-      description: string;
-      mode: string;
-    }>;
-  };
-  source_code: string;
-  plugin_id: string;
-  package_name: string;
-  explanation: string;
-  warnings?: string[];
+      name: string
+      title: string
+      description: string
+      mode: string
+    }>
+  }
+  source_code: string
+  plugin_id: string
+  package_name: string
+  explanation: string
+  warnings?: string[]
 }
 
 @customElement('plugin-generator-view')
 export class PluginGeneratorView extends LitElement {
-  @state() private description = '';
-  @state() private pluginName = '';
-  @state() private pluginType = 'list';
-  @state() private requirements = '';
-  @state() private includeSampleData = true;
-  @state() private isGenerating = false;
-  @state() private generatedPlugin: PluginGenerationResponse | null = null;
-  @state() private error: string | null = null;
+  @state() private description = ''
+  @state() private pluginName = ''
+  @state() private pluginType = 'list'
+  @state() private requirements = ''
+  @state() private includeSampleData = true
+  @state() private isGenerating = false
+  @state() private generatedPlugin: PluginGenerationResponse | null = null
+  @state() private error: string | null = null
 
   render() {
     return html`
@@ -66,7 +66,7 @@ export class PluginGeneratorView extends LitElement {
         ${this.error ? this._renderError() : ''}
         ${this.generatedPlugin ? this._renderResult() : ''}
       </div>
-    `;
+    `
   }
 
   private _renderForm() {
@@ -150,8 +150,9 @@ export class PluginGeneratorView extends LitElement {
             ${this.isGenerating ? '⏳ Generating...' : '🚀 Generate Plugin'}
           </button>
 
-          ${this.generatedPlugin
-            ? html`
+          ${
+            this.generatedPlugin
+              ? html`
                 <button
                   class="btn btn-secondary"
                   @click=${this._reset}
@@ -160,10 +161,11 @@ export class PluginGeneratorView extends LitElement {
                   🔄 New Plugin
                 </button>
               `
-            : ''}
+              : ''
+          }
         </div>
       </div>
-    `;
+    `
   }
 
   private _renderError() {
@@ -177,11 +179,11 @@ export class PluginGeneratorView extends LitElement {
           </button>
         </div>
       </div>
-    `;
+    `
   }
 
   private _renderResult() {
-    if (!this.generatedPlugin) return '';
+    if (!this.generatedPlugin) return ''
 
     return html`
       <div class="result-section">
@@ -191,18 +193,18 @@ export class PluginGeneratorView extends LitElement {
           <h3>${this.generatedPlugin.manifest.icon} ${this.generatedPlugin.manifest.name}</h3>
           <p>${this.generatedPlugin.explanation}</p>
 
-          ${this.generatedPlugin.warnings && this.generatedPlugin.warnings.length > 0
-            ? html`
+          ${
+            this.generatedPlugin.warnings && this.generatedPlugin.warnings.length > 0
+              ? html`
                 <div class="warnings">
                   <h4>⚠️ Warnings:</h4>
                   <ul>
-                    ${this.generatedPlugin.warnings.map(
-                      warning => html`<li>${warning}</li>`
-                    )}
+                    ${this.generatedPlugin.warnings.map((warning) => html`<li>${warning}</li>`)}
                   </ul>
                 </div>
               `
-            : ''}
+              : ''
+          }
         </div>
 
         <div class="manifest-section">
@@ -239,44 +241,44 @@ export class PluginGeneratorView extends LitElement {
           </ol>
         </div>
       </div>
-    `;
+    `
   }
 
   private _handleDescriptionChange(e: Event) {
-    this.description = (e.target as HTMLTextAreaElement).value;
+    this.description = (e.target as HTMLTextAreaElement).value
   }
 
   private _handleNameChange(e: Event) {
-    this.pluginName = (e.target as HTMLInputElement).value;
+    this.pluginName = (e.target as HTMLInputElement).value
   }
 
   private _handleTypeChange(e: Event) {
-    this.pluginType = (e.target as HTMLSelectElement).value;
+    this.pluginType = (e.target as HTMLSelectElement).value
   }
 
   private _handleRequirementsChange(e: Event) {
-    this.requirements = (e.target as HTMLTextAreaElement).value;
+    this.requirements = (e.target as HTMLTextAreaElement).value
   }
 
   private _handleSampleDataToggle(e: Event) {
-    this.includeSampleData = (e.target as HTMLInputElement).checked;
+    this.includeSampleData = (e.target as HTMLInputElement).checked
   }
 
   private async _generatePlugin() {
     if (!this.description) {
-      this.error = 'Please provide a plugin description';
-      return;
+      this.error = 'Please provide a plugin description'
+      return
     }
 
-    this.isGenerating = true;
-    this.error = null;
-    this.generatedPlugin = null;
+    this.isGenerating = true
+    this.error = null
+    this.generatedPlugin = null
 
     try {
       const requirementsList = this.requirements
         .split('\n')
-        .map(r => r.trim())
-        .filter(r => r.length > 0);
+        .map((r) => r.trim())
+        .filter((r) => r.length > 0)
 
       const request: PluginGenerationRequest = {
         description: this.description,
@@ -284,7 +286,7 @@ export class PluginGeneratorView extends LitElement {
         plugin_type: this.pluginType,
         requirements: requirementsList.length > 0 ? requirementsList : undefined,
         include_sample_data: this.includeSampleData,
-      };
+      }
 
       // Call the backend API via HTTP (not Tauri command)
       const response = await fetch('http://localhost:3000/a2ui/generate-plugin', {
@@ -293,114 +295,116 @@ export class PluginGeneratorView extends LitElement {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(request),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error(`Failed to generate plugin: ${response.statusText}`);
+        throw new Error(`Failed to generate plugin: ${response.statusText}`)
       }
 
-      this.generatedPlugin = await response.json();
+      this.generatedPlugin = await response.json()
     } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('Plugin generation error:', err);
+      this.error = err instanceof Error ? err.message : 'Unknown error occurred'
+      console.error('Plugin generation error:', err)
     } finally {
-      this.isGenerating = false;
+      this.isGenerating = false
     }
   }
 
   private _reset() {
-    this.description = '';
-    this.pluginName = '';
-    this.pluginType = 'list';
-    this.requirements = '';
-    this.includeSampleData = true;
-    this.generatedPlugin = null;
-    this.error = null;
+    this.description = ''
+    this.pluginName = ''
+    this.pluginType = 'list'
+    this.requirements = ''
+    this.includeSampleData = true
+    this.generatedPlugin = null
+    this.error = null
   }
 
   private async _copyCode() {
-    if (!this.generatedPlugin) return;
+    if (!this.generatedPlugin) return
 
     try {
-      await navigator.clipboard.writeText(this.generatedPlugin.source_code);
-      alert('Code copied to clipboard!');
+      await navigator.clipboard.writeText(this.generatedPlugin.source_code)
+      alert('Code copied to clipboard!')
     } catch (err) {
-      console.error('Failed to copy code:', err);
-      alert('Failed to copy code to clipboard');
+      console.error('Failed to copy code:', err)
+      alert('Failed to copy code to clipboard')
     }
   }
 
   private async _downloadPlugin() {
-    if (!this.generatedPlugin) return;
+    if (!this.generatedPlugin) return
 
     try {
-      const bridge = getA2UIBridge();
+      const bridge = getA2UIBridge()
       if (bridge) {
-        await downloadGeneratedPlugin(this.generatedPlugin as GeneratedPluginData, bridge);
-        alert('Plugin downloaded successfully!');
+        await downloadGeneratedPlugin(this.generatedPlugin as GeneratedPluginData, bridge)
+        alert('Plugin downloaded successfully!')
       } else {
         // Fallback to simple download
         const packageData = {
           manifest: this.generatedPlugin.manifest,
           source: this.generatedPlugin.source_code,
-        };
+        }
 
         const blob = new Blob([JSON.stringify(packageData, null, 2)], {
           type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${this.generatedPlugin.manifest.name}-plugin.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${this.generatedPlugin.manifest.name}-plugin.json`
+        a.click()
+        URL.revokeObjectURL(url)
 
-        alert('Plugin downloaded! Use the Fleet Chat CLI to package this into a .fcp file.');
+        alert('Plugin downloaded! Use the Fleet Chat CLI to package this into a .fcp file.')
       }
     } catch (err) {
-      console.error('Failed to download plugin:', err);
-      alert('Failed to download plugin');
+      console.error('Failed to download plugin:', err)
+      alert('Failed to download plugin')
     }
   }
 
   private async _installPlugin() {
-    if (!this.generatedPlugin) return;
+    if (!this.generatedPlugin) return
 
     try {
-      const bridge = getA2UIBridge();
+      const bridge = getA2UIBridge()
       if (!bridge) {
-        alert('Plugin bridge not available. Please initialize the plugin system first.');
-        return;
+        alert('Plugin bridge not available. Please initialize the plugin system first.')
+        return
       }
 
-      await bridge.installGeneratedPlugin(this.generatedPlugin as GeneratedPluginData);
-      alert(`✅ Plugin "${this.generatedPlugin.manifest.name}" installed successfully!`);
+      await bridge.installGeneratedPlugin(this.generatedPlugin as GeneratedPluginData)
+      alert(`✅ Plugin "${this.generatedPlugin.manifest.name}" installed successfully!`)
     } catch (err) {
-      console.error('Failed to install plugin:', err);
-      alert(`Failed to install plugin: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      console.error('Failed to install plugin:', err)
+      alert(`Failed to install plugin: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
   private async _validatePlugin() {
-    if (!this.generatedPlugin) return;
+    if (!this.generatedPlugin) return
 
     try {
-      const bridge = getA2UIBridge();
+      const bridge = getA2UIBridge()
       if (!bridge) {
-        alert('Plugin bridge not available.');
-        return;
+        alert('Plugin bridge not available.')
+        return
       }
 
-      const preview = previewGeneratedPlugin(this.generatedPlugin as GeneratedPluginData, bridge);
-      
+      const preview = previewGeneratedPlugin(this.generatedPlugin as GeneratedPluginData, bridge)
+
       if (preview.validation.valid) {
-        alert(`✅ Plugin code is valid!\n\nStats:\n- Lines: ${preview.stats.lines}\n- Imports: ${preview.stats.imports}\n- Components: ${preview.stats.components}\n- Hooks: ${preview.stats.hooks}`);
+        alert(
+          `✅ Plugin code is valid!\n\nStats:\n- Lines: ${preview.stats.lines}\n- Imports: ${preview.stats.imports}\n- Components: ${preview.stats.components}\n- Hooks: ${preview.stats.hooks}`,
+        )
       } else {
-        alert(`❌ Plugin validation failed:\n\n${preview.validation.errors.join('\n')}`);
+        alert(`❌ Plugin validation failed:\n\n${preview.validation.errors.join('\n')}`)
       }
     } catch (err) {
-      console.error('Failed to validate plugin:', err);
-      alert('Failed to validate plugin');
+      console.error('Failed to validate plugin:', err)
+      alert('Failed to validate plugin')
     }
   }
 
@@ -664,11 +668,11 @@ export class PluginGeneratorView extends LitElement {
     .next-steps li {
       margin-bottom: 0.5rem;
     }
-  `;
+  `
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'plugin-generator-view': PluginGeneratorView;
+    'plugin-generator-view': PluginGeneratorView
   }
 }

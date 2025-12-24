@@ -19,10 +19,10 @@ import './views/plugin-generator/plugin-generator.component'
 import './layouts/launcher-layout'
 import './routes'
 
+import { initializeA2UIBridge } from './plugins/a2ui-plugin-bridge'
 // Initialize plugin system
 import { initializePluginIntegration, pluginIntegration } from './plugins/plugin-integration'
 import { PluginLoader } from './plugins/plugin-loader'
-import { initializeA2UIBridge } from './plugins/a2ui-plugin-bridge'
 
 // Initialize plugins and create global plugin loader
 async function initializePluginSystem() {

@@ -6,9 +6,9 @@
  * 插件发布和市场管理工具
  */
 
-import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'fs'
-import { join, basename } from 'path'
 import { createHash } from 'crypto'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { basename, join } from 'path'
 
 export interface PluginMetadata {
   name: string
@@ -398,7 +398,7 @@ function main() {
         break
       }
 
-      case 'search':
+      case 'search': {
         if (args.length < 2) {
           console.error('❌ Search query is required')
           return
@@ -418,6 +418,7 @@ function main() {
           console.log('')
         })
         break
+      }
 
       case 'categories':
         console.log('\n📂 Available Categories:')
@@ -439,12 +440,13 @@ function main() {
         market.generateStats()
         break
 
-      case 'export':
+      case 'export': {
         const exportData = market.exportMarket()
         console.log('\n📤 Market Export:')
         console.log('================')
         console.log(exportData)
         break
+      }
 
       case 'help':
       case '--help':

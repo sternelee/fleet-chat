@@ -4,8 +4,8 @@
  * Demonstrates all features of the new Fleet Chat plugin system
  */
 
+import { Action, ActionPanel, Cache, Clipboard, Detail, Grid, List, LocalStorage, showToast } from '@fleet-chat/raycast-api';
 import React from 'react';
-import { List, ActionPanel, Action, Detail, Grid, showToast, Clipboard, LocalStorage, Cache } from '@fleet-chat/raycast-api';
 
 // Main command showcase
 export default function Command() {

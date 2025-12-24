@@ -5,18 +5,17 @@
  * React components are wrapped to work seamlessly with Lit web components
  */
 
-import { createComponent } from 'lit'
-import { html, TemplateResult } from 'lit'
+import { createComponent, html, TemplateResult } from 'lit'
 
 // Import our existing Lit components
 import {
-  FCList,
-  FCActionPanel,
   FCAction,
+  FCActionPanel,
   FCDetail,
-  FCGrid,
-  FCMenuBarExtra,
   FCForm,
+  FCGrid,
+  FCList,
+  FCMenuBarExtra,
 } from '../components/index.js'
 
 // Alias for easier use
@@ -43,27 +42,25 @@ export const ReactForm = reactToLit(Form)
 // Re-export all @raycast/api functionality
 // This gives plugins access to utility functions, types, etc.
 export * from '@raycast/api'
-
+// Re-export React hooks compatibility
+export * from '../hooks/index.js'
 // Export our enhanced system APIs as extensions to @raycast/api
 export {
-  LocalStorage,
   Cache,
-  preferences,
+  Clipboard,
+  environment,
+  FCClipboard,
+  FCFileSystem,
+  FileSystem,
   getApplications,
   getFrontmostApplication,
   getRunningApplications,
+  LocalStorage,
   openApplication,
-  showToast,
+  preferences,
   showHUD,
-  environment,
-  Clipboard,
-  FileSystem,
-  FCClipboard,
-  FCFileSystem,
+  showToast,
 } from '../index.js'
-
-// Re-export React hooks compatibility
-export * from '../hooks/index.js'
 
 // Re-export Raycast utils compatibility
 export * from '../utils/raycast-utils.js'

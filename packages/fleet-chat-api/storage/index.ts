@@ -5,15 +5,14 @@
  * Re-exports the Tauri-based storage implementations from api/storage.ts
  */
 
-// Re-export storage implementations from api/storage.ts
-export {
-  LocalStorage,
-  Cache,
-  preferences,
-} from '../api/storage.js'
-
 // Re-export types
 export type { Preferences } from '../api/storage.js'
+// Re-export storage implementations from api/storage.ts
+export {
+  Cache,
+  LocalStorage,
+  preferences,
+} from '../api/storage.js'
 
 // For plugin compatibility, also provide browser-based fallbacks
 // when running outside of Tauri environment
@@ -101,11 +100,11 @@ export class BrowserCache {
 
   static async get(key: string): Promise<string | null> {
     try {
-      const fullKey = this.CACHE_PREFIX + key
+      const fullKey = BrowserCache.CACHE_PREFIX + key
 
       // Check memory cache first
-      const memoryEntry = this.memoryCache.get(fullKey)
-      if (memoryEntry && !this.isExpired(memoryEntry)) {
+      const memoryEntry = BrowserCache.memoryCache.get(fullKey)
+      if (memoryEntry && !BrowserCache.isExpired(memoryEntry)) {
         return memoryEntry.value
       }
 
@@ -113,9 +112,9 @@ export class BrowserCache {
       const stored = localStorage.getItem(fullKey)
       if (stored) {
         const entry: CacheEntry = JSON.parse(stored)
-        if (!this.isExpired(entry)) {
+        if (!BrowserCache.isExpired(entry)) {
           // Restore to memory cache
-          this.memoryCache.set(fullKey, entry)
+          BrowserCache.memoryCache.set(fullKey, entry)
           return entry.value
         } else {
           // Remove expired entry
@@ -132,7 +131,7 @@ export class BrowserCache {
 
   static async set(key: string, value: string, ttl?: number): Promise<void> {
     try {
-      const fullKey = this.CACHE_PREFIX + key
+      const fullKey = BrowserCache.CACHE_PREFIX + key
       const entry: CacheEntry = {
         value,
         timestamp: Date.now(),
@@ -140,7 +139,7 @@ export class BrowserCache {
       }
 
       // Store in memory cache
-      this.memoryCache.set(fullKey, entry)
+      BrowserCache.memoryCache.set(fullKey, entry)
 
       // Store in localStorage
       const serialized = JSON.stringify(entry)
@@ -153,8 +152,8 @@ export class BrowserCache {
 
   static async remove(key: string): Promise<void> {
     try {
-      const fullKey = this.CACHE_PREFIX + key
-      this.memoryCache.delete(fullKey)
+      const fullKey = BrowserCache.CACHE_PREFIX + key
+      BrowserCache.memoryCache.delete(fullKey)
       localStorage.removeItem(fullKey)
     } catch (error) {
       console.error('BrowserCache remove error:', error)
@@ -164,13 +163,13 @@ export class BrowserCache {
 
   static async clear(): Promise<void> {
     try {
-      this.memoryCache.clear()
+      BrowserCache.memoryCache.clear()
 
       // Clear localStorage cache entries
       const keys: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
-        if (key && key.startsWith(this.CACHE_PREFIX)) {
+        if (key && key.startsWith(BrowserCache.CACHE_PREFIX)) {
           keys.push(key)
         }
       }
@@ -184,7 +183,7 @@ export class BrowserCache {
 
   static async has(key: string): Promise<boolean> {
     try {
-      const value = await this.get(key)
+      const value = await BrowserCache.get(key)
       return value !== null
     } catch (error) {
       console.error('BrowserCache has error:', error)

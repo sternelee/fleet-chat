@@ -3,7 +3,7 @@
  * Raycast-compatible List component built with Lit
  */
 
-import { LitElement, html, css, PropertyValues } from 'lit'
+import { css, html, LitElement, type PropertyValues } from 'lit'
 import { customElement, property, state } from 'lit/decorators.js'
 
 export interface ListItemProps {

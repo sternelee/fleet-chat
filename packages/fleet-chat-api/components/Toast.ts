@@ -4,7 +4,7 @@
  * Raycast-compatible Toast notification component built with Lit
  */
 
-import { LitElement, html, css } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
 export type ToastStyle = 'success' | 'failure' | 'info' | 'warning'

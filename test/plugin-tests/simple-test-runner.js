@@ -5,9 +5,9 @@
  * 简化的插件测试运行器
  */
 
-import { existsSync, readFileSync, statSync } from 'fs'
-import { join, basename } from 'path'
 import { spawn } from 'child_process'
+import { existsSync, readFileSync, statSync } from 'fs'
+import { basename, join } from 'path'
 
 class SimpleTestRunner {
   constructor(pluginsDir = 'examples') {

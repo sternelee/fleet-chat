@@ -2,25 +2,132 @@
  * Rig AI Agent
  *
  * Provides AI functionality using rig-core library
- * Supports multiple providers: OpenAI, Anthropic, Google Gemini, etc.
+ * Supports multiple providers: OpenAI, Anthropic, Google Gemini, DeepSeek, OpenRouter
+ *
+ * Refactored to use AgentBuilder::new() pattern uniformly across all providers
  */
 use futures::stream::{Stream, StreamExt};
-use reqwest::Client;
 use rig::{
+    agent::{AgentBuilder, MultiTurnStreamItem},
     client::{CompletionClient, EmbeddingsClient, ProviderClient},
     completion::{Chat, Message, Prompt, PromptError},
-    embeddings::EmbeddingError,
-    embeddings::EmbeddingModel,
-    providers::{anthropic, deepseek, gemini, openai},
+    providers::{anthropic, deepseek, gemini, openai, openrouter},
+    streaming::{StreamedAssistantContent, StreamingPrompt},
 };
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::pin::Pin;
 use thiserror::Error;
 
+// Import the EmbeddingModel trait for use in the embeddings method
+use rig::embeddings::{EmbeddingError, EmbeddingModel};
+
+// Import the correct CompletionModel types
+use rig::providers::openai::responses_api::ResponsesCompletionModel;
+
 // ============================================================================
 // Types
 // ============================================================================
+
+/// Enum to wrap different provider completion models
+enum ProviderCompletionModel {
+    OpenAI(ResponsesCompletionModel),
+    Anthropic(rig::providers::anthropic::completion::CompletionModel),
+    Gemini(rig::providers::gemini::completion::CompletionModel),
+    DeepSeek(rig::providers::deepseek::CompletionModel),
+    OpenRouter(rig::providers::openrouter::completion::CompletionModel),
+}
+
+// ============================================================================
+// Rig Agent
+// ============================================================================
+
+pub struct RigAgent {
+    provider: AIProvider,
+    default_model: String,
+}
+
+impl RigAgent {
+    pub fn new() -> Result<Self, RigAgentError> {
+        let provider = AIProvider::from_env();
+        let default_model = provider.default_model();
+
+        // Verify that we have the required API key
+        Self::verify_api_key(&provider)?;
+
+        Ok(Self {
+            provider,
+            default_model,
+        })
+    }
+
+    pub fn with_provider(provider: AIProvider) -> Result<Self, RigAgentError> {
+        let default_model = provider.default_model();
+
+        // Verify that we have the required API key for this provider
+        Self::verify_api_key(&provider)?;
+
+        Ok(Self {
+            provider,
+            default_model,
+        })
+    }
+
+    fn verify_api_key(provider: &AIProvider) -> Result<(), RigAgentError> {
+        match provider {
+            AIProvider::OpenAI => {
+                env::var("OPENAI_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+            }
+            AIProvider::Anthropic => {
+                env::var("ANTHROPIC_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+            }
+            AIProvider::Gemini => {
+                env::var("GEMINI_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+            }
+            AIProvider::DeepSeek => {
+                env::var("DEEPSEEK_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+            }
+            AIProvider::OpenRouter => {
+                env::var("OPENROUTER_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+            }
+            AIProvider::Ollama => {
+                // Ollama doesn't need an API key
+            }
+        }
+        Ok(())
+    }
+
+    fn resolve_model(&self, options: &AIOptions) -> String {
+        options.model.clone().unwrap_or_else(|| self.default_model.clone())
+    }
+
+    /// Get the completion model for the current provider
+    fn get_completion_model(&self, model: &str) -> Result<ProviderCompletionModel, RigAgentError> {
+        match self.provider {
+            AIProvider::OpenAI => {
+                let client = openai::Client::from_env();
+                Ok(ProviderCompletionModel::OpenAI(client.completion_model(model)))
+            }
+            AIProvider::Anthropic => {
+                let client = anthropic::Client::from_env();
+                Ok(ProviderCompletionModel::Anthropic(client.completion_model(model)))
+            }
+            AIProvider::Gemini => {
+                let client = gemini::Client::from_env();
+                Ok(ProviderCompletionModel::Gemini(client.completion_model(model)))
+            }
+            AIProvider::DeepSeek => {
+                let client = deepseek::Client::from_env();
+                Ok(ProviderCompletionModel::DeepSeek(client.completion_model(model)))
+            }
+            AIProvider::OpenRouter => {
+                let client = openrouter::Client::from_env();
+                Ok(ProviderCompletionModel::OpenRouter(client.completion_model(model)))
+            }
+            AIProvider::Ollama => Err(RigAgentError::NotSupported("Ollama not yet implemented".to_string())),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIOptions {
@@ -190,151 +297,80 @@ pub enum RigAgentError {
     Other(String),
 }
 
-// ============================================================================
+impl From<env::VarError> for RigAgentError {
+    fn from(err: env::VarError) -> Self {
+        RigAgentError::ApiKeyNotFound(err.to_string())
+    }
+}
+
+// ========================================================================
 // Rig Agent
 // ============================================================================
 
-pub struct RigAgent {
-    provider: AIProvider,
-    default_model: String,
-}
-
 impl RigAgent {
-    pub fn new() -> Result<Self, RigAgentError> {
-        let provider = AIProvider::from_env();
-        let default_model = provider.default_model();
-
-        // Verify that we have the required API key
-        match provider {
-            AIProvider::OpenAI => {
-                env::var("OPENAI_API_KEY").map_err(|_| RigAgentError::ApiKeyNotFound("OPENAI_API_KEY".to_string()))?;
-            }
-            AIProvider::Anthropic => {
-                env::var("ANTHROPIC_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("ANTHROPIC_API_KEY".to_string()))?;
-            }
-            AIProvider::Gemini => {
-                env::var("GEMINI_API_KEY").map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
-            }
-            AIProvider::DeepSeek => {
-                env::var("DEEPSEEK_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
-            }
-            AIProvider::OpenRouter => {
-                env::var("OPENROUTER_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-            }
-            AIProvider::Ollama => {
-                // Ollama doesn't need an API key
-            }
-        }
-
-        Ok(Self {
-            provider,
-            default_model,
-        })
-    }
-
-    pub fn with_provider(provider: AIProvider) -> Result<Self, RigAgentError> {
-        let default_model = provider.default_model();
-
-        // Verify that we have the required API key for this provider
-        match provider {
-            AIProvider::OpenAI => {
-                env::var("OPENAI_API_KEY").map_err(|_| RigAgentError::ApiKeyNotFound("OPENAI_API_KEY".to_string()))?;
-            }
-            AIProvider::Anthropic => {
-                env::var("ANTHROPIC_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("ANTHROPIC_API_KEY".to_string()))?;
-            }
-            AIProvider::Gemini => {
-                env::var("GEMINI_API_KEY").map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
-            }
-            AIProvider::DeepSeek => {
-                env::var("DEEPSEEK_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
-            }
-            AIProvider::OpenRouter => {
-                env::var("OPENROUTER_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-            }
-            AIProvider::Ollama => {
-                // Ollama doesn't need an API key
-            }
-        }
-
-        Ok(Self {
-            provider,
-            default_model,
-        })
-    }
-
-    fn resolve_model(&self, options: &AIOptions) -> String {
-        options.model.clone().unwrap_or_else(|| self.default_model.clone())
-    }
-
     // ========================================================================
     // Text Generation
     // ========================================================================
 
+    /// Generate text using AgentBuilder::new() pattern
     pub async fn generate(&self, options: AIOptions) -> Result<AIResponse, RigAgentError> {
         let model = self.resolve_model(&options);
+        let temperature = options.temperature.map(|t| t as f64);
+        let max_tokens = options.max_tokens.map(|t| t as u64);
 
-        let text = match self.provider {
-            AIProvider::OpenAI => {
-                let _ = env::var("OPENAI_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENAI_API_KEY".to_string()))?;
-                let client = openai::Client::from_env();
-                let agent = client.agent(&model).build();
-                agent.prompt(&options.prompt).await?
+        // Get completion model for current provider
+        let completion_model = self.get_completion_model(&model)?;
+
+        // Build agent and call prompt
+        let text = match completion_model {
+            ProviderCompletionModel::OpenAI(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().prompt(&options.prompt).await?
             }
-            AIProvider::Anthropic => {
-                let _ = env::var("ANTHROPIC_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("ANTHROPIC_API_KEY".to_string()))?;
-                let client = anthropic::Client::from_env();
-                let agent = client.agent(&model).build();
-                agent.prompt(&options.prompt).await?
+            ProviderCompletionModel::Anthropic(model) => {
+                // Anthropic requires max_tokens
+                let tokens = max_tokens.unwrap_or(4096);
+                let mut builder = AgentBuilder::new(model).max_tokens(tokens);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                builder.build().prompt(&options.prompt).await?
             }
-            AIProvider::Gemini => {
-                let _ = env::var("GEMINI_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
-                let client = gemini::Client::from_env();
-                let agent = client.agent(&model).build();
-                agent.prompt(&options.prompt).await?
+            ProviderCompletionModel::Gemini(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().prompt(&options.prompt).await?
             }
-            AIProvider::Ollama => {
-                return Err(RigAgentError::NotSupported(
-                    "Ollama text generation not yet implemented".to_string(),
-                ));
+            ProviderCompletionModel::DeepSeek(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().prompt(&options.prompt).await?
             }
-            AIProvider::DeepSeek => {
-                let _ = env::var("DEEPSEEK_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
-                let client = deepseek::Client::from_env();
-                let agent = client.agent(&model).build();
-                agent.prompt(&options.prompt).await?
-            }
-            AIProvider::OpenRouter => {
-                // Use OpenAI client with OpenRouter's base URL for better compatibility
-                let api_key = env::var("OPENROUTER_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-
-                println!("[RigAgent] Creating OpenRouter client with model: {}", model);
-
-                // Set environment variables before creating the client
-                env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
-                env::set_var("OPENAI_API_KEY", &api_key);
-
-                // Use CompletionsClient directly (not Responses API client)
-                let completions_client = openai::CompletionsClient::from_env();
-                let completion_model = completions_client.completion_model(&model);
-                let agent = completion_model.into_agent_builder().build();
-
-                println!("[RigAgent] Sending prompt to OpenRouter...");
-                let result = agent.prompt(&options.prompt).await?;
-                println!("[RigAgent] OpenRouter response received");
-
-                result
+            ProviderCompletionModel::OpenRouter(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().prompt(&options.prompt).await?
             }
         };
 
@@ -346,61 +382,210 @@ impl RigAgent {
         })
     }
 
-    /// Stream text generation with real streaming support
+    /// Stream text generation using rig's built-in streaming support
     /// Returns a stream of text chunks
     pub fn generate_stream(
         &self,
         options: AIOptions,
     ) -> Pin<Box<dyn Stream<Item = Result<String, RigAgentError>> + Send>> {
-        use tokio_stream::wrappers::ReceiverStream;
         use tokio::sync::mpsc;
+        use tokio_stream::wrappers::ReceiverStream;
 
         let model = self.resolve_model(&options);
         let provider = self.provider.clone();
         let prompt = options.prompt;
-        let temperature = options.temperature.unwrap_or(0.7);
+        let temperature = options.temperature.map(|t| t as f64);
+        let max_tokens = options.max_tokens.map(|t| t as u64);
 
         // Create a channel for sending chunks
         let (tx, rx) = mpsc::channel(100);
 
         // Spawn a task to handle streaming
         tokio::spawn(async move {
-            let result: Result<(), String> = async move {
-                match provider {
+            let result: Result<(), RigAgentError> = async move {
+                // Get completion model for current provider
+                let completion_model = match provider {
                     AIProvider::OpenAI => {
-                        stream_openai(&model, &prompt, temperature, tx)
-                            .await
-                            .map_err(|e| e.to_string())
+                        let client = openai::Client::from_env();
+                        ProviderCompletionModel::OpenAI(client.completion_model(&model))
                     }
                     AIProvider::Anthropic => {
-                        stream_anthropic(&model, &prompt, temperature, tx)
-                            .await
-                            .map_err(|e| e.to_string())
+                        let client = anthropic::Client::from_env();
+                        ProviderCompletionModel::Anthropic(client.completion_model(&model))
                     }
                     AIProvider::Gemini => {
-                        stream_gemini(&model, &prompt, temperature, tx)
-                            .await
-                            .map_err(|e| e.to_string())
+                        let client = gemini::Client::from_env();
+                        ProviderCompletionModel::Gemini(client.completion_model(&model))
                     }
                     AIProvider::DeepSeek => {
-                        stream_deepseek(&model, &prompt, temperature, tx)
-                            .await
-                            .map_err(|e| e.to_string())
+                        let client = deepseek::Client::from_env();
+                        ProviderCompletionModel::DeepSeek(client.completion_model(&model))
                     }
                     AIProvider::OpenRouter => {
-                        stream_openrouter(&model, &prompt, temperature, tx)
-                            .await
-                            .map_err(|e| e.to_string())
+                        let client = openrouter::Client::from_env();
+                        ProviderCompletionModel::OpenRouter(client.completion_model(&model))
                     }
                     AIProvider::Ollama => {
-                        Err("Ollama streaming not yet implemented".to_string())
+                        let _ = tx
+                            .send(Err(RigAgentError::NotSupported(
+                                "Ollama not yet implemented".to_string(),
+                            )))
+                            .await;
+                        return Ok(());
+                    }
+                };
+
+                // Build agent and stream
+                match completion_model {
+                    ProviderCompletionModel::OpenAI(model) => {
+                        let mut builder = AgentBuilder::new(model);
+                        if let Some(temp) = temperature {
+                            builder = builder.temperature(temp);
+                        }
+                        if let Some(tokens) = max_tokens {
+                            builder = builder.max_tokens(tokens);
+                        }
+                        let agent = std::sync::Arc::new(builder.build());
+
+                        let mut stream = agent.stream_prompt(&prompt).await;
+                        while let Some(item) = stream.next().await {
+                            match item {
+                                Ok(chunk) => match chunk {
+                                    MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(text)) => {
+                                        let _ = tx.send(Ok(text.text)).await;
+                                    }
+                                    MultiTurnStreamItem::FinalResponse(_) => {
+                                        break;
+                                    }
+                                    _ => {}
+                                },
+                                Err(e) => {
+                                    let _ = tx.send(Err(RigAgentError::Other(e.to_string()))).await;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    ProviderCompletionModel::Anthropic(model) => {
+                        let tokens = max_tokens.unwrap_or(4096);
+                        let mut builder = AgentBuilder::new(model).max_tokens(tokens);
+                        if let Some(temp) = temperature {
+                            builder = builder.temperature(temp);
+                        }
+                        let agent = std::sync::Arc::new(builder.build());
+
+                        let mut stream = agent.stream_prompt(&prompt).await;
+                        while let Some(item) = stream.next().await {
+                            match item {
+                                Ok(chunk) => match chunk {
+                                    MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(text)) => {
+                                        let _ = tx.send(Ok(text.text)).await;
+                                    }
+                                    MultiTurnStreamItem::FinalResponse(_) => {
+                                        break;
+                                    }
+                                    _ => {}
+                                },
+                                Err(e) => {
+                                    let _ = tx.send(Err(RigAgentError::Other(e.to_string()))).await;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    ProviderCompletionModel::Gemini(model) => {
+                        let mut builder = AgentBuilder::new(model);
+                        if let Some(temp) = temperature {
+                            builder = builder.temperature(temp);
+                        }
+                        if let Some(tokens) = max_tokens {
+                            builder = builder.max_tokens(tokens);
+                        }
+                        let agent = std::sync::Arc::new(builder.build());
+
+                        let mut stream = agent.stream_prompt(&prompt).await;
+                        while let Some(item) = stream.next().await {
+                            match item {
+                                Ok(chunk) => match chunk {
+                                    MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(text)) => {
+                                        let _ = tx.send(Ok(text.text)).await;
+                                    }
+                                    MultiTurnStreamItem::FinalResponse(_) => {
+                                        break;
+                                    }
+                                    _ => {}
+                                },
+                                Err(e) => {
+                                    let _ = tx.send(Err(RigAgentError::Other(e.to_string()))).await;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    ProviderCompletionModel::DeepSeek(model) => {
+                        let mut builder = AgentBuilder::new(model);
+                        if let Some(temp) = temperature {
+                            builder = builder.temperature(temp);
+                        }
+                        if let Some(tokens) = max_tokens {
+                            builder = builder.max_tokens(tokens);
+                        }
+                        let agent = std::sync::Arc::new(builder.build());
+
+                        let mut stream = agent.stream_prompt(&prompt).await;
+                        while let Some(item) = stream.next().await {
+                            match item {
+                                Ok(chunk) => match chunk {
+                                    MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(text)) => {
+                                        let _ = tx.send(Ok(text.text)).await;
+                                    }
+                                    MultiTurnStreamItem::FinalResponse(_) => {
+                                        break;
+                                    }
+                                    _ => {}
+                                },
+                                Err(e) => {
+                                    let _ = tx.send(Err(RigAgentError::Other(e.to_string()))).await;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    ProviderCompletionModel::OpenRouter(model) => {
+                        let mut builder = AgentBuilder::new(model);
+                        if let Some(temp) = temperature {
+                            builder = builder.temperature(temp);
+                        }
+                        if let Some(tokens) = max_tokens {
+                            builder = builder.max_tokens(tokens);
+                        }
+                        let agent = std::sync::Arc::new(builder.build());
+
+                        let mut stream = agent.stream_prompt(&prompt).await;
+                        while let Some(item) = stream.next().await {
+                            match item {
+                                Ok(chunk) => match chunk {
+                                    MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(text)) => {
+                                        let _ = tx.send(Ok(text.text)).await;
+                                    }
+                                    MultiTurnStreamItem::FinalResponse(_) => {
+                                        break;
+                                    }
+                                    _ => {}
+                                },
+                                Err(e) => {
+                                    let _ = tx.send(Err(RigAgentError::Other(e.to_string()))).await;
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
+                Ok(())
             }
             .await;
 
-            // Note: tx is moved into the async block, so we can't use it here
-            // Error handling is done inside the async block
+            let _ = result;
         });
 
         Box::pin(ReceiverStream::new(rx))
@@ -410,12 +595,13 @@ impl RigAgent {
     // Chat
     // ========================================================================
 
+    /// Chat using AgentBuilder::new() pattern
     pub async fn chat(
         &self,
         messages: Vec<ChatMessage>,
-        _options: Option<AIOptions>,
+        options: Option<AIOptions>,
     ) -> Result<AIResponse, RigAgentError> {
-        let default_options = AIOptions {
+        let default_options = options.unwrap_or_else(|| AIOptions {
             prompt: String::new(),
             model: None,
             temperature: None,
@@ -423,8 +609,10 @@ impl RigAgent {
             top_p: None,
             frequency_penalty: None,
             presence_penalty: None,
-        };
+        });
         let model = self.resolve_model(&default_options);
+        let temperature = default_options.temperature.map(|t| t as f64);
+        let max_tokens = default_options.max_tokens.map(|t| t as u64);
 
         // Convert ChatMessage to rig's Message format
         let rig_messages: Vec<Message> = messages
@@ -436,101 +624,66 @@ impl RigAgent {
             })
             .collect();
 
-        let text = match self.provider {
-            AIProvider::OpenAI => {
-                let _ = env::var("OPENAI_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENAI_API_KEY".to_string()))?;
-                let client = openai::Client::from_env();
-                let agent = client.agent(&model).build();
+        // Get the last message as the prompt, and the rest as chat history
+        let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
+        let chat_history = if rig_messages.len() > 1 {
+            rig_messages[..rig_messages.len() - 1].to_vec()
+        } else {
+            vec![]
+        };
 
-                // Get the last message as the prompt, and the rest as chat history
-                let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
-                let chat_history = if rig_messages.len() > 1 {
-                    rig_messages[..rig_messages.len() - 1].to_vec()
-                } else {
-                    vec![]
-                };
+        // Get completion model for current provider
+        let completion_model = self.get_completion_model(&model)?;
 
-                agent.chat(prompt_msg, chat_history).await?
+        // Build agent and call chat
+        let text = match completion_model {
+            ProviderCompletionModel::OpenAI(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().chat(prompt_msg, chat_history).await?
             }
-            AIProvider::Anthropic => {
-                let _ = env::var("ANTHROPIC_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("ANTHROPIC_API_KEY".to_string()))?;
-                let client = anthropic::Client::from_env();
-                let agent = client.agent(&model).build();
-
-                let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
-                let chat_history = if rig_messages.len() > 1 {
-                    rig_messages[..rig_messages.len() - 1].to_vec()
-                } else {
-                    vec![]
-                };
-
-                agent.chat(prompt_msg, chat_history).await?
+            ProviderCompletionModel::Anthropic(model) => {
+                let tokens = max_tokens.unwrap_or(4096);
+                let mut builder = AgentBuilder::new(model).max_tokens(tokens);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                builder.build().chat(prompt_msg, chat_history).await?
             }
-            AIProvider::Gemini => {
-                let _ = env::var("GEMINI_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
-                let client = gemini::Client::from_env();
-                let agent = client.agent(&model).build();
-
-                let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
-                let chat_history = if rig_messages.len() > 1 {
-                    rig_messages[..rig_messages.len() - 1].to_vec()
-                } else {
-                    vec![]
-                };
-
-                agent.chat(prompt_msg, chat_history).await?
+            ProviderCompletionModel::Gemini(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().chat(prompt_msg, chat_history).await?
             }
-            AIProvider::Ollama => {
-                return Err(RigAgentError::NotSupported(
-                    "Ollama chat not yet implemented".to_string(),
-                ));
+            ProviderCompletionModel::DeepSeek(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().chat(prompt_msg, chat_history).await?
             }
-            AIProvider::DeepSeek => {
-                let _ = env::var("DEEPSEEK_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
-                let client = deepseek::Client::from_env();
-                let agent = client.agent(&model).build();
-
-                let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
-                let chat_history = if rig_messages.len() > 1 {
-                    rig_messages[..rig_messages.len() - 1].to_vec()
-                } else {
-                    vec![]
-                };
-
-                agent.chat(prompt_msg, chat_history).await?
-            }
-            AIProvider::OpenRouter => {
-                // Use OpenAI client with OpenRouter's base URL for better compatibility
-                let api_key = env::var("OPENROUTER_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-
-                println!("[RigAgent] Creating OpenRouter client for chat with model: {}", model);
-
-                // Set environment variables before creating the client
-                env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
-                env::set_var("OPENAI_API_KEY", &api_key);
-
-                // Use CompletionsClient directly (not Responses API client)
-                let completions_client = openai::CompletionsClient::from_env();
-                let completion_model = completions_client.completion_model(&model);
-                let agent = completion_model.into_agent_builder().build();
-
-                let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
-                let chat_history = if rig_messages.len() > 1 {
-                    rig_messages[..rig_messages.len() - 1].to_vec()
-                } else {
-                    vec![]
-                };
-
-                println!("[RigAgent] Sending chat request to OpenRouter...");
-                let result = agent.chat(prompt_msg, chat_history).await?;
-                println!("[RigAgent] OpenRouter chat response received");
-
-                result
+            ProviderCompletionModel::OpenRouter(model) => {
+                let mut builder = AgentBuilder::new(model);
+                if let Some(temp) = temperature {
+                    builder = builder.temperature(temp);
+                }
+                if let Some(tokens) = max_tokens {
+                    builder = builder.max_tokens(tokens);
+                }
+                builder.build().chat(prompt_msg, chat_history).await?
             }
         };
 
@@ -742,297 +895,4 @@ impl RigAgent {
             ]),
         }
     }
-}
-
-// ============================================================================
-// Streaming Helper Functions
-// ============================================================================
-
-type StreamSender = tokio::sync::mpsc::Sender<Result<String, RigAgentError>>;
-
-async fn stream_openai(
-    model: &str,
-    prompt: &str,
-    temperature: f32,
-    tx: StreamSender,
-) -> Result<(), Box<dyn std::error::Error>> {
-    use reqwest::header::{HeaderMap, CONTENT_TYPE, AUTHORIZATION};
-    use serde_json::json;
-
-    let api_key = env::var("OPENAI_API_KEY")?;
-    let client = Client::new();
-
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, "application/json".parse()?);
-    headers.insert(AUTHORIZATION, format!("Bearer {}", api_key).parse()?);
-
-    let body = json!({
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-        "stream": true
-    });
-
-    let response = client
-        .post("https://api.openai.com/v1/chat/completions")
-        .headers(headers)
-        .json(&body)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let error_text = response.text().await?;
-        return Err(format!("OpenAI API error: {} - {}", status, error_text).into());
-    }
-
-    let mut stream = response.bytes_stream();
-    use futures::stream::StreamExt;
-
-    while let Some(chunk_result) = stream.next().await {
-        match chunk_result {
-            Ok(chunk) => {
-                let text = String::from_utf8_lossy(&chunk);
-                for line in text.lines() {
-                    let line = line.trim();
-                    if line.starts_with("data: ") && line != "data: [DONE]" {
-                        let data = &line[6..];
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                            if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
-                                let _ = tx.send(Ok(content.to_string())).await;
-                            }
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
-                break;
-            }
-        }
-    }
-
-    Ok(())
-}
-
-async fn stream_anthropic(
-    model: &str,
-    prompt: &str,
-    temperature: f32,
-    tx: StreamSender,
-) -> Result<(), Box<dyn std::error::Error>> {
-    use reqwest::header::{HeaderMap, CONTENT_TYPE};
-    use serde_json::json;
-
-    let api_key = env::var("ANTHROPIC_API_KEY")?;
-    let client = Client::new();
-
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, "application/json".parse()?);
-    headers.insert("x-api-key", api_key.parse()?);
-    headers.insert("anthropic-version", "2023-06-01".parse()?);
-
-    let body = json!({
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-        "stream": true,
-        "max_tokens": 4096
-    });
-
-    let response = client
-        .post("https://api.anthropic.com/v1/messages")
-        .headers(headers)
-        .json(&body)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let error_text = response.text().await?;
-        return Err(format!("Anthropic API error: {} - {}", status, error_text).into());
-    }
-
-    let mut stream = response.bytes_stream();
-    use futures::stream::StreamExt;
-
-    while let Some(chunk_result) = stream.next().await {
-        match chunk_result {
-            Ok(chunk) => {
-                let text = String::from_utf8_lossy(&chunk);
-                for line in text.lines() {
-                    let line = line.trim();
-                    if line.starts_with("data: ") {
-                        let data = &line[6..];
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                            if let Some(delta) = json.get("delta") {
-                                if let Some(text) = delta.get("text").and_then(|t| t.as_str()) {
-                                    let _ = tx.send(Ok(text.to_string())).await;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
-                break;
-            }
-        }
-    }
-
-    Ok(())
-}
-
-async fn stream_gemini(
-    model: &str,
-    prompt: &str,
-    temperature: f32,
-    tx: StreamSender,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // Gemini doesn't support SSE streaming in the same way
-    // Fall back to non-streaming for now
-    use rig::providers::gemini;
-
-    let api_key = env::var("GEMINI_API_KEY")?;
-    let client = gemini::Client::from_env();
-    let agent = client.agent(model).build();
-    let response = agent.prompt(prompt).await?;
-
-    // Send the full response as one chunk
-    let _ = tx.send(Ok(response)).await;
-    Ok(())
-}
-
-async fn stream_deepseek(
-    model: &str,
-    prompt: &str,
-    temperature: f32,
-    tx: StreamSender,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // DeepSeek uses OpenAI-compatible API
-    use reqwest::header::{HeaderMap, CONTENT_TYPE};
-    use serde_json::json;
-
-    let api_key = env::var("DEEPSEEK_API_KEY")?;
-    let client = Client::new();
-
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, "application/json".parse()?);
-    headers.insert("Authorization", format!("Bearer {}", api_key).parse()?);
-
-    let body = json!({
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-        "stream": true
-    });
-
-    let response = client
-        .post("https://api.deepseek.com/v1/chat/completions")
-        .headers(headers)
-        .json(&body)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let error_text = response.text().await?;
-        return Err(format!("DeepSeek API error: {} - {}", status, error_text).into());
-    }
-
-    let mut stream = response.bytes_stream();
-    use futures::stream::StreamExt;
-
-    while let Some(chunk_result) = stream.next().await {
-        match chunk_result {
-            Ok(chunk) => {
-                let text = String::from_utf8_lossy(&chunk);
-                for line in text.lines() {
-                    let line = line.trim();
-                    if line.starts_with("data: ") && line != "data: [DONE]" {
-                        let data = &line[6..];
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                            if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
-                                let _ = tx.send(Ok(content.to_string())).await;
-                            }
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
-                break;
-            }
-        }
-    }
-
-    Ok(())
-}
-
-async fn stream_openrouter(
-    model: &str,
-    prompt: &str,
-    temperature: f32,
-    tx: StreamSender,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // OpenRouter uses OpenAI-compatible API
-    use reqwest::header::{HeaderMap, CONTENT_TYPE};
-    use serde_json::json;
-
-    let api_key = env::var("OPENROUTER_API_KEY")?;
-    let client = Client::new();
-
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, "application/json".parse()?);
-    headers.insert("Authorization", format!("Bearer {}", api_key).parse()?);
-    headers.insert("HTTP-Referer", "https://fleet-chat.app".parse()?);
-
-    let body = json!({
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-        "stream": true
-    });
-
-    let response = client
-        .post("https://openrouter.ai/api/v1/chat/completions")
-        .headers(headers)
-        .json(&body)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let error_text = response.text().await?;
-        return Err(format!("OpenRouter API error: {} - {}", status, error_text).into());
-    }
-
-    let mut stream = response.bytes_stream();
-    use futures::stream::StreamExt;
-
-    while let Some(chunk_result) = stream.next().await {
-        match chunk_result {
-            Ok(chunk) => {
-                let text = String::from_utf8_lossy(&chunk);
-                for line in text.lines() {
-                    let line = line.trim();
-                    if line.starts_with("data: ") && line != "data: [DONE]" {
-                        let data = &line[6..];
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                            if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
-                                let _ = tx.send(Ok(content.to_string())).await;
-                            }
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
-                break;
-            }
-        }
-    }
-
-    Ok(())
 }

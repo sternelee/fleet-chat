@@ -5,7 +5,7 @@
  * Translates React JSX into Lit web components
  */
 
-import { LitElement, html, TemplateResult } from 'lit'
+import { html, type LitElement, type TemplateResult } from 'lit'
 
 // React-like interfaces for compilation
 export interface ReactElement {

@@ -7,7 +7,7 @@
 
 // Import Tauri APIs
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager'
-import { exists, readTextFile, writeFile, mkdir, remove } from '@tauri-apps/plugin-fs'
+import { exists, mkdir, readTextFile, remove, writeFile } from '@tauri-apps/plugin-fs'
 
 // Clipboard APIs
 export interface ClipboardOptions {
@@ -75,14 +75,14 @@ export class Clipboard {
    * Read clipboard content (legacy method)
    */
   static async read(): Promise<string> {
-    return this.readText()
+    return Clipboard.readText()
   }
 
   /**
    * Write clipboard content (legacy method)
    */
   static async write(text: string): Promise<void> {
-    await this.writeText(text)
+    await Clipboard.writeText(text)
   }
 
   /**
@@ -110,7 +110,7 @@ export class Clipboard {
    */
   static async clear(): Promise<void> {
     try {
-      await this.writeText('')
+      await Clipboard.writeText('')
     } catch (error) {
       console.error('Clipboard clear error:', error)
       throw error
@@ -122,7 +122,7 @@ export class Clipboard {
    */
   static async hasText(): Promise<boolean> {
     try {
-      const text = await this.readText()
+      const text = await Clipboard.readText()
       return text.length > 0
     } catch {
       return false
@@ -134,7 +134,7 @@ export class Clipboard {
    */
   static async getLength(): Promise<number> {
     try {
-      const text = await this.readText()
+      const text = await Clipboard.readText()
       return text.length
     } catch {
       return 0
@@ -290,6 +290,7 @@ export class FileSystem {
   }
 }
 
+export type { Application } from '../api/applications.js'
 // Re-export application management from api/applications.ts
 export {
   getApplications,
@@ -297,8 +298,6 @@ export {
   getRunningApplications,
   launchApplication,
 } from '../api/applications.js'
-
-export type { Application } from '../api/applications.js'
 
 // Legacy exports for compatibility
 export const FCClipboard = Clipboard

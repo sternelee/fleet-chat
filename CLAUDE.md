@@ -63,17 +63,19 @@ node tools/plugin-cli.js list                    # List available plugins
 ### Backend Architecture (Rust/Tauri)
 - **Framework**: Tauri v2 for cross-platform desktop capabilities with integrated Axum web server
 - **Language**: Rust for native performance and system integration
-- **Web Server**: Axum HTTP server providing RESTful APIs and A2UI backend services
+- **Web Server**: Axum HTTP server on port 9527 providing RESTful APIs and A2UI backend services
+- **HTTP Proxy Pattern**: `tauri_axum.ts` intercepts fetch() calls and proxies them via Tauri's `local_app_request` command
+  - **Important**: SSE streaming is buffered by the proxy and returned when complete, not real-time
+  - For true real-time streaming, use full URL `http://localhost:9527` to bypass proxy
 - **AI Integration**:
-  - Multi-provider AI agent system supporting OpenAI and Google Gemini
+  - Multi-provider AI agent system (Rig framework) supporting OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter
   - A2UI (Agent-to-UI) backend service following Google ADK architecture (a2ui_agent.rs)
   - **AI Plugin Generator**: Generate Fleet Chat plugins from natural language descriptions
   - Provider abstraction layer with pluggable AI backends (provider.rs)
-  - OpenAI provider: GPT-4, GPT-3.5-turbo support
-  - Gemini provider: Gemini 2.5 Flash support
+  - Streaming responses via Server-Sent Events (SSE) at `/ai/generate/stream`
   - JSON schema validation for UI responses
   - Session management and conversation state tracking
-- **Plugins**: Multiple Tauri plugins (fs, clipboard, opener, shell, dialog, http, log, notification)
+- **Plugins**: Multiple Tauri plugins (fs, clipboard, opener, shell, dialog, http, log, notification, positioner, process, oauth)
 
 ### Plugin System
 - **Framework**: React-to-Lit compilation pipeline for Raycast plugin compatibility
@@ -160,9 +162,10 @@ The application features a flexible, state-persistent panel system:
 - Pre-built UI templates for common response patterns
 
 ### Key Backend Dependencies
-- `axum` - Web framework for HTTP server
-- `rig` - AI agent framework for multi-provider LLM integration (OpenAI, Anthropic, Gemini)
-- `reqwest` - HTTP client for AI API calls (OpenAI, Gemini)
+- `axum` - Web framework for HTTP server (port 9527)
+- `rig` - AI agent framework for multi-provider LLM integration (OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter)
+- `reqwest` - HTTP client for AI API calls
+- `tokio` - Async runtime for Rust
 - `jsonschema` - JSON schema validation
 - `async-trait` - Async trait support for provider abstraction
 - `uuid` - Session ID generation
@@ -174,8 +177,8 @@ The application features a flexible, state-persistent panel system:
 - **lib.rs** - Main Tauri application entry point and plugin setup
 - **axum_app.rs** - Axum web server with A2UI RESTful API endpoints
 - **plugins.rs** - Tauri plugin system integration for plugin management
-- **search.rs** - Application/file search with ICNS icon extraction
-- **rig_agent.rs** - Rig AI agent for search insights (multi-provider: OpenAI, Anthropic, Gemini)
+- **search.rs** - Application/file search with ICNS icon extraction and AI insights
+- **rig_agent.rs** - Rig AI agent with streaming support (multi-provider: OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter)
 - **a2ui/agent.rs** - A2UI backend service implementing Google ADK patterns
 - **a2ui/provider.rs** - AI provider abstraction layer (OpenAI, Gemini)
 - **a2ui/schema.rs** - A2UI message schema definitions
@@ -220,16 +223,34 @@ This is the shared plugin API package that provides the core functionality for F
 The system supports multiple AI providers through environment variables:
 - `OPENAI_API_KEY` - For OpenAI/GPT models (checked first)
 - `ANTHROPIC_API_KEY` - For Anthropic/Claude models (second priority)
-- `GEMINI_API_KEY` - For Google Gemini models (third priority/fallback)
+- `GEMINI_API_KEY` - For Google Gemini models (third priority)
+- `DEEPSEEK_API_KEY` - For DeepSeek models
+- `OPENROUTER_API_KEY` - For OpenRouter models
 - Provider selection is automatic based on available API keys
 - Default models: GPT-4 for OpenAI, Claude for Anthropic, Gemini 2.5 Flash for Gemini
+
+### AI Streaming Architecture
+**Frontend fetch pattern**:
+- Relative paths like `/ai/generate/stream` are proxied through `tauri_axum`
+- The proxy uses `axum::body::to_bytes()` which buffers the entire SSE stream
+- This means streaming responses arrive all at once when complete, not incrementally
+- For true real-time streaming, use `fetch('http://localhost:9527/ai/generate/stream')` directly
+
+**Axum endpoint**: `/ai/generate/stream` returns SSE with format:
+```
+event: chunk
+data: {"text":"..."}
+
+event: done
+data: {}
+```
 
 ## Testing
 
 Currently, no test framework is configured. When adding tests:
 - Consider adding Web Test Runner for Lit component testing
 - For Rust backend, use built-in Rust testing framework (`cargo test`)
-- Test A2UI endpoints with tools like `curl` or Postman against localhost:3000
+- Test Axum endpoints with tools like `curl` or Postman against `http://localhost:9527`
 
 ## Platform-Specific Notes
 

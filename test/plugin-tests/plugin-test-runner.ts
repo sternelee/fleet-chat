@@ -6,10 +6,10 @@
  * 自动化测试插件的功能和兼容性
  */
 
-import { existsSync, readFileSync, statSync } from 'fs'
-import { join, basename } from 'path'
 import { spawn } from 'child_process'
-import { Logger, ErrorHandler } from '../../packages/fleet-chat-api/utils/logger.js'
+import { existsSync, readFileSync, statSync } from 'fs'
+import { basename, join } from 'path'
+import { ErrorHandler, Logger } from '../../packages/fleet-chat-api/utils/logger.js'
 
 export interface PluginTest {
   name: string
@@ -290,7 +290,7 @@ class PluginTestRunner {
     console.log('\n🧪 Fleet Chat Plugin Test Results\n')
     console.log('='.repeat(60))
 
-    let totalPlugins = results.length
+    const totalPlugins = results.length
     let totalPassed = 0
     let totalTests = 0
     let totalPassedTests = 0
@@ -358,4 +358,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   main()
 }
 
-export { PluginTestRunner, PluginTestResult }
+export { PluginTestRunner, type PluginTestResult }

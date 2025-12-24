@@ -4,11 +4,11 @@
  * Provides a user interface for managing Fleet Chat plugins
  */
 
-import { LitElement, html, css } from 'lit'
+import { css, html, LitElement } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
-import { PluginManager } from '../plugins/plugin-manager'
 import { PluginLoader } from '../plugins/plugin-loader'
-import { PluginManifest } from '../plugins/plugin-system'
+import { PluginManager } from '../plugins/plugin-manager'
+import type { PluginManifest } from '../plugins/plugin-system'
 import './drop-zone.js'
 
 @customElement('plugin-manager-ui')

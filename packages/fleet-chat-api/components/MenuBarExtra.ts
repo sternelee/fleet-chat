@@ -4,7 +4,7 @@
  * Raycast-compatible MenuBarExtra component built with Lit
  */
 
-import { LitElement, html, css, TemplateResult } from 'lit'
+import { css, html, LitElement, type TemplateResult } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
 export interface MenuBarExtraItemProps {
