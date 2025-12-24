@@ -13,6 +13,7 @@ import './components/global-drop-handler'
 import './views/errors/not-found'
 import './views/errors/not-in-browser'
 import './views/search/search.component'
+import './views/plugin-generator/plugin-generator.component'
 
 // Import application routes and new launcher layout
 import './layouts/launcher-layout'

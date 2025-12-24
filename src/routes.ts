@@ -29,6 +29,14 @@ export class MyApp extends LitElement {
           </launcher-layout>
         `,
       },
+      {
+        path: '/plugin-generator',
+        render: () => html`
+          <launcher-layout>
+            <plugin-generator-view></plugin-generator-view>
+          </launcher-layout>
+        `,
+      },
     ],
     {
       fallback: {

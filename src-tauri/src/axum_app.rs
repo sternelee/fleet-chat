@@ -1,4 +1,8 @@
 use crate::a2ui::agent::{A2UIAgent, GeneratedResponse};
+use crate::a2ui::plugin_generator::{
+    generate_default_manifest, generate_plugin_code, sanitize_plugin_name, PluginGenerationRequest,
+    PluginGenerationResponse,
+};
 use crate::a2ui::provider::{AIProvider, GeminiProvider, OpenAIProvider};
 use crate::rig_agent::{
     AIOptions, AIResponse, ChatMessage, EmbeddingRequest, ImageAnalysisRequest, ImageGenerationRequest,
@@ -957,6 +961,9 @@ pub fn create_axum_app() -> Router {
         .route("/a2ui/agent/chat/stream", post(a2ui_agent_chat_stream))
         .route("/a2ui/agent/session/{id}", get(get_a2ui_session))
         .route("/a2ui/agent/sessions", get(list_a2ui_sessions))
+        // A2UI Plugin Generation API
+        .route("/a2ui/generate-plugin", post(generate_plugin))
+        .route("/a2ui/generate-plugin/stream", post(generate_plugin_stream))
         // Rig AI Agent endpoints
         .route("/ai/generate", post(ai_generate))
         .route("/ai/generate/stream", post(ai_generate_stream))
@@ -1372,6 +1379,147 @@ async fn ai_get_models(State(state): State<AppState>) -> Result<Json<serde_json:
     let models = agent.get_models().await.map_err(rig_error_to_status)?;
 
     Ok(Json(json!({ "models": models })))
+}
+
+// ============================================================================
+// A2UI Plugin Generation Endpoints
+// ============================================================================
+
+/// Generate a Fleet Chat plugin using A2UI agent
+async fn generate_plugin(
+    State(state): State<AppState>,
+    Json(request): Json<PluginGenerationRequest>,
+) -> Result<Json<PluginGenerationResponse>, http::StatusCode> {
+    // Get plugin type (default to "list")
+    let plugin_type = request.plugin_type.as_deref().unwrap_or("list");
+
+    // Generate plugin name from description if not provided
+    let plugin_name = request
+        .name
+        .as_ref()
+        .map(|s| s.as_str())
+        .unwrap_or(&request.description);
+
+    let sanitized_name = sanitize_plugin_name(plugin_name);
+
+    // Generate manifest
+    let manifest = generate_default_manifest(plugin_name, &request.description, plugin_type);
+
+    // Generate plugin code
+    let requirements = request.requirements.unwrap_or_default();
+    let include_sample_data = request.include_sample_data.unwrap_or(true);
+
+    let source_code = generate_plugin_code(&manifest, plugin_type, &requirements, include_sample_data)
+        .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Generate explanation using A2UI agent if available
+    let explanation = if let Some(agent) = state.a2ui_agent.as_ref() {
+        // Use AI to generate a better explanation
+        let prompt = format!(
+            "Explain the following plugin that was generated:\n\nName: {}\nDescription: {}\nType: {}\n\nProvide a brief, helpful explanation for the user.",
+            manifest.name, manifest.description, plugin_type
+        );
+
+        match agent.generate_text(&prompt).await {
+            Ok(response) => response.content,
+            Err(_) => format!(
+                "Generated a {} plugin named '{}'. {}",
+                plugin_type, manifest.name, manifest.description
+            ),
+        }
+    } else {
+        format!(
+            "Generated a {} plugin named '{}'. {}",
+            plugin_type, manifest.name, manifest.description
+        )
+    };
+
+    // Generate warnings if any
+    let warnings = if requirements.is_empty() {
+        Some(vec![
+            "No specific requirements provided. The plugin uses a generic template.".to_string(),
+            "Consider customizing the generated code to match your specific needs.".to_string(),
+        ])
+    } else {
+        None
+    };
+
+    let response = PluginGenerationResponse {
+        manifest: manifest.clone(),
+        source_code,
+        plugin_id: format!("plugin-{}", uuid::Uuid::new_v4()),
+        package_name: format!("{}.fcp", sanitized_name),
+        explanation,
+        warnings,
+    };
+
+    Ok(Json(response))
+}
+
+/// Generate a Fleet Chat plugin with streaming response
+async fn generate_plugin_stream(
+    State(state): State<AppState>,
+    Json(request): Json<PluginGenerationRequest>,
+) -> Result<Sse<impl futures_util::Stream<Item = Result<Event, std::convert::Infallible>>>, http::StatusCode> {
+    use futures_util::stream;
+
+    // First, generate the plugin synchronously
+    let plugin_type = request.plugin_type.as_deref().unwrap_or("list");
+    let plugin_name = request
+        .name
+        .as_ref()
+        .map(|s| s.as_str())
+        .unwrap_or(&request.description);
+
+    let sanitized_name = sanitize_plugin_name(plugin_name);
+    let manifest = generate_default_manifest(plugin_name, &request.description, plugin_type);
+
+    let requirements = request.requirements.unwrap_or_default();
+    let include_sample_data = request.include_sample_data.unwrap_or(true);
+
+    let source_code = generate_plugin_code(&manifest, plugin_type, &requirements, include_sample_data)
+        .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Create streaming events
+    let events = vec![
+        Event::default()
+            .json_data(json!({
+                "type": "status",
+                "message": "Generating plugin manifest...",
+                "progress": 25
+            }))
+            .unwrap(),
+        Event::default()
+            .json_data(json!({
+                "type": "status",
+                "message": "Generating plugin code...",
+                "progress": 50
+            }))
+            .unwrap(),
+        Event::default()
+            .json_data(json!({
+                "type": "status",
+                "message": "Validating plugin structure...",
+                "progress": 75
+            }))
+            .unwrap(),
+        Event::default()
+            .json_data(json!({
+                "type": "complete",
+                "progress": 100,
+                "data": {
+                    "manifest": manifest,
+                    "source_code": source_code,
+                    "plugin_id": format!("plugin-{}", uuid::Uuid::new_v4()),
+                    "package_name": format!("{}.fcp", sanitized_name),
+                    "explanation": format!("Generated a {} plugin named '{}'.", plugin_type, manifest.name),
+                }
+            }))
+            .unwrap(),
+    ];
+
+    let stream = stream::iter(events.into_iter().map(Ok));
+    Ok(Sse::new(stream))
 }
 
 // ============================================================================
