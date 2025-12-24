@@ -8,9 +8,8 @@ mod tauri_axum;
 use axum::Router;
 use axum_app::create_axum_app;
 use search::{
-    ask_ai_provider, generate_search_insights, get_applications, get_available_ai_providers,
-    get_default_application, get_frontmost_application, get_running_applications,
-    search_applications, search_files, unified_search,
+    ask_ai_provider, generate_search_insights, get_applications, get_available_ai_providers, get_default_application,
+    get_frontmost_application, get_running_applications, search_applications, search_files, unified_search,
 };
 use std::sync::Arc;
 use tauri::Manager;

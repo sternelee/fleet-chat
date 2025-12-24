@@ -482,10 +482,7 @@ pub async fn get_default_application(extension: String) -> Result<Option<Applica
 
 /// Generate AI-powered insights for search results
 #[command]
-pub async fn generate_search_insights(
-    query: String,
-    search_results: SearchResult,
-) -> Result<String, String> {
+pub async fn generate_search_insights(query: String, search_results: SearchResult) -> Result<String, String> {
     // Initialize the Rig agent
     let agent = RigAgent::new().map_err(|e| format!("Failed to initialize AI agent: {}", e))?;
 
@@ -493,10 +490,7 @@ pub async fn generate_search_insights(
     let app_count = search_results.applications.len();
     let file_count = search_results.files.len();
 
-    let mut context = format!(
-        "User searched for: '{}'\n\nSearch Results Summary:\n",
-        query
-    );
+    let mut context = format!("User searched for: '{}'\n\nSearch Results Summary:\n", query);
 
     if app_count > 0 {
         context.push_str(&format!("- {} application(s) found:\n", app_count));
@@ -577,10 +571,7 @@ pub async fn get_available_ai_providers() -> Result<Vec<String>, String> {
 
 /// Ask AI a question with a specific provider
 #[command]
-pub async fn ask_ai_provider(
-    query: String,
-    provider_name: String,
-) -> Result<String, String> {
+pub async fn ask_ai_provider(query: String, provider_name: String) -> Result<String, String> {
     // Map provider name to AIProvider enum
     let provider = match provider_name.as_str() {
         "OpenAI" => AIProvider::OpenAI,

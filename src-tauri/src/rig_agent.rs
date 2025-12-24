@@ -151,7 +151,7 @@ impl AIProvider {
             AIProvider::OpenRouter => "meta-llama/llama-3.3-70b-instruct".to_string(),
         }
     }
-    
+
     pub fn api_base(&self) -> Option<String> {
         match self {
             AIProvider::DeepSeek => Some("https://api.deepseek.com/v1".to_string()),
@@ -236,16 +236,14 @@ impl RigAgent {
         // Verify that we have the required API key for this provider
         match provider {
             AIProvider::OpenAI => {
-                env::var("OPENAI_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENAI_API_KEY".to_string()))?;
+                env::var("OPENAI_API_KEY").map_err(|_| RigAgentError::ApiKeyNotFound("OPENAI_API_KEY".to_string()))?;
             }
             AIProvider::Anthropic => {
                 env::var("ANTHROPIC_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("ANTHROPIC_API_KEY".to_string()))?;
             }
             AIProvider::Gemini => {
-                env::var("GEMINI_API_KEY")
-                    .map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
+                env::var("GEMINI_API_KEY").map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
             }
             AIProvider::DeepSeek => {
                 env::var("DEEPSEEK_API_KEY")
@@ -307,16 +305,14 @@ impl RigAgent {
             AIProvider::DeepSeek => {
                 let api_key = env::var("DEEPSEEK_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
-                let client = openai::Client::new(&api_key)
-                    .with_base_url("https://api.deepseek.com/v1");
+                let client = openai::Client::new(&api_key).with_base_url("https://api.deepseek.com/v1");
                 let agent = client.agent(&model).build();
                 agent.prompt(&options.prompt).await?
             }
             AIProvider::OpenRouter => {
                 let api_key = env::var("OPENROUTER_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-                let client = openai::Client::new(&api_key)
-                    .with_base_url("https://openrouter.ai/api/v1");
+                let client = openai::Client::new(&api_key).with_base_url("https://openrouter.ai/api/v1");
                 let agent = client.agent(&model).build();
                 agent.prompt(&options.prompt).await?
             }
