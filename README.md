@@ -24,6 +24,7 @@ Fleet Chat is an experimental VS Code-like desktop application built with Tauri 
 - [x] **Custom Window Controls** - macOS-style window decorations
 - [x] **Application Search** - macOS app discovery with ICNS icon extraction
 - [x] **File Search** - Fast file content and name search
+- [x] **AI Search Insights** - Intelligent search result summaries powered by Rig agent
 - [x] **A2UI Framework** - Agent-to-UI system with multi-provider AI support
 - [x] **Plugin System** - Vicinae-inspired architecture with Raycast plugin compatibility
 - [x] **React-to-Lit Compilation** - Seamlessly run existing Raycast plugins
@@ -34,12 +35,18 @@ Fleet Chat is an experimental VS Code-like desktop application built with Tauri 
 
 ## AI Provider Configuration
 
-The application supports multiple AI providers for the A2UI agent service. Configure one of the following providers by setting the appropriate environment variable:
+The application supports multiple AI providers for the A2UI agent service and AI-powered search insights. Configure one of the following providers by setting the appropriate environment variable:
 
 ### OpenAI (GPT-4, GPT-3.5-turbo, etc.)
 
 ```sh
 export OPENAI_API_KEY=your-openai-api-key-here
+```
+
+### Anthropic (Claude models)
+
+```sh
+export ANTHROPIC_API_KEY=your-anthropic-api-key-here
 ```
 
 ### Google Gemini (Gemini 2.5 Flash, etc.)
@@ -51,9 +58,19 @@ export GEMINI_API_KEY=your-gemini-api-key-here
 **Provider Selection Priority:**
 
 1. OpenAI (if `OPENAI_API_KEY` is set)
-2. Gemini (if `GEMINI_API_KEY` is set and OpenAI key not available)
+2. Anthropic (if `ANTHROPIC_API_KEY` is set and OpenAI key not available)
+3. Gemini (if `GEMINI_API_KEY` is set and other keys not available)
 
 You can also add these variables to a `.env` file in the root directory. See `.env.example` for reference.
+
+### AI Search Insights
+
+When an AI provider is configured, search results will automatically include intelligent summaries and suggestions. The AI analyzes your search results to provide:
+- Brief summaries of found applications and files
+- Contextual suggestions for next actions
+- Pattern recognition in search results
+
+See [docs/AI_SEARCH_INTEGRATION.md](./docs/AI_SEARCH_INTEGRATION.md) for detailed documentation.
 
 ## 🔌 Plugin Development
 
@@ -199,8 +216,8 @@ node tools/plugin-cli.js list                    # List available plugins
 ### Backend
 - **Framework**: Tauri v2 with Rust
 - **Web Server**: Axum HTTP server providing RESTful APIs
-- **AI Integration**: Multi-provider support (OpenAI GPT-4, Google Gemini 2.5 Flash)
-- **Search**: macOS application discovery and file search capabilities
+- **AI Integration**: Multi-provider support (OpenAI GPT-4, Anthropic Claude, Google Gemini)
+- **Search**: macOS application discovery, file search, and AI-powered insights
 - **Plugin Integration**: Rust plugin system for management and execution
 
 ### Plugin System
