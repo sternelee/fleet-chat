@@ -22,6 +22,7 @@ import './routes'
 // Initialize plugin system
 import { initializePluginIntegration, pluginIntegration } from './plugins/plugin-integration'
 import { PluginLoader } from './plugins/plugin-loader'
+import { initializeA2UIBridge } from './plugins/a2ui-plugin-bridge'
 
 // Initialize plugins and create global plugin loader
 async function initializePluginSystem() {
@@ -40,16 +41,21 @@ async function initializePluginSystem() {
     const globalLoader = new PluginLoader(pluginManager)
     console.log('✅ Global plugin loader created')
 
+    // Initialize A2UI plugin bridge
+    const a2uiBridge = initializeA2UIBridge(pluginManager)
+    console.log('✅ A2UI plugin bridge initialized')
+
     // Make available globally for the drop handler
     ;(window as any).pluginManager = pluginManager
     ;(window as any).pluginLoader = globalLoader
+    ;(window as any).a2uiBridge = a2uiBridge
 
     console.log('🎯 Plugin system ready for drag-drop functionality')
 
     // Dispatch event to notify that plugin system is ready
     window.dispatchEvent(
       new CustomEvent('plugin-system-ready', {
-        detail: { pluginManager, globalLoader },
+        detail: { pluginManager, globalLoader, a2uiBridge },
       }),
     )
   } catch (error) {

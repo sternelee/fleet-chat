@@ -1,6 +1,13 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { invoke } from '@tauri-apps/api/core';
+import { 
+  initializeA2UIBridge, 
+  getA2UIBridge,
+  downloadGeneratedPlugin,
+  previewGeneratedPlugin,
+  type GeneratedPluginData 
+} from '../../plugins/a2ui-plugin-bridge.js';
 
 interface PluginGenerationRequest {
   description: string;
@@ -212,6 +219,12 @@ export class PluginGeneratorView extends LitElement {
             <button class="btn btn-small" @click=${this._downloadPlugin}>
               💾 Download Plugin
             </button>
+            <button class="btn btn-small" @click=${this._installPlugin}>
+              🚀 Install Plugin
+            </button>
+            <button class="btn btn-small" @click=${this._validatePlugin}>
+              ✅ Validate Code
+            </button>
           </div>
           <pre><code>${this.generatedPlugin.source_code}</code></pre>
         </div>
@@ -321,28 +334,73 @@ export class PluginGeneratorView extends LitElement {
     if (!this.generatedPlugin) return;
 
     try {
-      // Create a simple package with manifest and source
-      const packageData = {
-        manifest: this.generatedPlugin.manifest,
-        source: this.generatedPlugin.source_code,
-      };
+      const bridge = getA2UIBridge();
+      if (bridge) {
+        await downloadGeneratedPlugin(this.generatedPlugin as GeneratedPluginData, bridge);
+        alert('Plugin downloaded successfully!');
+      } else {
+        // Fallback to simple download
+        const packageData = {
+          manifest: this.generatedPlugin.manifest,
+          source: this.generatedPlugin.source_code,
+        };
 
-      const blob = new Blob([JSON.stringify(packageData, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${this.generatedPlugin.manifest.name}-plugin.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+        const blob = new Blob([JSON.stringify(packageData, null, 2)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${this.generatedPlugin.manifest.name}-plugin.json`;
+        a.click();
+        URL.revokeObjectURL(url);
 
-      alert(
-        'Plugin downloaded! Use the Fleet Chat CLI to package this into a .fcp file.'
-      );
+        alert('Plugin downloaded! Use the Fleet Chat CLI to package this into a .fcp file.');
+      }
     } catch (err) {
       console.error('Failed to download plugin:', err);
       alert('Failed to download plugin');
+    }
+  }
+
+  private async _installPlugin() {
+    if (!this.generatedPlugin) return;
+
+    try {
+      const bridge = getA2UIBridge();
+      if (!bridge) {
+        alert('Plugin bridge not available. Please initialize the plugin system first.');
+        return;
+      }
+
+      await bridge.installGeneratedPlugin(this.generatedPlugin as GeneratedPluginData);
+      alert(`✅ Plugin "${this.generatedPlugin.manifest.name}" installed successfully!`);
+    } catch (err) {
+      console.error('Failed to install plugin:', err);
+      alert(`Failed to install plugin: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }
+
+  private async _validatePlugin() {
+    if (!this.generatedPlugin) return;
+
+    try {
+      const bridge = getA2UIBridge();
+      if (!bridge) {
+        alert('Plugin bridge not available.');
+        return;
+      }
+
+      const preview = previewGeneratedPlugin(this.generatedPlugin as GeneratedPluginData, bridge);
+      
+      if (preview.validation.valid) {
+        alert(`✅ Plugin code is valid!\n\nStats:\n- Lines: ${preview.stats.lines}\n- Imports: ${preview.stats.imports}\n- Components: ${preview.stats.components}\n- Hooks: ${preview.stats.hooks}`);
+      } else {
+        alert(`❌ Plugin validation failed:\n\n${preview.validation.errors.join('\n')}`);
+      }
+    } catch (err) {
+      console.error('Failed to validate plugin:', err);
+      alert('Failed to validate plugin');
     }
   }
 
