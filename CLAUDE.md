@@ -67,6 +67,7 @@ node tools/plugin-cli.js list                    # List available plugins
 - **AI Integration**:
   - Multi-provider AI agent system supporting OpenAI and Google Gemini
   - A2UI (Agent-to-UI) backend service following Google ADK architecture (a2ui_agent.rs)
+  - **AI Plugin Generator**: Generate Fleet Chat plugins from natural language descriptions
   - Provider abstraction layer with pluggable AI backends (provider.rs)
   - OpenAI provider: GPT-4, GPT-3.5-turbo support
   - Gemini provider: Gemini 2.5 Flash support
@@ -76,6 +77,7 @@ node tools/plugin-cli.js list                    # List available plugins
 
 ### Plugin System (Vicinae-inspired Architecture)
 - **Framework**: React-to-Lit compilation pipeline for Raycast plugin compatibility
+- **AI Generation**: A2UI-powered plugin generation from descriptions
 - **Isolation**: Web Worker-based plugin execution with sandboxed environments
 - **API Compatibility**: Full Raycast API compatibility layer with Lit web components
 - **Module Management**: pnpm workspace for plugin development and management
@@ -112,10 +114,13 @@ The application features a flexible, state-persistent panel system:
 - `src/routes.ts` - Application routing configuration
 - `src-tauri/src/a2ui_schema.json` - JSON schema for A2UI message validation
 - `src-tauri/src/templates/` - Pre-built A2UI UI templates (contact_list, contact_card, action_confirmation, etc.)
+- `src-tauri/src/a2ui/plugin_generator.rs` - AI-powered plugin code generation
+- `src/plugins/a2ui-plugin-bridge.ts` - Bridge between A2UI and plugin system
 - `pnpm-workspace.yaml` - pnpm workspace configuration for plugin management
 - `src/plugins/plugin-system.ts` - Core plugin system type definitions
 - `src/plugins/plugin-manager.ts` - Plugin lifecycle and execution management
 - `src/plugins/plugin-integration.ts` - Integration with Fleet Chat UI and Tauri APIs
+- `src/views/plugin-generator/` - Plugin generator UI component
 - `tools/plugin-cli.js` - CLI tool for plugin development and management
 
 ## Development Notes
@@ -170,6 +175,7 @@ The application features a flexible, state-persistent panel system:
 - **a2ui/agent.rs** - A2UI backend service implementing Google ADK patterns
 - **a2ui/provider.rs** - AI provider abstraction layer (OpenAI, Gemini)
 - **a2ui/schema.rs** - A2UI message schema definitions
+- **a2ui/plugin_generator.rs** - AI-powered plugin code generation engine
 - **gemini_agent.rs** - Legacy Gemini AI client (being phased out)
 - **tauri_axum.rs** - Bridge between Tauri and Axum for local HTTP requests
 - **window.rs** - macOS-specific window styling and customization
@@ -178,6 +184,7 @@ The application features a flexible, state-persistent panel system:
 - **plugin-system.ts** - Core plugin system type definitions and interfaces
 - **plugin-manager.ts** - Plugin lifecycle, execution, and worker management
 - **plugin-integration.ts** - Integration layer with Fleet Chat UI and Tauri APIs
+- **a2ui-plugin-bridge.ts** - Bridge between A2UI generation and plugin installation
 - **storage/local-storage.ts** - FCLocalStorage for persistent data storage
 - **storage/cache.ts** - FCCache with TTL and memory caching capabilities
 - **system/clipboard.ts** - FCClipboard with Tauri and browser fallback support
