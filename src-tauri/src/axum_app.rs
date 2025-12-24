@@ -1226,6 +1226,7 @@ fn rig_error_to_status(error: RigAgentError) -> http::StatusCode {
         RigAgentError::ApiKeyNotFound(_) => http::StatusCode::UNAUTHORIZED,
         RigAgentError::InvalidModel(_) => http::StatusCode::BAD_REQUEST,
         RigAgentError::NotSupported(_) => http::StatusCode::NOT_IMPLEMENTED,
+        RigAgentError::RequestFailed(_) => http::StatusCode::BAD_GATEWAY,
         RigAgentError::PromptError(_) => http::StatusCode::BAD_REQUEST,
         RigAgentError::EmbeddingError(_) => http::StatusCode::BAD_REQUEST,
         RigAgentError::HttpError(_) => http::StatusCode::BAD_GATEWAY,
@@ -1252,20 +1253,32 @@ async fn ai_generate_stream(
 ) -> Result<Response, http::StatusCode> {
     let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
 
-    let text = agent.generate_stream(options).await.map_err(rig_error_to_status)?;
+    let mut stream = agent.generate_stream(options);
 
-    // Convert the result to SSE
+    // Create a channel for SSE events
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, std::convert::Infallible>>(32);
 
+    // Spawn a task to consume the stream and send SSE events
     tokio::spawn(async move {
-        // Send the text as a single chunk
-        let data = json!({ "text": text });
-        if tx
-            .send(Ok(Event::default().data(data.to_string()).event("chunk")))
-            .await
-            .is_err()
-        {
-            return;
+        use futures::stream::StreamExt;
+
+        while let Some(chunk_result) = stream.next().await {
+            match chunk_result {
+                Ok(chunk) => {
+                    let data = json!({ "text": chunk });
+                    if tx
+                        .send(Ok(Event::default().data(data.to_string()).event("chunk")))
+                        .await
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                Err(_) => {
+                    let _ = tx.send(Ok(Event::default().event("error")));
+                    break;
+                }
+            }
         }
 
         // Send completion event

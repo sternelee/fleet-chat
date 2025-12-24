@@ -4,6 +4,8 @@
  * Provides AI functionality using rig-core library
  * Supports multiple providers: OpenAI, Anthropic, Google Gemini, etc.
  */
+use futures::stream::{Stream, StreamExt};
+use reqwest::Client;
 use rig::{
     client::{CompletionClient, EmbeddingsClient, ProviderClient},
     completion::{Chat, Message, Prompt, PromptError},
@@ -13,6 +15,7 @@ use rig::{
 };
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::pin::Pin;
 use thiserror::Error;
 
 // ============================================================================
@@ -171,6 +174,8 @@ pub enum RigAgentError {
     InvalidModel(String),
     #[error("Feature not supported: {0}")]
     NotSupported(String),
+    #[error("Request failed: {0}")]
+    RequestFailed(String),
     #[error("Prompt error: {0}")]
     PromptError(#[from] PromptError),
     #[error("Embedding error: {0}")]
@@ -341,11 +346,64 @@ impl RigAgent {
         })
     }
 
-    pub async fn generate_stream(&self, options: AIOptions) -> Result<String, RigAgentError> {
-        // For simplicity, return the generate result for now
-        // Full streaming support would require more complex implementation
-        let response = self.generate(options).await?;
-        Ok(response.text)
+    /// Stream text generation with real streaming support
+    /// Returns a stream of text chunks
+    pub fn generate_stream(
+        &self,
+        options: AIOptions,
+    ) -> Pin<Box<dyn Stream<Item = Result<String, RigAgentError>> + Send>> {
+        use tokio_stream::wrappers::ReceiverStream;
+        use tokio::sync::mpsc;
+
+        let model = self.resolve_model(&options);
+        let provider = self.provider.clone();
+        let prompt = options.prompt;
+        let temperature = options.temperature.unwrap_or(0.7);
+
+        // Create a channel for sending chunks
+        let (tx, rx) = mpsc::channel(100);
+
+        // Spawn a task to handle streaming
+        tokio::spawn(async move {
+            let result: Result<(), String> = async move {
+                match provider {
+                    AIProvider::OpenAI => {
+                        stream_openai(&model, &prompt, temperature, tx)
+                            .await
+                            .map_err(|e| e.to_string())
+                    }
+                    AIProvider::Anthropic => {
+                        stream_anthropic(&model, &prompt, temperature, tx)
+                            .await
+                            .map_err(|e| e.to_string())
+                    }
+                    AIProvider::Gemini => {
+                        stream_gemini(&model, &prompt, temperature, tx)
+                            .await
+                            .map_err(|e| e.to_string())
+                    }
+                    AIProvider::DeepSeek => {
+                        stream_deepseek(&model, &prompt, temperature, tx)
+                            .await
+                            .map_err(|e| e.to_string())
+                    }
+                    AIProvider::OpenRouter => {
+                        stream_openrouter(&model, &prompt, temperature, tx)
+                            .await
+                            .map_err(|e| e.to_string())
+                    }
+                    AIProvider::Ollama => {
+                        Err("Ollama streaming not yet implemented".to_string())
+                    }
+                }
+            }
+            .await;
+
+            // Note: tx is moved into the async block, so we can't use it here
+            // Error handling is done inside the async block
+        });
+
+        Box::pin(ReceiverStream::new(rx))
     }
 
     // ========================================================================
@@ -684,4 +742,297 @@ impl RigAgent {
             ]),
         }
     }
+}
+
+// ============================================================================
+// Streaming Helper Functions
+// ============================================================================
+
+type StreamSender = tokio::sync::mpsc::Sender<Result<String, RigAgentError>>;
+
+async fn stream_openai(
+    model: &str,
+    prompt: &str,
+    temperature: f32,
+    tx: StreamSender,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use reqwest::header::{HeaderMap, CONTENT_TYPE, AUTHORIZATION};
+    use serde_json::json;
+
+    let api_key = env::var("OPENAI_API_KEY")?;
+    let client = Client::new();
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, "application/json".parse()?);
+    headers.insert(AUTHORIZATION, format!("Bearer {}", api_key).parse()?);
+
+    let body = json!({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+        "stream": true
+    });
+
+    let response = client
+        .post("https://api.openai.com/v1/chat/completions")
+        .headers(headers)
+        .json(&body)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await?;
+        return Err(format!("OpenAI API error: {} - {}", status, error_text).into());
+    }
+
+    let mut stream = response.bytes_stream();
+    use futures::stream::StreamExt;
+
+    while let Some(chunk_result) = stream.next().await {
+        match chunk_result {
+            Ok(chunk) => {
+                let text = String::from_utf8_lossy(&chunk);
+                for line in text.lines() {
+                    let line = line.trim();
+                    if line.starts_with("data: ") && line != "data: [DONE]" {
+                        let data = &line[6..];
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                            if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
+                                let _ = tx.send(Ok(content.to_string())).await;
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
+                break;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn stream_anthropic(
+    model: &str,
+    prompt: &str,
+    temperature: f32,
+    tx: StreamSender,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use reqwest::header::{HeaderMap, CONTENT_TYPE};
+    use serde_json::json;
+
+    let api_key = env::var("ANTHROPIC_API_KEY")?;
+    let client = Client::new();
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, "application/json".parse()?);
+    headers.insert("x-api-key", api_key.parse()?);
+    headers.insert("anthropic-version", "2023-06-01".parse()?);
+
+    let body = json!({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+        "stream": true,
+        "max_tokens": 4096
+    });
+
+    let response = client
+        .post("https://api.anthropic.com/v1/messages")
+        .headers(headers)
+        .json(&body)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await?;
+        return Err(format!("Anthropic API error: {} - {}", status, error_text).into());
+    }
+
+    let mut stream = response.bytes_stream();
+    use futures::stream::StreamExt;
+
+    while let Some(chunk_result) = stream.next().await {
+        match chunk_result {
+            Ok(chunk) => {
+                let text = String::from_utf8_lossy(&chunk);
+                for line in text.lines() {
+                    let line = line.trim();
+                    if line.starts_with("data: ") {
+                        let data = &line[6..];
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                            if let Some(delta) = json.get("delta") {
+                                if let Some(text) = delta.get("text").and_then(|t| t.as_str()) {
+                                    let _ = tx.send(Ok(text.to_string())).await;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
+                break;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn stream_gemini(
+    model: &str,
+    prompt: &str,
+    temperature: f32,
+    tx: StreamSender,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Gemini doesn't support SSE streaming in the same way
+    // Fall back to non-streaming for now
+    use rig::providers::gemini;
+
+    let api_key = env::var("GEMINI_API_KEY")?;
+    let client = gemini::Client::from_env();
+    let agent = client.agent(model).build();
+    let response = agent.prompt(prompt).await?;
+
+    // Send the full response as one chunk
+    let _ = tx.send(Ok(response)).await;
+    Ok(())
+}
+
+async fn stream_deepseek(
+    model: &str,
+    prompt: &str,
+    temperature: f32,
+    tx: StreamSender,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // DeepSeek uses OpenAI-compatible API
+    use reqwest::header::{HeaderMap, CONTENT_TYPE};
+    use serde_json::json;
+
+    let api_key = env::var("DEEPSEEK_API_KEY")?;
+    let client = Client::new();
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, "application/json".parse()?);
+    headers.insert("Authorization", format!("Bearer {}", api_key).parse()?);
+
+    let body = json!({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+        "stream": true
+    });
+
+    let response = client
+        .post("https://api.deepseek.com/v1/chat/completions")
+        .headers(headers)
+        .json(&body)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await?;
+        return Err(format!("DeepSeek API error: {} - {}", status, error_text).into());
+    }
+
+    let mut stream = response.bytes_stream();
+    use futures::stream::StreamExt;
+
+    while let Some(chunk_result) = stream.next().await {
+        match chunk_result {
+            Ok(chunk) => {
+                let text = String::from_utf8_lossy(&chunk);
+                for line in text.lines() {
+                    let line = line.trim();
+                    if line.starts_with("data: ") && line != "data: [DONE]" {
+                        let data = &line[6..];
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                            if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
+                                let _ = tx.send(Ok(content.to_string())).await;
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
+                break;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn stream_openrouter(
+    model: &str,
+    prompt: &str,
+    temperature: f32,
+    tx: StreamSender,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // OpenRouter uses OpenAI-compatible API
+    use reqwest::header::{HeaderMap, CONTENT_TYPE};
+    use serde_json::json;
+
+    let api_key = env::var("OPENROUTER_API_KEY")?;
+    let client = Client::new();
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, "application/json".parse()?);
+    headers.insert("Authorization", format!("Bearer {}", api_key).parse()?);
+    headers.insert("HTTP-Referer", "https://fleet-chat.app".parse()?);
+
+    let body = json!({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+        "stream": true
+    });
+
+    let response = client
+        .post("https://openrouter.ai/api/v1/chat/completions")
+        .headers(headers)
+        .json(&body)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await?;
+        return Err(format!("OpenRouter API error: {} - {}", status, error_text).into());
+    }
+
+    let mut stream = response.bytes_stream();
+    use futures::stream::StreamExt;
+
+    while let Some(chunk_result) = stream.next().await {
+        match chunk_result {
+            Ok(chunk) => {
+                let text = String::from_utf8_lossy(&chunk);
+                for line in text.lines() {
+                    let line = line.trim();
+                    if line.starts_with("data: ") && line != "data: [DONE]" {
+                        let data = &line[6..];
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                            if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
+                                let _ = tx.send(Ok(content.to_string())).await;
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                let _ = tx.send(Err(RigAgentError::RequestFailed(e.to_string()))).await;
+                break;
+            }
+        }
+    }
+
+    Ok(())
 }

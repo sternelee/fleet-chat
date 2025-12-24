@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { openPath } from '@tauri-apps/plugin-opener'
 import { css, html, LitElement } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
@@ -2119,15 +2120,74 @@ export class ViewSearch extends LitElement {
     this.aiChatProvider = provider
     this.showAiChatModal = true
 
+    // Capture `this` for use in event handlers
+    const self = this
+
     try {
-      const response = await invoke<string>('ask_ai_provider', {
+      // Set up event listeners for streaming
+      const unlistenStarted = await listen<string>('ai-stream-started', (event) => {
+        console.log('[AI] Stream started:', event.payload)
+      })
+
+      const unlistenChunk = await listen<{ session_id: string; content: string }>(
+        'ai-stream-chunk',
+        (event) => {
+          console.log('[AI] Stream chunk:', event.payload.content)
+          // Stop loading state on first chunk
+          if (self.aiChatLoading) {
+            self.aiChatLoading = false
+          }
+          // Direct synchronous update
+          self.aiChatResponse += event.payload.content
+          // Force immediate update
+          self.performUpdate()
+        },
+      )
+
+      const unlistenError = await listen<{ session_id: string; error: string }>(
+        'ai-stream-error',
+        (event) => {
+          console.error('[AI] Stream error:', event.payload.error)
+          self.showAiChatModal = false
+          self.requestUpdate()
+          window.dispatchEvent(
+            new CustomEvent('plugin:toast', {
+              detail: {
+                title: 'AI Chat Error',
+                message: event.payload.error,
+                style: 'failure',
+              },
+            }),
+          )
+        },
+      )
+
+      const unlistenComplete = await listen<{ session_id: string }>(
+        'ai-stream-complete',
+        (event) => {
+          console.log('[AI] Stream complete:', event.payload)
+          self.aiChatLoading = false
+          self.requestUpdate()
+
+          // Clean up listeners
+          unlistenStarted()
+          unlistenChunk()
+          unlistenError()
+          unlistenComplete()
+        },
+      )
+
+      // Force an initial update to show the loading state
+      this.requestUpdate()
+
+      // Start the streaming request after listeners are set up
+      await invoke('ask_ai_provider_stream', {
         query: this.query,
         providerName: provider,
       })
-
-      this.aiChatResponse = response
     } catch (error) {
       console.error(`Failed to ask ${provider}:`, error)
+      this.aiChatLoading = false
       this.showAiChatModal = false
       window.dispatchEvent(
         new CustomEvent('plugin:toast', {
@@ -2138,8 +2198,6 @@ export class ViewSearch extends LitElement {
           },
         }),
       )
-    } finally {
-      this.aiChatLoading = false
     }
   }
 
