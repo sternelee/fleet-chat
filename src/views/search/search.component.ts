@@ -69,6 +69,9 @@ export class ViewSearch extends LitElement {
   @state() private showAiChatModal = false
   @state() private aiChatProvider = ''
 
+  // Frontend application cache (instant search)
+  private applicationCache: Application[] = []
+
   private searchDebounceTimer: number | null = null
   private animationTimeout: number | null = null
   private prefetchCache: Map<string, SearchResult> = new Map()
@@ -80,14 +83,8 @@ export class ViewSearch extends LitElement {
     this._addGlobalKeyListeners()
     this._loadFrecencyData()
 
-    // Initialize application cache in background
-    invoke<number>('initialize_application_cache')
-      .then((count) => {
-        console.log(`[Search] Application cache initialized with ${count} applications`)
-      })
-      .catch((error) => {
-        console.error('[Search] Failed to initialize application cache:', error)
-      })
+    // Load all applications for frontend caching
+    this._loadApplicationCache()
 
     // Fetch available AI providers
     try {
@@ -122,6 +119,45 @@ export class ViewSearch extends LitElement {
 
     // Auto-focus input
     this._focusInput()
+  }
+
+  /**
+   * Load all applications and cache them in memory
+   * This enables instant search without backend calls
+   */
+  private async _loadApplicationCache() {
+    try {
+      const apps = await invoke<Application[]>('get_all_applications')
+      this.applicationCache = apps
+      console.log(`[Search] Cached ${apps.length} applications for instant search`)
+    } catch (error) {
+      console.error('[Search] Failed to load application cache:', error)
+      this.applicationCache = []
+    }
+  }
+
+  /**
+   * Instant search applications from frontend cache
+   */
+  private _searchApplicationsFromCache(query: string): Application[] {
+    const queryLower = query.toLowerCase()
+    const filtered = this.applicationCache.filter((app) =>
+      app.name.toLowerCase().includes(queryLower)
+    )
+
+    // Sort by relevance
+    const results = filtered.sort((a, b) => {
+      const aLower = a.name.toLowerCase()
+      const bLower = b.name.toLowerCase()
+
+      if (aLower === queryLower) return -1
+      if (bLower === queryLower) return 1
+      if (aLower.startsWith(queryLower) && !bLower.startsWith(queryLower)) return -1
+      if (!aLower.startsWith(queryLower) && bLower.startsWith(queryLower)) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+    return results.slice(0, 10)
   }
 
   disconnectedCallback() {
@@ -1539,23 +1575,37 @@ export class ViewSearch extends LitElement {
     this.loading = true
 
     try {
+      let applications: Application[] = []
+      let files: FileMatch[] = []
+
+      // Search mode determination
+      const includeApps = this.searchMode === 'all' || this.searchMode === 'apps'
       const includeFiles = this.searchMode === 'all' || this.searchMode === 'files'
-      const result = await invoke<SearchResult>('unified_search', {
-        query: actualQuery,
-        searchPath: null,
-        includeFiles,
-      })
 
-      // Sort results by frecency if available
-      result.applications = this._sortByFrecency(result.applications, actualQuery)
+      // Use frontend cache for instant application search
+      if (includeApps) {
+        applications = this._searchApplicationsFromCache(actualQuery)
+        // Sort by frecency if available
+        applications = this._sortByFrecency(applications, actualQuery)
+      }
 
-      // Filter results based on search mode
+      // Backend search for files (still needs backend)
+      if (includeFiles) {
+        const fileResult = await invoke<FileMatch[]>('search_files', {
+          query: actualQuery,
+          searchPath: null,
+          searchContent: false,
+        })
+        files = fileResult
+      }
+
+      // Combine results
       if (this.searchMode === 'apps') {
-        this.results = { applications: result.applications, files: [] }
+        this.results = { applications, files: [] }
       } else if (this.searchMode === 'files') {
-        this.results = { applications: [], files: result.files }
+        this.results = { applications: [], files }
       } else {
-        this.results = result
+        this.results = { applications, files }
       }
 
       // Cache the result
