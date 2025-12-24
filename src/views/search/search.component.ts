@@ -60,15 +60,34 @@ export class ViewSearch extends LitElement {
   @state() private commandPrefix: CommandPrefix = ''
   @state() private showQuickActions = false
   @state() private frecencyItems: Array<{ query: string; count: number; lastUsed: number }> = []
+  @state() private aiInsights = ''
+  @state() private aiInsightsLoading = false
+  @state() private showAiInsights = false
+  @state() private availableAIProviders: string[] = []
+  @state() private aiChatResponse = ''
+  @state() private aiChatLoading = false
+  @state() private showAiChatModal = false
+  @state() private aiChatProvider = ''
 
   private searchDebounceTimer: number | null = null
   private animationTimeout: number | null = null
   private prefetchCache: Map<string, SearchResult> = new Map()
+  private aiInsightsDebounceTimer: number | null = null
+  private currentModal: HTMLElement | null = null
 
   async connectedCallback() {
     super.connectedCallback()
     this._addGlobalKeyListeners()
     this._loadFrecencyData()
+
+    // Fetch available AI providers
+    try {
+      this.availableAIProviders = await invoke<string[]>('get_available_ai_providers')
+      console.log('Available AI providers:', this.availableAIProviders)
+    } catch (error) {
+      console.error('Failed to fetch AI providers:', error)
+      this.availableAIProviders = []
+    }
 
     // Initialize plugins
     try {
@@ -99,6 +118,22 @@ export class ViewSearch extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback()
     this._removeGlobalKeyListeners()
+    
+    // Clean up timers
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer)
+    }
+    if (this.aiInsightsDebounceTimer) {
+      clearTimeout(this.aiInsightsDebounceTimer)
+    }
+    if (this.animationTimeout) {
+      clearTimeout(this.animationTimeout)
+    }
+    
+    // Clean up modal if it exists
+    if (this.currentModal && this.currentModal.parentNode) {
+      this.currentModal.parentNode.removeChild(this.currentModal)
+    }
   }
 
   private _addGlobalKeyListeners() {
@@ -158,6 +193,95 @@ export class ViewSearch extends LitElement {
       flex-direction: column;
       gap: 16px;
       margin-bottom: 20px;
+    }
+
+    /* AI Insights Styles */
+    .ai-insights-container {
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 12px;
+      overflow: hidden;
+      animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .ai-insights-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(139, 92, 246, 0.15);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .ai-insights-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: rgba(196, 181, 253, 0.9);
+    }
+
+    .ai-icon {
+      width: 18px;
+      height: 18px;
+      color: rgba(196, 181, 253, 0.9);
+    }
+
+    .ai-insights-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 4px;
+      color: rgba(255, 255, 255, 0.7);
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    .ai-insights-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ai-insights-content {
+      padding: 16px;
+      min-height: 60px;
+    }
+
+    .ai-insights-text {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .ai-insights-loading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(196, 181, 253, 0.7);
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(196, 181, 253, 0.3);
+      border-top-color: rgba(196, 181, 253, 0.8);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .search-input-wrapper {
@@ -409,6 +533,23 @@ export class ViewSearch extends LitElement {
     .badge-plugin {
       background: rgba(168, 85, 247, 0.2);
       color: rgba(196, 181, 253, 0.9);
+    }
+
+    .badge-ai {
+      background: rgba(59, 130, 246, 0.2);
+      color: rgba(147, 197, 253, 0.9);
+    }
+
+    .ai-suggestion {
+      background: rgba(139, 92, 246, 0.05);
+    }
+
+    .ai-suggestion:hover {
+      background: rgba(139, 92, 246, 0.1);
+    }
+
+    .ai-suggestion.selected {
+      background: rgba(139, 92, 246, 0.2);
     }
 
     .loading-state,
@@ -692,6 +833,104 @@ export class ViewSearch extends LitElement {
       font-family: "SF Mono", "Monaco", "Menlo", monospace;
       font-weight: 600;
     }
+
+    /* AI Chat Modal Styles */
+    .ai-chat-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .ai-chat-modal-container {
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 700px;
+      width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .ai-chat-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ai-chat-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: rgba(196, 181, 253, 0.9);
+    }
+
+    .ai-chat-modal-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.15s ease;
+    }
+
+    .ai-chat-modal-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .ai-chat-modal-query {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .ai-chat-modal-query strong {
+      font-weight: 600;
+    }
+
+    .ai-chat-modal-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
+      min-height: 60px;
+    }
+
+    .ai-chat-response-text {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .ai-chat-modal-loading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(196, 181, 253, 0.7);
+      font-size: 13px;
+      padding: 20px 0;
+      justify-content: center;
+    }
   `
 
   render() {
@@ -758,10 +997,13 @@ export class ViewSearch extends LitElement {
           </div>
         </div>
 
+        ${this._renderAIInsights()}
+
         <div class="results-wrapper">${this._renderResults()}</div>
 
         ${this._renderPluginUploadButton()}
         ${this._renderKeyboardHint()}
+        ${this._renderAIChatModal()}
       </div>
     `
   }
@@ -820,6 +1062,21 @@ export class ViewSearch extends LitElement {
       this._getFilteredPluginCommands().length > 0
 
     if (!hasResults) {
+      // Show AI chat suggestions if AI providers are available
+      if (this.availableAIProviders.length > 0) {
+        return html`
+          <div class="results-container">
+            <div class="results-section">
+              <h3 class="section-title">Ask AI</h3>
+              ${this.availableAIProviders.map((provider, index) =>
+                this._renderAIChatSuggestion(provider, index),
+              )}
+            </div>
+          </div>
+        `
+      }
+
+      // Fallback to standard no results message
       return html`
         <div class="results-container">
           <div class="empty-state">
@@ -943,6 +1200,32 @@ export class ViewSearch extends LitElement {
           <div class="result-path">${cmd.pluginId} • ${cmd.command.description || 'Plugin command'}</div>
         </div>
         <span class="result-badge badge-plugin">Plugin</span>
+      </div>
+    `
+  }
+
+  private _renderAIChatSuggestion(provider: string, index: number) {
+    const isSelected = index === this.selectedIndex
+    const iconMap: Record<string, string> = {
+      OpenAI: '🤖',
+      Anthropic: '🧠',
+      Gemini: '✨',
+      DeepSeek: '🔮',
+      OpenRouter: '🌐',
+    }
+    const icon = iconMap[provider] || '💬'
+
+    return html`
+      <div
+        class=${classMap({ 'result-item': true, selected: isSelected, 'ai-suggestion': true })}
+        @click=${() => this._askAIProvider(provider)}
+      >
+        <div class="result-icon">${icon}</div>
+        <div class="result-content">
+          <div class="result-title">Ask "${this.query}" with ${provider}</div>
+          <div class="result-path">Start an AI conversation with ${provider}</div>
+        </div>
+        <span class="result-badge badge-ai">AI</span>
       </div>
     `
   }
@@ -1115,6 +1398,50 @@ export class ViewSearch extends LitElement {
     `
   }
 
+  private _renderAIInsights() {
+    if (!this.showAiInsights || (!this.aiInsights && !this.aiInsightsLoading)) {
+      return null
+    }
+
+    return html`
+      <div 
+        class="ai-insights-container"
+        role="region"
+        aria-label="AI Insights"
+        aria-live="polite"
+      >
+        <div class="ai-insights-header">
+          <div class="ai-insights-title">
+            <svg class="ai-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              ></path>
+            </svg>
+            <span>AI Insights</span>
+          </div>
+          <button class="ai-insights-close" @click=${this._toggleAIInsights} title="Close AI insights" aria-label="Close AI insights">
+            ✕
+          </button>
+        </div>
+        <div class="ai-insights-content">
+          ${
+            this.aiInsightsLoading
+              ? html`
+                <div class="ai-insights-loading">
+                  <div class="spinner"></div>
+                  <span>Generating insights...</span>
+                </div>
+              `
+              : html`<p class="ai-insights-text">${this.aiInsights}</p>`
+          }
+        </div>
+      </div>
+    `
+  }
+
   private _renderPrefixHints() {
     if (this.query || this._getTotalResults() > 0) return null
 
@@ -1182,6 +1509,8 @@ export class ViewSearch extends LitElement {
     if (!actualQuery) {
       this.results = { applications: [], files: [] }
       this.selectedIndex = 0
+      this.aiInsights = ''
+      this.showAiInsights = false
       return
     }
 
@@ -1190,6 +1519,10 @@ export class ViewSearch extends LitElement {
     if (this.prefetchCache.has(cacheKey)) {
       this.results = this.prefetchCache.get(cacheKey)!
       this.selectedIndex = 0
+      // Fetch AI insights if we have results
+      if (this._hasResults()) {
+        this._fetchAIInsights(actualQuery, this.results)
+      }
       return
     }
 
@@ -1219,9 +1552,16 @@ export class ViewSearch extends LitElement {
       this.prefetchCache.set(cacheKey, this.results)
 
       this.selectedIndex = 0
+
+      // Fetch AI insights if we have results
+      if (this._hasResults()) {
+        this._fetchAIInsights(actualQuery, this.results)
+      }
     } catch (error) {
       console.error('Search error:', error)
       this.results = { applications: [], files: [] }
+      this.aiInsights = ''
+      this.showAiInsights = false
     } finally {
       this.loading = false
     }
@@ -1234,8 +1574,13 @@ export class ViewSearch extends LitElement {
 
   private _handleKeyDown(e: KeyboardEvent) {
     const pluginResults = this._getFilteredPluginCommands()
-    const totalResults =
-      this.results.applications.length + this.results.files.length + pluginResults.length
+    const hasResults =
+      this.results.applications.length > 0 ||
+      this.results.files.length > 0 ||
+      pluginResults.length > 0
+    const totalResults = hasResults
+      ? this.results.applications.length + this.results.files.length + pluginResults.length
+      : this.availableAIProviders.length // AI chat suggestions
 
     // Handle keyboard shortcuts
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -1271,22 +1616,36 @@ export class ViewSearch extends LitElement {
   }
 
   private _openSelected() {
-    if (this.selectedIndex < this.results.applications.length) {
-      const app = this.results.applications[this.selectedIndex]
-      this._openApplication(app)
-    } else {
-      const remainingIndex = this.selectedIndex - this.results.applications.length
+    const hasResults =
+      this.results.applications.length > 0 ||
+      this.results.files.length > 0 ||
+      this._getFilteredPluginCommands().length > 0
 
-      if (remainingIndex < this.results.files.length) {
-        const file = this.results.files[remainingIndex]
-        this._openFile(file)
+    // If we have search results, handle them normally
+    if (hasResults) {
+      if (this.selectedIndex < this.results.applications.length) {
+        const app = this.results.applications[this.selectedIndex]
+        this._openApplication(app)
       } else {
-        const pluginIndex = remainingIndex - this.results.files.length
-        const pluginResults = this._getFilteredPluginCommands()
-        if (pluginIndex < pluginResults.length) {
-          const cmd = pluginResults[pluginIndex]
-          this._executePluginCommand(cmd)
+        const remainingIndex = this.selectedIndex - this.results.applications.length
+
+        if (remainingIndex < this.results.files.length) {
+          const file = this.results.files[remainingIndex]
+          this._openFile(file)
+        } else {
+          const pluginIndex = remainingIndex - this.results.files.length
+          const pluginResults = this._getFilteredPluginCommands()
+          if (pluginIndex < pluginResults.length) {
+            const cmd = pluginResults[pluginIndex]
+            this._executePluginCommand(cmd)
+          }
         }
+      }
+    } else {
+      // No search results, handle AI chat suggestions
+      if (this.selectedIndex < this.availableAIProviders.length) {
+        const provider = this.availableAIProviders[this.selectedIndex]
+        this._askAIProvider(provider)
       }
     }
   }
@@ -1632,6 +1991,153 @@ export class ViewSearch extends LitElement {
     } catch (error) {
       console.error('Failed to copy to clipboard:', error)
     }
+  }
+
+  // AI Insights Methods
+  private _hasResults(): boolean {
+    return (
+      this.results.applications.length > 0 ||
+      this.results.files.length > 0 ||
+      this._getFilteredPluginCommands().length > 0
+    )
+  }
+
+  private async _fetchAIInsights(query: string, results: SearchResult) {
+    // Clear previous timer
+    if (this.aiInsightsDebounceTimer) {
+      clearTimeout(this.aiInsightsDebounceTimer)
+    }
+
+    // Debounce AI insights fetching
+    this.aiInsightsDebounceTimer = window.setTimeout(async () => {
+      this.aiInsightsLoading = true
+      this.showAiInsights = true
+
+      try {
+        const insights = await invoke<string>('generate_search_insights', {
+          query,
+          searchResults: results,
+        })
+
+        this.aiInsights = insights
+      } catch (error) {
+        console.error('Failed to fetch AI insights:', error)
+        this.aiInsights = 'AI insights are currently unavailable. Please ensure an AI provider is configured.'
+        // Hide after a delay if there's an error
+        setTimeout(() => {
+          this.showAiInsights = false
+        }, 5000)
+      } finally {
+        this.aiInsightsLoading = false
+      }
+    }, 1000) // Wait 1 second after search completes before fetching AI insights
+  }
+
+  private _toggleAIInsights() {
+    this.showAiInsights = !this.showAiInsights
+  }
+
+  private async _askAIProvider(provider: string) {
+    console.log(`Asking ${provider} about: ${this.query}`)
+
+    // Clean up any existing modal
+    if (this.currentModal && this.currentModal.parentNode) {
+      this.currentModal.parentNode.removeChild(this.currentModal)
+      this.currentModal = null
+    }
+
+    this.aiChatLoading = true
+    this.aiChatResponse = ''
+    this.aiChatProvider = provider
+    this.showAiChatModal = true
+
+    try {
+      const response = await invoke<string>('ask_ai_provider', {
+        query: this.query,
+        providerName: provider,
+      })
+
+      this.aiChatResponse = response
+    } catch (error) {
+      console.error(`Failed to ask ${provider}:`, error)
+      this.showAiChatModal = false
+      window.dispatchEvent(
+        new CustomEvent('plugin:toast', {
+          detail: {
+            title: 'AI Chat Error',
+            message: `Failed to connect to ${provider}`,
+            style: 'failure',
+          },
+        }),
+      )
+    } finally {
+      this.aiChatLoading = false
+    }
+  }
+
+  private _closeAIChatModal() {
+    this.showAiChatModal = false
+    this.aiChatResponse = ''
+    this.aiChatProvider = ''
+  }
+
+  private _handleModalKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      this._closeAIChatModal()
+    }
+  }
+
+  private _renderAIChatModal() {
+    if (!this.showAiChatModal) {
+      return null
+    }
+
+    return html`
+      <div 
+        class="ai-chat-modal-overlay" 
+        @click=${(e: Event) => {
+          if (e.target === e.currentTarget) {
+            this._closeAIChatModal()
+          }
+        }}
+        @keydown=${this._handleModalKeyDown}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-chat-modal-title"
+      >
+        <div class="ai-chat-modal-container">
+          <div class="ai-chat-modal-header">
+            <div class="ai-chat-modal-title" id="ai-chat-modal-title">
+              ${this.aiChatProvider} Response
+            </div>
+            <button
+              class="ai-chat-modal-close"
+              @click=${this._closeAIChatModal}
+              aria-label="Close modal"
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="ai-chat-modal-query">
+            <strong>Query:</strong> ${this.query}
+          </div>
+
+          <div class="ai-chat-modal-content">
+            ${this.aiChatLoading
+              ? html`
+                <div class="ai-chat-modal-loading">
+                  <div class="spinner"></div>
+                  <span>Generating response...</span>
+                </div>
+              `
+              : html`<p class="ai-chat-response-text">${this.aiChatResponse}</p>`}
+          </div>
+        </div>
+      </div>
+    `
   }
 }
 

@@ -1,4 +1,6 @@
+use crate::rig_agent::{AIOptions, AIProvider, RigAgent};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::path::Path;
 use tauri::command;
 
@@ -476,4 +478,130 @@ pub async fn get_default_application(extension: String) -> Result<Option<Applica
     println!("get_default_application called with extension: {}", extension);
 
     Ok(None)
+}
+
+/// Generate AI-powered insights for search results
+#[command]
+pub async fn generate_search_insights(query: String, search_results: SearchResult) -> Result<String, String> {
+    // Initialize the Rig agent
+    let agent = RigAgent::new().map_err(|e| format!("Failed to initialize AI agent: {}", e))?;
+
+    // Build a context from the search results
+    let app_count = search_results.applications.len();
+    let file_count = search_results.files.len();
+
+    let mut context = format!("User searched for: '{}'\n\nSearch Results Summary:\n", query);
+
+    if app_count > 0 {
+        context.push_str(&format!("- {} application(s) found:\n", app_count));
+        for (i, app) in search_results.applications.iter().take(5).enumerate() {
+            context.push_str(&format!("  {}. {} ({})\n", i + 1, app.name, app.path));
+        }
+        if app_count > 5 {
+            context.push_str(&format!("  ... and {} more\n", app_count - 5));
+        }
+    }
+
+    if file_count > 0 {
+        context.push_str(&format!("- {} file(s) found:\n", file_count));
+        for (i, file) in search_results.files.iter().take(5).enumerate() {
+            let file_name = file.path.split('/').last().unwrap_or(&file.path);
+            context.push_str(&format!("  {}. {}", i + 1, file_name));
+            if let Some(line) = &file.line_content {
+                context.push_str(&format!(" - {}", line));
+            }
+            context.push_str("\n");
+        }
+        if file_count > 5 {
+            context.push_str(&format!("  ... and {} more\n", file_count - 5));
+        }
+    }
+
+    // Create a prompt for the AI
+    let prompt = format!(
+        "{}\n\nProvide a brief, helpful summary of these search results. \
+        Suggest what the user might want to do with these results. \
+        If there are interesting patterns or insights, mention them. \
+        Keep it concise (2-3 sentences).",
+        context
+    );
+
+    // Generate the AI response
+    let ai_options = AIOptions {
+        prompt,
+        model: None, // Use default model
+        temperature: Some(0.7),
+        max_tokens: Some(200),
+        top_p: None,
+        frequency_penalty: None,
+        presence_penalty: None,
+    };
+
+    let response = agent
+        .generate(ai_options)
+        .await
+        .map_err(|e| format!("Failed to generate AI insights: {}", e))?;
+
+    Ok(response.text)
+}
+
+/// Get available AI providers
+#[command]
+pub async fn get_available_ai_providers() -> Result<Vec<String>, String> {
+    let mut providers = Vec::new();
+
+    if env::var("OPENAI_API_KEY").is_ok() {
+        providers.push("OpenAI".to_string());
+    }
+    if env::var("ANTHROPIC_API_KEY").is_ok() {
+        providers.push("Anthropic".to_string());
+    }
+    if env::var("GEMINI_API_KEY").is_ok() {
+        providers.push("Gemini".to_string());
+    }
+    if env::var("DEEPSEEK_API_KEY").is_ok() {
+        providers.push("DeepSeek".to_string());
+    }
+    if env::var("OPENROUTER_API_KEY").is_ok() {
+        providers.push("OpenRouter".to_string());
+    }
+
+    Ok(providers)
+}
+
+/// Ask AI a question with a specific provider
+#[command]
+pub async fn ask_ai_provider(query: String, provider_name: String) -> Result<String, String> {
+    // Map provider name to AIProvider enum
+    let provider = match provider_name.as_str() {
+        "OpenAI" => AIProvider::OpenAI,
+        "Anthropic" => AIProvider::Anthropic,
+        "Gemini" => AIProvider::Gemini,
+        "DeepSeek" => AIProvider::DeepSeek,
+        "OpenRouter" => AIProvider::OpenRouter,
+        _ => return Err(format!("Unknown provider: {}", provider_name)),
+    };
+
+    // Initialize the Rig agent with specific provider
+    let agent = RigAgent::with_provider(provider)
+        .map_err(|e| format!("Failed to initialize {} agent: {}", provider_name, e))?;
+
+    // Create the AI options
+    let ai_options = AIOptions {
+        prompt: query,
+        model: None, // Use default model
+        temperature: Some(0.8),
+        max_tokens: Some(500),
+        top_p: None,
+        frequency_penalty: None,
+        presence_penalty: None,
+    };
+
+    // Generate the AI response
+    let response = agent
+        .generate(ai_options)
+        .await
+        .map_err(|e| format!("Failed to generate response from {}: {}", provider_name, e))?;
+
+    Ok(response.text)
 }
