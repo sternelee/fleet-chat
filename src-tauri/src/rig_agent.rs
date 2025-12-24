@@ -318,8 +318,10 @@ impl RigAgent {
                 env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
                 env::set_var("OPENAI_API_KEY", &api_key);
 
-                let client = openai::Client::from_env();
-                let agent = client.agent(&model).build();
+                // Use Completions API for better OpenRouter compatibility
+                let completions_client = openai::Client::from_env().completions_api();
+                let completion_model = completions_client.completion_model(&model);
+                let agent = completion_model.into_agent_builder().build();
                 agent.prompt(&options.prompt).await?
             }
         };
@@ -445,8 +447,10 @@ impl RigAgent {
                 env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
                 env::set_var("OPENAI_API_KEY", &api_key);
 
-                let client = openai::Client::from_env();
-                let agent = client.agent(&model).build();
+                // Use Completions API for better OpenRouter compatibility
+                let completions_client = openai::Client::from_env().completions_api();
+                let completion_model = completions_client.completion_model(&model);
+                let agent = completion_model.into_agent_builder().build();
 
                 let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
                 let chat_history = if rig_messages.len() > 1 {
