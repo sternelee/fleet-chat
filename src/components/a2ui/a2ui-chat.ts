@@ -259,15 +259,16 @@ export class A2UIChat extends SignalWatcher(LitElement) {
     this.removeEventListener(EXTERNAL_MESSAGE_EVENT, this._handleExternalMessage)
   }
 
-  private _handleExternalMessage = (event: Event) => {
+  private _handleExternalMessage = async (event: Event) => {
     const customEvent = event as CustomEvent
     const { message } = customEvent.detail
 
     if (message) {
       // Set the input text and submit
       this.inputText = message
-      // Wait a tick for the state to update, then submit
-      setTimeout(() => this.#handleSubmit(), 0)
+      // Wait for the Lit update cycle to complete, then submit
+      await this.updateComplete
+      this.#handleSubmit()
     }
   }
 

@@ -13,19 +13,28 @@ const EXTERNAL_MESSAGE_EVENT = 'external-message'
  */
 @customElement('panel-chat')
 export class PanelChat extends LitElement {
+  // Bound event handler to ensure proper cleanup
+  private boundHandleSearchAIChat: (event: Event) => void
+
+  constructor() {
+    super()
+    // Bind the handler once in constructor for proper cleanup
+    this.boundHandleSearchAIChat = this._handleSearchAIChat.bind(this)
+  }
+
   connectedCallback() {
     super.connectedCallback()
 
     // Listen for search AI chat events
-    window.addEventListener(SEARCH_AI_CHAT_EVENT, this._handleSearchAIChat)
+    window.addEventListener(SEARCH_AI_CHAT_EVENT, this.boundHandleSearchAIChat)
   }
 
   disconnectedCallback() {
     super.disconnectedCallback()
-    window.removeEventListener(SEARCH_AI_CHAT_EVENT, this._handleSearchAIChat)
+    window.removeEventListener(SEARCH_AI_CHAT_EVENT, this.boundHandleSearchAIChat)
   }
 
-  private _handleSearchAIChat = (event: Event) => {
+  private _handleSearchAIChat(event: Event) {
     const customEvent = event as CustomEvent
     const { query } = customEvent.detail
 
