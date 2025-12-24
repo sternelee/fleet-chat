@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit'
 import { customElement } from 'lit/decorators.js'
 import { noSelectStyles, scrollableStyles } from '#/styles/global.css'
-import '../../components/a2ui/a2ui-chat.js'
+import '../../components/rig/rig-chat.js'
 
 // Event name constants for search-to-chat communication
 const SEARCH_AI_CHAT_EVENT = 'search:ai-chat'
@@ -9,7 +9,7 @@ const EXTERNAL_MESSAGE_EVENT = 'external-message'
 
 /**
  * Chat panel content component
- * Displays chat interface for communication
+ * Displays chat interface for communication using Rig AI agent
  */
 @customElement('panel-chat')
 export class PanelChat extends LitElement {
@@ -45,8 +45,8 @@ export class PanelChat extends LitElement {
   }
 
   private _sendQueryToChat(query: string) {
-    // Find the a2ui-chat component and trigger it
-    const chatComponent = this.shadowRoot?.querySelector('a2ui-chat')
+    // Find the rig-chat component and trigger it
+    const chatComponent = this.shadowRoot?.querySelector('rig-chat')
     if (chatComponent) {
       // Dispatch a custom event to the chat component
       chatComponent.dispatchEvent(
@@ -55,14 +55,14 @@ export class PanelChat extends LitElement {
         }),
       )
     } else {
-      console.warn('a2ui-chat component not found in shadow DOM')
+      console.warn('rig-chat component not found in shadow DOM')
     }
   }
 
   render() {
     return html`
       <div class="chat-panel-container">
-        <a2ui-chat></a2ui-chat>
+        <rig-chat></rig-chat>
       </div>
     `
   }
@@ -89,8 +89,8 @@ export class PanelChat extends LitElement {
         overflow: hidden;
       }
 
-      /* Ensure a2ui-chat fills the container properly */
-      a2ui-chat {
+      /* Ensure rig-chat fills the container properly */
+      rig-chat {
         height: 100%;
         width: 100%;
         display: block;
