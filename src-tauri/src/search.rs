@@ -1,8 +1,12 @@
 use crate::rig_agent::{AIOptions, AIProvider, RigAgent};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::path::Path;
+use std::sync::Arc;
 use tauri::command;
+use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Application {
@@ -26,6 +30,76 @@ pub struct FileMatch {
 pub struct SearchResult {
     pub applications: Vec<Application>,
     pub files: Vec<FileMatch>,
+}
+
+// ============================================================================
+// Icon Cache (thread-safe, async-friendly)
+// ============================================================================
+
+/// Global icon cache for extracted application icons
+pub struct IconCache {
+    cache: Arc<RwLock<HashMap<String, Option<String>>>>,
+}
+
+impl IconCache {
+    pub fn new() -> Self {
+        Self {
+            cache: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    /// Get cached icon for an app path
+    pub async fn get(&self, app_path: &str) -> Option<String> {
+        let cache = self.cache.read().await;
+        cache.get(app_path).cloned().flatten()
+    }
+
+    /// Check if icon is cached (regardless of whether it exists)
+    pub async fn is_cached(&self, app_path: &str) -> bool {
+        let cache = self.cache.read().await;
+        cache.contains_key(app_path)
+    }
+
+    /// Set icon in cache (None means no icon available)
+    pub async fn set(&self, app_path: String, icon: Option<String>) {
+        let mut cache = self.cache.write().await;
+        cache.insert(app_path, icon);
+    }
+
+    /// Get or extract icon (with caching)
+    pub async fn get_or_extract(&self, app_path: &str) -> Option<String> {
+        // Check cache first
+        if self.is_cached(app_path).await {
+            if let Some(icon) = self.get(app_path).await {
+                return Some(icon);
+            }
+            // Cached as None (no icon available)
+            return None;
+        }
+
+        // Not in cache, extract icon
+        let icon = extract_app_icon(app_path);
+
+        // Cache the result (even if None to avoid re-extracting)
+        self.set(app_path.to_string(), icon.clone()).await;
+
+        icon
+    }
+}
+
+impl Default for IconCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// Global icon cache instance
+static GLOBAL_ICON_CACHE: Lazy<IconCache> = Lazy::new(|| IconCache::new());
+
+/// Get icon for a specific application path (with caching)
+#[command]
+pub async fn get_application_icon(app_path: String) -> Option<String> {
+    GLOBAL_ICON_CACHE.get_or_extract(&app_path).await
 }
 
 // ============================================================================
@@ -217,6 +291,8 @@ pub async fn search_applications(query: String) -> Result<Vec<Application>, Stri
 }
 
 /// Get all applications (for frontend caching)
+/// Note: Icons are NOT extracted here for performance.
+/// Icons should be extracted on-demand for displayed results only.
 #[command]
 pub async fn get_all_applications() -> Result<Vec<Application>, String> {
     use applications::{AppInfo, AppInfoContext};
@@ -230,6 +306,7 @@ pub async fn get_all_applications() -> Result<Vec<Application>, String> {
     let apps = ctx.get_all_apps();
 
     // Convert to our Application struct (all apps, no filtering)
+    // Icons are NOT extracted here - would be too slow for hundreds of apps
     let results: Vec<Application> = apps
         .into_iter()
         .map(|app| {
@@ -250,13 +327,11 @@ pub async fn get_all_applications() -> Result<Vec<Application>, String> {
                 exe_path
             };
 
-            let icon_base64 = extract_app_icon(&app_bundle_path);
-
             Application {
                 name: app.name.clone(),
                 path: app_bundle_path,
                 icon_path: None,
-                icon_base64,
+                icon_base64: None, // Icons extracted on-demand for better performance
             }
         })
         .collect();

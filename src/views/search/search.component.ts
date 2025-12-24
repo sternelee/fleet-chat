@@ -72,6 +72,10 @@ export class ViewSearch extends LitElement {
   // Frontend application cache (instant search)
   private applicationCache: Application[] = []
 
+  // Icon cache for asynchronously loaded icons
+  private iconCache: Map<string, string> = new Map()
+  private iconLoading: Set<string> = new Set()
+
   private searchDebounceTimer: number | null = null
   private animationTimeout: number | null = null
   private prefetchCache: Map<string, SearchResult> = new Map()
@@ -158,6 +162,53 @@ export class ViewSearch extends LitElement {
     })
 
     return results.slice(0, 10)
+  }
+
+  /**
+   * Asynchronously load icon for an application
+   * Uses a local cache and tracks loading state to avoid duplicate requests
+   */
+  private async _loadApplicationIcon(appPath: string): Promise<void> {
+    // Check if already cached
+    if (this.iconCache.has(appPath)) {
+      return
+    }
+
+    // Check if already loading
+    if (this.iconLoading.has(appPath)) {
+      return
+    }
+
+    // Mark as loading
+    this.iconLoading.add(appPath)
+
+    try {
+      const icon = await invoke<string | null>('get_application_icon', { appPath })
+      if (icon) {
+        this.iconCache.set(appPath, icon)
+        // Trigger re-render to show the icon
+        this.requestUpdate()
+      }
+    } catch (error) {
+      console.error(`[Search] Failed to load icon for ${appPath}:`, error)
+    } finally {
+      this.iconLoading.delete(appPath)
+    }
+  }
+
+  /**
+   * Load icons for all visible applications in the search results
+   * This is called after search results are displayed
+   */
+  private _loadIconsForResults(applications: Application[]): void {
+    // Only load icons for the first few results (priority)
+    const maxIconsToLoad = 10
+    const appsToLoad = applications.slice(0, maxIconsToLoad)
+
+    for (const app of appsToLoad) {
+      // Load icon asynchronously without awaiting
+      this._loadApplicationIcon(app.path)
+    }
   }
 
   disconnectedCallback() {
@@ -1115,8 +1166,11 @@ export class ViewSearch extends LitElement {
 
   private _renderApplicationItem(app: Application, index: number) {
     const isSelected = index === this.selectedIndex
-    const iconContent = app.icon_base64
-      ? html`<img src="${app.icon_base64}" alt="${app.name}" />`
+
+    // Try icon cache first (async loaded icons), then backend icon, then fallback
+    const cachedIcon = this.iconCache.get(app.path)
+    const iconContent = cachedIcon || app.icon_base64
+      ? html`<img src="${cachedIcon || app.icon_base64}" alt="${app.name}" />`
       : html`${app.name.charAt(0).toUpperCase()}`
 
     return html`
@@ -1511,6 +1565,12 @@ export class ViewSearch extends LitElement {
     if (this.prefetchCache.has(cacheKey)) {
       this.results = this.prefetchCache.get(cacheKey)!
       this.selectedIndex = 0
+
+      // Load icons asynchronously for cached results
+      if (this.results.applications.length > 0) {
+        this._loadIconsForResults(this.results.applications)
+      }
+
       // Fetch AI insights if we have results
       if (this._hasResults()) {
         this._fetchAIInsights(actualQuery, this.results)
@@ -1558,6 +1618,11 @@ export class ViewSearch extends LitElement {
       this.prefetchCache.set(cacheKey, this.results)
 
       this.selectedIndex = 0
+
+      // Load icons asynchronously for displayed applications
+      if (applications.length > 0) {
+        this._loadIconsForResults(applications)
+      }
 
       // Fetch AI insights if we have results
       if (this._hasResults()) {
