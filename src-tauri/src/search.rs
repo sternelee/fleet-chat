@@ -1,3 +1,4 @@
+use crate::rig_agent::{AIOptions, RigAgent};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::command;
@@ -476,4 +477,75 @@ pub async fn get_default_application(extension: String) -> Result<Option<Applica
     println!("get_default_application called with extension: {}", extension);
 
     Ok(None)
+}
+
+/// Generate AI-powered insights for search results
+#[command]
+pub async fn generate_search_insights(
+    query: String,
+    search_results: SearchResult,
+) -> Result<String, String> {
+    // Initialize the Rig agent
+    let agent = RigAgent::new().map_err(|e| format!("Failed to initialize AI agent: {}", e))?;
+
+    // Build a context from the search results
+    let app_count = search_results.applications.len();
+    let file_count = search_results.files.len();
+
+    let mut context = format!(
+        "User searched for: '{}'\n\nSearch Results Summary:\n",
+        query
+    );
+
+    if app_count > 0 {
+        context.push_str(&format!("- {} application(s) found:\n", app_count));
+        for (i, app) in search_results.applications.iter().take(5).enumerate() {
+            context.push_str(&format!("  {}. {} ({})\n", i + 1, app.name, app.path));
+        }
+        if app_count > 5 {
+            context.push_str(&format!("  ... and {} more\n", app_count - 5));
+        }
+    }
+
+    if file_count > 0 {
+        context.push_str(&format!("- {} file(s) found:\n", file_count));
+        for (i, file) in search_results.files.iter().take(5).enumerate() {
+            let file_name = file.path.split('/').last().unwrap_or(&file.path);
+            context.push_str(&format!("  {}. {}", i + 1, file_name));
+            if let Some(line) = &file.line_content {
+                context.push_str(&format!(" - {}", line));
+            }
+            context.push_str("\n");
+        }
+        if file_count > 5 {
+            context.push_str(&format!("  ... and {} more\n", file_count - 5));
+        }
+    }
+
+    // Create a prompt for the AI
+    let prompt = format!(
+        "{}\n\nProvide a brief, helpful summary of these search results. \
+        Suggest what the user might want to do with these results. \
+        If there are interesting patterns or insights, mention them. \
+        Keep it concise (2-3 sentences).",
+        context
+    );
+
+    // Generate the AI response
+    let ai_options = AIOptions {
+        prompt,
+        model: None, // Use default model
+        temperature: Some(0.7),
+        max_tokens: Some(200),
+        top_p: None,
+        frequency_penalty: None,
+        presence_penalty: None,
+    };
+
+    let response = agent
+        .generate(ai_options)
+        .await
+        .map_err(|e| format!("Failed to generate AI insights: {}", e))?;
+
+    Ok(response.text)
 }

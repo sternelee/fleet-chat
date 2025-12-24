@@ -60,10 +60,14 @@ export class ViewSearch extends LitElement {
   @state() private commandPrefix: CommandPrefix = ''
   @state() private showQuickActions = false
   @state() private frecencyItems: Array<{ query: string; count: number; lastUsed: number }> = []
+  @state() private aiInsights = ''
+  @state() private aiInsightsLoading = false
+  @state() private showAiInsights = false
 
   private searchDebounceTimer: number | null = null
   private animationTimeout: number | null = null
   private prefetchCache: Map<string, SearchResult> = new Map()
+  private aiInsightsDebounceTimer: number | null = null
 
   async connectedCallback() {
     super.connectedCallback()
@@ -158,6 +162,95 @@ export class ViewSearch extends LitElement {
       flex-direction: column;
       gap: 16px;
       margin-bottom: 20px;
+    }
+
+    /* AI Insights Styles */
+    .ai-insights-container {
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 12px;
+      overflow: hidden;
+      animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .ai-insights-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(139, 92, 246, 0.15);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .ai-insights-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: rgba(196, 181, 253, 0.9);
+    }
+
+    .ai-icon {
+      width: 18px;
+      height: 18px;
+      color: rgba(196, 181, 253, 0.9);
+    }
+
+    .ai-insights-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 4px;
+      color: rgba(255, 255, 255, 0.7);
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    .ai-insights-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ai-insights-content {
+      padding: 16px;
+      min-height: 60px;
+    }
+
+    .ai-insights-text {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .ai-insights-loading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(196, 181, 253, 0.7);
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(196, 181, 253, 0.3);
+      border-top-color: rgba(196, 181, 253, 0.8);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .search-input-wrapper {
@@ -758,6 +851,8 @@ export class ViewSearch extends LitElement {
           </div>
         </div>
 
+        ${this._renderAIInsights()}
+
         <div class="results-wrapper">${this._renderResults()}</div>
 
         ${this._renderPluginUploadButton()}
@@ -1115,6 +1210,45 @@ export class ViewSearch extends LitElement {
     `
   }
 
+  private _renderAIInsights() {
+    if (!this.showAiInsights || (!this.aiInsights && !this.aiInsightsLoading)) {
+      return null
+    }
+
+    return html`
+      <div class="ai-insights-container">
+        <div class="ai-insights-header">
+          <div class="ai-insights-title">
+            <svg class="ai-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              ></path>
+            </svg>
+            <span>AI Insights</span>
+          </div>
+          <button class="ai-insights-close" @click=${this._toggleAIInsights} title="Close AI insights">
+            ✕
+          </button>
+        </div>
+        <div class="ai-insights-content">
+          ${
+            this.aiInsightsLoading
+              ? html`
+                <div class="ai-insights-loading">
+                  <div class="spinner"></div>
+                  <span>Generating insights...</span>
+                </div>
+              `
+              : html`<p class="ai-insights-text">${this.aiInsights}</p>`
+          }
+        </div>
+      </div>
+    `
+  }
+
   private _renderPrefixHints() {
     if (this.query || this._getTotalResults() > 0) return null
 
@@ -1182,6 +1316,8 @@ export class ViewSearch extends LitElement {
     if (!actualQuery) {
       this.results = { applications: [], files: [] }
       this.selectedIndex = 0
+      this.aiInsights = ''
+      this.showAiInsights = false
       return
     }
 
@@ -1190,6 +1326,10 @@ export class ViewSearch extends LitElement {
     if (this.prefetchCache.has(cacheKey)) {
       this.results = this.prefetchCache.get(cacheKey)!
       this.selectedIndex = 0
+      // Fetch AI insights if we have results
+      if (this._hasResults()) {
+        this._fetchAIInsights(actualQuery, this.results)
+      }
       return
     }
 
@@ -1219,9 +1359,16 @@ export class ViewSearch extends LitElement {
       this.prefetchCache.set(cacheKey, this.results)
 
       this.selectedIndex = 0
+
+      // Fetch AI insights if we have results
+      if (this._hasResults()) {
+        this._fetchAIInsights(actualQuery, this.results)
+      }
     } catch (error) {
       console.error('Search error:', error)
       this.results = { applications: [], files: [] }
+      this.aiInsights = ''
+      this.showAiInsights = false
     } finally {
       this.loading = false
     }
@@ -1632,6 +1779,46 @@ export class ViewSearch extends LitElement {
     } catch (error) {
       console.error('Failed to copy to clipboard:', error)
     }
+  }
+
+  // AI Insights Methods
+  private _hasResults(): boolean {
+    return this.results.applications.length > 0 || this.results.files.length > 0
+  }
+
+  private async _fetchAIInsights(query: string, results: SearchResult) {
+    // Clear previous timer
+    if (this.aiInsightsDebounceTimer) {
+      clearTimeout(this.aiInsightsDebounceTimer)
+    }
+
+    // Debounce AI insights fetching
+    this.aiInsightsDebounceTimer = window.setTimeout(async () => {
+      this.aiInsightsLoading = true
+      this.showAiInsights = true
+
+      try {
+        const insights = await invoke<string>('generate_search_insights', {
+          query,
+          searchResults: results,
+        })
+
+        this.aiInsights = insights
+      } catch (error) {
+        console.error('Failed to fetch AI insights:', error)
+        this.aiInsights = 'AI insights are currently unavailable. Please ensure an AI provider is configured.'
+        // Hide after a delay if there's an error
+        setTimeout(() => {
+          this.showAiInsights = false
+        }, 5000)
+      } finally {
+        this.aiInsightsLoading = false
+      }
+    }, 1000) // Wait 1 second after search completes before fetching AI insights
+  }
+
+  private _toggleAIInsights() {
+    this.showAiInsights = !this.showAiInsights
   }
 }
 
