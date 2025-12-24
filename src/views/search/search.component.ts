@@ -80,6 +80,15 @@ export class ViewSearch extends LitElement {
     this._addGlobalKeyListeners()
     this._loadFrecencyData()
 
+    // Initialize application cache in background
+    invoke<number>('initialize_application_cache')
+      .then((count) => {
+        console.log(`[Search] Application cache initialized with ${count} applications`)
+      })
+      .catch((error) => {
+        console.error('[Search] Failed to initialize application cache:', error)
+      })
+
     // Fetch available AI providers
     try {
       this.availableAIProviders = await invoke<string[]>('get_available_ai_providers')
@@ -1479,10 +1488,11 @@ export class ViewSearch extends LitElement {
       clearTimeout(this.searchDebounceTimer)
     }
 
-    // Debounce search
+    // Use shorter debounce for instant search feel (apps are now cached)
+    // File search still needs some time, but 50ms is imperceptible to users
     this.searchDebounceTimer = window.setTimeout(() => {
       this._performSearch()
-    }, 200) // Reduced from 300ms for snappier feel
+    }, 50) // Reduced from 200ms for instant feel with cached app search
   }
 
   private _detectCommandPrefix() {

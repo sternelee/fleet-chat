@@ -2,6 +2,8 @@ use crate::rig_agent::{AIOptions, AIProvider, RigAgent};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tauri::command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,6 +29,168 @@ pub struct SearchResult {
     pub applications: Vec<Application>,
     pub files: Vec<FileMatch>,
 }
+
+// ============================================================================
+// Application Cache
+// ============================================================================
+
+/// Cache for storing application list with automatic refresh
+#[derive(Clone)]
+pub struct ApplicationCache {
+    /// Cached applications
+    applications: Arc<Mutex<Vec<Application>>>,
+    /// Last refresh timestamp
+    last_refresh: Arc<Mutex<Option<Instant>>>,
+    /// Minimum duration between refreshes (for debouncing)
+    min_refresh_interval: Duration,
+    /// Whether the cache has been initialized
+    initialized: Arc<Mutex<bool>>,
+}
+
+impl ApplicationCache {
+    /// Create a new application cache
+    pub fn new() -> Self {
+        Self {
+            applications: Arc::new(Mutex::new(Vec::new())),
+            last_refresh: Arc::new(Mutex::new(None)),
+            min_refresh_interval: Duration::from_secs(5), // Minimum 5 seconds between refreshes
+            initialized: Arc::new(Mutex::new(false)),
+        }
+    }
+
+    /// Check if a refresh is needed (cache is stale or not initialized)
+    pub fn needs_refresh(&self) -> bool {
+        let initialized = *self.initialized.lock().unwrap();
+        if !initialized {
+            return true;
+        }
+
+        let last_refresh = *self.last_refresh.lock().unwrap();
+        match last_refresh {
+            Some(instant) => instant.elapsed() >= self.min_refresh_interval,
+            None => true,
+        }
+    }
+
+    /// Refresh the application cache from the system
+    pub async fn refresh(&self) -> Result<(), String> {
+        use applications::{AppInfo, AppInfoContext};
+
+        // Create context and refresh apps
+        let mut ctx = AppInfoContext::new(vec![]);
+        ctx.refresh_apps()
+            .map_err(|e| format!("Failed to refresh applications: {}", e))?;
+
+        // Get all applications
+        let apps = ctx.get_all_apps();
+
+        // Convert to our Application struct
+        let results: Vec<Application> = apps
+            .into_iter()
+            .map(|app| {
+                let exe_path = app
+                    .app_path_exe
+                    .as_ref()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "Unknown".to_string());
+
+                // Convert executable path to .app bundle root path
+                let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
+                    if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
+                        exe_path[..bundle_end + 4].to_string()
+                    } else {
+                        exe_path
+                    }
+                } else {
+                    exe_path
+                };
+
+                let icon_base64 = extract_app_icon(&app_bundle_path);
+
+                Application {
+                    name: app.name.clone(),
+                    path: app_bundle_path,
+                    icon_path: None,
+                    icon_base64,
+                }
+            })
+            .collect();
+
+        // Update cache
+        *self.applications.lock().unwrap() = results;
+        *self.last_refresh.lock().unwrap() = Some(Instant::now());
+        *self.initialized.lock().unwrap() = true;
+
+        println!("[ApplicationCache] Refreshed {} applications", self.applications.lock().unwrap().len());
+
+        Ok(())
+    }
+
+    /// Get all cached applications
+    pub fn get_all(&self) -> Vec<Application> {
+        self.applications.lock().unwrap().clone()
+    }
+
+    /// Search applications by query (instant, in-memory search)
+    pub fn search(&self, query: &str) -> Vec<Application> {
+        let query_lower = query.to_lowercase();
+        let apps = self.applications.lock().unwrap();
+
+        let mut results: Vec<Application> = apps
+            .iter()
+            .filter(|app| app.name.to_lowercase().contains(&query_lower))
+            .cloned()
+            .collect();
+
+        // Sort by relevance
+        results.sort_by(|a, b| {
+            let a_lower = a.name.to_lowercase();
+            let b_lower = b.name.to_lowercase();
+
+            if a_lower == query_lower {
+                std::cmp::Ordering::Less
+            } else if b_lower == query_lower {
+                std::cmp::Ordering::Greater
+            } else if a_lower.starts_with(&query_lower) && !b_lower.starts_with(&query_lower) {
+                std::cmp::Ordering::Less
+            } else if !a_lower.starts_with(&query_lower) && b_lower.starts_with(&query_lower) {
+                std::cmp::Ordering::Greater
+            } else {
+                a.name.cmp(&b.name)
+            }
+        });
+
+        // Limit results
+        results.truncate(10);
+        results
+    }
+
+    /// Force refresh regardless of time elapsed
+    pub async fn force_refresh(&self) -> Result<(), String> {
+        // Temporarily reset the last_refresh time to allow refresh
+        *self.last_refresh.lock().unwrap() = None;
+        self.refresh().await
+    }
+}
+
+impl Default for ApplicationCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// Global application cache instance
+static APPLICATION_CACHE: once_cell::sync::Lazy<ApplicationCache> =
+    once_cell::sync::Lazy::new(ApplicationCache::new);
+
+/// Get the global application cache
+pub fn get_application_cache() -> &'static ApplicationCache {
+    &APPLICATION_CACHE
+}
+
+// ============================================================================
+// Icon Extraction
+// ============================================================================
 
 #[cfg(target_os = "macos")]
 fn extract_app_icon(app_path: &str) -> Option<String> {
@@ -141,80 +305,18 @@ fn extract_app_icon(_app_path: &str) -> Option<String> {
     None
 }
 
-/// Search for applications installed on the system
+/// Search for applications installed on the system (uses cache)
 #[command]
 pub async fn search_applications(query: String) -> Result<Vec<Application>, String> {
-    use applications::{AppInfo, AppInfoContext};
+    let cache = get_application_cache();
 
-    let query_lower = query.to_lowercase();
+    // Refresh cache if needed (debounced - only if 5+ seconds have passed)
+    if cache.needs_refresh() {
+        cache.refresh().await?;
+    }
 
-    // Create context and refresh apps
-    let mut ctx = AppInfoContext::new(vec![]);
-    ctx.refresh_apps()
-        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
-
-    // Get all applications
-    let apps = ctx.get_all_apps();
-
-    // Filter and map to our Application struct
-    let mut results: Vec<Application> = apps
-        .into_iter()
-        .filter(|app| app.name.to_lowercase().contains(&query_lower))
-        .map(|app| {
-            let exe_path = app
-                .app_path_exe
-                .as_ref()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|| "Unknown".to_string());
-
-            // Convert executable path to .app bundle root path
-            let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
-                // Extract .app bundle path from executable path
-                // /Applications/WeChat.app/Contents/MacOS/WeChat -> /Applications/WeChat.app
-                if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
-                    // bundle_end points to the start of ".app/Contents/MacOS/"
-                    // We want to include the .app part but not the rest
-                    exe_path[..bundle_end + 4].to_string() // +4 to include ".app"
-                } else {
-                    exe_path
-                }
-            } else {
-                exe_path
-            };
-
-            let icon_base64 = extract_app_icon(&app_bundle_path);
-
-            Application {
-                name: app.name.clone(),
-                path: app_bundle_path,
-                icon_path: None,
-                icon_base64,
-            }
-        })
-        .collect();
-
-    // Sort by relevance (exact matches first, then starts with, then contains)
-    results.sort_by(|a, b| {
-        let a_lower = a.name.to_lowercase();
-        let b_lower = b.name.to_lowercase();
-
-        if a_lower == query_lower {
-            std::cmp::Ordering::Less
-        } else if b_lower == query_lower {
-            std::cmp::Ordering::Greater
-        } else if a_lower.starts_with(&query_lower) && !b_lower.starts_with(&query_lower) {
-            std::cmp::Ordering::Less
-        } else if !a_lower.starts_with(&query_lower) && b_lower.starts_with(&query_lower) {
-            std::cmp::Ordering::Greater
-        } else {
-            a.name.cmp(&b.name)
-        }
-    });
-
-    // Limit results
-    results.truncate(10);
-
-    Ok(results)
+    // Return instant search from cache
+    Ok(cache.search(&query))
 }
 
 /// Search for files using ripgrep-style search
@@ -328,52 +430,33 @@ pub async fn unified_search(
     })
 }
 
-/// Get all applications installed on the system
+/// Get all applications installed on the system (uses cache)
 #[command]
 pub async fn get_applications() -> Result<Vec<Application>, String> {
-    use applications::{AppInfo, AppInfoContext};
+    let cache = get_application_cache();
 
-    // Create context and refresh apps
-    let mut ctx = AppInfoContext::new(vec![]);
-    ctx.refresh_apps()
-        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
+    // Ensure cache is initialized
+    if cache.needs_refresh() {
+        cache.refresh().await?;
+    }
 
-    // Get all applications
-    let apps = ctx.get_all_apps();
+    Ok(cache.get_all())
+}
 
-    // Convert to our Application struct
-    let results: Vec<Application> = apps
-        .into_iter()
-        .map(|app| {
-            let exe_path = app
-                .app_path_exe
-                .as_ref()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|| "Unknown".to_string());
+/// Initialize the application cache (call on startup)
+#[command]
+pub async fn initialize_application_cache() -> Result<usize, String> {
+    let cache = get_application_cache();
+    cache.refresh().await?;
+    Ok(cache.get_all().len())
+}
 
-            // Convert executable path to .app bundle root path
-            let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
-                if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
-                    exe_path[..bundle_end + 4].to_string()
-                } else {
-                    exe_path
-                }
-            } else {
-                exe_path
-            };
-
-            let icon_base64 = extract_app_icon(&app_bundle_path);
-
-            Application {
-                name: app.name.clone(),
-                path: app_bundle_path,
-                icon_path: None,
-                icon_base64,
-            }
-        })
-        .collect();
-
-    Ok(results)
+/// Force refresh the application cache
+#[command]
+pub async fn refresh_application_cache() -> Result<usize, String> {
+    let cache = get_application_cache();
+    cache.force_refresh().await?;
+    Ok(cache.get_all().len())
 }
 
 /// Get the frontmost application

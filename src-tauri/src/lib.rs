@@ -105,6 +105,9 @@ pub fn run() {
             get_frontmost_application,
             get_running_applications,
             get_default_application,
+            // Application cache commands
+            search::initialize_application_cache,
+            search::refresh_application_cache,
             // Plugin system commands
             plugins::load_plugin,
             plugins::unload_plugin,
