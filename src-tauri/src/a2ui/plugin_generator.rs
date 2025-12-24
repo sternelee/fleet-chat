@@ -162,7 +162,7 @@ import {
     Ok(code)
 }
 
-/// Generate a List-based plugin component
+/// Generate a List-based plugin component with Fleet Chat API
 fn generate_list_component(
     name: &str,
     description: &str,
@@ -178,18 +178,21 @@ fn generate_list_component(
       title: 'Sample Item 1',
       subtitle: 'This is a sample item for {}',
       content: 'Content for item 1',
+      icon: '📝'
     }},
     {{
       id: '2',
       title: 'Sample Item 2',
       subtitle: 'Another example item',
       content: 'Content for item 2',
+      icon: '📋'
     }},
     {{
       id: '3',
       title: 'Sample Item 3',
       subtitle: 'Yet another item',
       content: 'Content for item 3',
+      icon: '✨'
     }},
   ]);
 
@@ -199,45 +202,48 @@ fn generate_list_component(
   // Filter items based on search
   const filteredItems = items.filter(item =>
     item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.subtitle.toLowerCase().includes(searchText.toLowerCase())
+    (item.subtitle && item.subtitle.toLowerCase().includes(searchText.toLowerCase()))
   );
 "#,
             name
         )
     } else {
-        format!(
+        String::from(
             r#"
   const [items, setItems] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   // Load items from storage or API
-  useEffect(() => {{
+  useEffect(() => {
     loadItems();
-  }}, []);
+  }, []);
 
-  async function loadItems() {{
+  async function loadItems() {
     setIsLoading(true);
-    try {{
+    try {
       // TODO: Implement data loading logic
       const storedItems = await LocalStorage.getItem('items');
-      if (storedItems) {{
+      if (storedItems) {
         setItems(JSON.parse(storedItems));
-      }}
-    }} catch (error) {{
-      await showToast({{
+      }
+    } catch (err) {
+      setError(err as Error);
+      await showToast({
         title: 'Error loading items',
-        message: String(error),
-      }});
-    }} finally {{
+        message: String(err),
+        style: 'error'
+      });
+    } finally {
       setIsLoading(false);
-    }}
-  }}
+    }
+  }
 
   const filteredItems = items.filter(item =>
     item.title?.toLowerCase().includes(searchText.toLowerCase())
   );
-"#
+"#,
         )
     };
 
@@ -267,6 +273,10 @@ export default function Command() {{
           key={{item.id}}
           title={{item.title}}
           subtitle={{item.subtitle}}
+          icon={{item.icon || '📄'}}
+          accessories={{[
+            {{ text: item.content }}
+          ]}}
           actions={{
             <ActionPanel>
               <Action
@@ -275,18 +285,13 @@ export default function Command() {{
                   await showToast({{
                     title: 'Item Selected',
                     message: item.title,
+                    style: 'success'
                   }});
                 }}}}
               />
-              <Action
+              <Action.CopyToClipboard
                 title="Copy to Clipboard"
-                onAction={{async () => {{
-                  await Clipboard.copy(item.content || item.title);
-                  await showToast({{
-                    title: 'Copied',
-                    message: 'Item copied to clipboard',
-                  }});
-                }}}}
+                content={{item.content || item.title}}
               />
               <Action
                 title="Save to Storage"
@@ -295,6 +300,7 @@ export default function Command() {{
                   await showToast({{
                     title: 'Saved',
                     message: 'Item saved to local storage',
+                    style: 'success'
                   }});
                 }}}}
               />
@@ -310,7 +316,7 @@ export default function Command() {{
     )
 }
 
-/// Generate a Grid-based plugin component
+/// Generate a Grid-based plugin component with Fleet Chat API
 fn generate_grid_component(
     name: &str,
     description: &str,
@@ -318,23 +324,43 @@ fn generate_grid_component(
     include_sample_data: bool,
 ) -> String {
     let sample_data = if include_sample_data {
-        format!(
+        String::from(
             r#"
   const [items, setItems] = useState([
-    {{ id: '1', title: 'Item 1', content: 'Content 1', imageUrl: '' }},
-    {{ id: '2', title: 'Item 2', content: 'Content 2', imageUrl: '' }},
-    {{ id: '3', title: 'Item 3', content: 'Content 3', imageUrl: '' }},
-    {{ id: '4', title: 'Item 4', content: 'Content 4', imageUrl: '' }},
+    { id: '1', title: 'Item 1', subtitle: 'Description 1', content: 'Content 1', imageUrl: 'https://via.placeholder.com/300' },
+    { id: '2', title: 'Item 2', subtitle: 'Description 2', content: 'Content 2', imageUrl: 'https://via.placeholder.com/300' },
+    { id: '3', title: 'Item 3', subtitle: 'Description 3', content: 'Content 3', imageUrl: 'https://via.placeholder.com/300' },
+    { id: '4', title: 'Item 4', subtitle: 'Description 4', content: 'Content 4', imageUrl: 'https://via.placeholder.com/300' },
   ]);
-"#
+  const [isLoading, setIsLoading] = useState(false);
+"#,
         )
     } else {
         String::from(
             r#"
   const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
-    // TODO: Load items
+    async function loadItems() {
+      setIsLoading(true);
+      try {
+        // TODO: Load items from API or storage
+        const storedItems = await LocalStorage.getItem('grid-items');
+        if (storedItems) {
+          setItems(JSON.parse(storedItems));
+        }
+      } catch (error) {
+        await showToast({
+          title: 'Error loading items',
+          message: String(error),
+          style: 'error'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadItems();
   }, []);
 "#,
         )
@@ -355,22 +381,36 @@ fn generate_grid_component(
 export default function Command() {{
 {}
   return (
-    <Grid>
+    <Grid
+      columns={{3}}
+      isLoading={{isLoading}}
+      navigationTitle="{}"
+    >
       {{items.map((item) => (
         <Grid.Item
           key={{item.id}}
           title={{item.title}}
-          content={{{{ source: item.imageUrl || '' }}}}
+          subtitle={{item.subtitle}}
+          content={{{{ source: item.imageUrl || 'https://via.placeholder.com/300' }}}}
           actions={{
             <ActionPanel>
               <Action
-                title="View"
+                title="View Details"
                 onAction={{async () => {{
                   await showToast({{
                     title: 'Item Selected',
                     message: item.title,
+                    style: 'success'
                   }});
                 }}}}
+              />
+              <Action.CopyToClipboard
+                title="Copy Title"
+                content={{item.title}}
+              />
+              <Action.OpenInBrowser
+                title="Open Image"
+                url={{item.imageUrl}}
               />
             </ActionPanel>
           }}
@@ -380,11 +420,11 @@ export default function Command() {{
   );
 }}
 "#,
-        requirements_comment, name, description, sample_data
+        requirements_comment, name, description, sample_data, name
     )
 }
 
-/// Generate a Detail-based plugin component
+/// Generate a Detail-based plugin component with Fleet Chat API
 fn generate_detail_component(name: &str, description: &str, requirements: &[String]) -> String {
     let requirements_comment = if !requirements.is_empty() {
         format!("// Requirements:\n// {}\n", requirements.join("\n// "))
@@ -399,6 +439,31 @@ fn generate_detail_component(name: &str, description: &str, requirements: &[Stri
  * {}
  */
 export default function Command() {{
+  const [content, setContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {{
+    async function loadContent() {{
+      setIsLoading(true);
+      try {{
+        // TODO: Load content from API or storage
+        const stored = await LocalStorage.getItem('detail-content');
+        if (stored) {{
+          setContent(stored);
+        }}
+      }} catch (error) {{
+        await showToast({{
+          title: 'Error loading content',
+          message: String(error),
+          style: 'error'
+        }});
+      }} finally {{
+        setIsLoading(false);
+      }}
+    }}
+    loadContent();
+  }}, []);
+
   const markdown = `
 # {}
 
@@ -406,28 +471,67 @@ export default function Command() {{
 
 ## Features
 
-- Display detailed information
-- Markdown support
-- Rich formatting
+- Display detailed information with markdown
+- Rich text formatting support  
+- Code blocks and syntax highlighting
+- Tables and lists
 
 ## Usage
 
-This plugin provides detailed information view.
-Replace this content with your actual data.
+This plugin provides a detailed information view.
+You can customize the content by:
+
+1. Loading data from an API
+2. Fetching from local storage
+3. Processing user input
+
+## Example Code
+
+\`\`\`typescript
+const data = await fetchData();
+setContent(data);
+\`\`\`
+
+## Next Steps
+
+- Customize the markdown content
+- Add metadata sections
+- Integrate with external data sources
   `;
 
   return (
     <Detail
-      markdown={{markdown}}
+      markdown={{markdown || content}}
+      isLoading={{isLoading}}
+      navigationTitle="{}"
+      metadata={{
+        <Detail.Metadata>
+          <Detail.Metadata.Label
+            title="Created"
+            text={{new Date().toLocaleDateString()}}
+          />
+          <Detail.Metadata.Separator />
+          <Detail.Metadata.Label
+            title="Type"
+            text="Detail View"
+          />
+        </Detail.Metadata>
+      }}
       actions={{
         <ActionPanel>
-          <Action
+          <Action.CopyToClipboard
             title="Copy Content"
+            content={{markdown || content}}
+          />
+          <Action
+            title="Refresh"
             onAction={{async () => {{
-              await Clipboard.copy(markdown);
+              setIsLoading(true);
+              // Reload content
+              setIsLoading(false);
               await showToast({{
-                title: 'Copied',
-                message: 'Content copied to clipboard',
+                title: 'Refreshed',
+                style: 'success'
               }});
             }}}}
           />
@@ -437,11 +541,11 @@ Replace this content with your actual data.
   );
 }}
 "#,
-        requirements_comment, name, description, name, description
+        requirements_comment, name, description, name, description, name
     )
 }
 
-/// Generate a Form-based plugin component
+/// Generate a Form-based plugin component with Fleet Chat API
 fn generate_form_component(name: &str, description: &str, requirements: &[String]) -> String {
     let requirements_comment = if !requirements.is_empty() {
         format!("// Requirements:\n// {}\n", requirements.join("\n// "))
@@ -455,38 +559,68 @@ fn generate_form_component(name: &str, description: &str, requirements: &[String
  * {} - Main Command
  * {}
  */
-export default function Command() {{
-  const [formData, setFormData] = useState({{
-    name: '',
-    email: '',
-    message: '',
-  }});
+interface FormValues {{
+  name: string;
+  email: string;
+  message: string;
+  category: string;
+  subscribe: boolean;
+}}
 
-  async function handleSubmit(values: typeof formData) {{
+export default function Command() {{
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(values: FormValues) {{
+    setIsSubmitting(true);
     try {{
-      // TODO: Process form submission
+      // TODO: Process form submission (e.g., API call, save to storage)
+      console.log('Form submitted:', values);
+      
+      // Save to local storage
+      await LocalStorage.setItem('lastSubmission', JSON.stringify({{
+        ...values,
+        timestamp: new Date().toISOString()
+      }}));
+      
       await showToast({{
         title: 'Form Submitted',
-        message: `Submitted: ${{values.name}}`,
+        message: `Thank you, ${{values.name}}!`,
+        style: 'success'
       }});
       
-      // Save to storage
-      await LocalStorage.setItem('lastSubmission', JSON.stringify(values));
+      // Optional: Navigate to a success view
+      // push(<SuccessView />);
+      
     }} catch (error) {{
       await showToast({{
-        title: 'Error',
+        title: 'Submission Error',
         message: String(error),
+        style: 'error'
       }});
+    }} finally {{
+      setIsSubmitting(false);
     }}
   }}
 
   return (
     <Form
+      isLoading={{isSubmitting}}
+      navigationTitle="{}"
       actions={{
         <ActionPanel>
           <Action.SubmitForm
             title="Submit"
             onSubmit={{handleSubmit}}
+          />
+          <Action
+            title="Clear Form"
+            onAction={{async () => {{
+              // Form will be reset automatically
+              await showToast({{
+                title: 'Form Cleared',
+                style: 'success'
+              }});
+            }}}}
           />
         </ActionPanel>
       }}
@@ -495,22 +629,47 @@ export default function Command() {{
         id="name"
         title="Name"
         placeholder="Enter your name"
+        info="Your full name"
       />
       <Form.TextField
         id="email"
         title="Email"
-        placeholder="Enter your email"
+        placeholder="your.email@example.com"
+        info="We'll never share your email"
       />
       <Form.TextArea
         id="message"
         title="Message"
-        placeholder="Enter your message"
+        placeholder="Enter your message..."
+        info="Tell us what's on your mind"
+      />
+      <Form.Dropdown
+        id="category"
+        title="Category"
+        defaultValue="general"
+        info="Select a category for your message"
+      >
+        <Form.Dropdown.Item value="general" title="General Inquiry" />
+        <Form.Dropdown.Item value="support" title="Technical Support" />
+        <Form.Dropdown.Item value="feedback" title="Feedback" />
+        <Form.Dropdown.Item value="other" title="Other" />
+      </Form.Dropdown>
+      <Form.Checkbox
+        id="subscribe"
+        label="Subscribe to newsletter"
+        defaultValue={{false}}
+        info="Get updates and news"
+      />
+      <Form.Separator />
+      <Form.Description
+        title="Privacy Notice"
+        text="Your information will be handled according to our privacy policy."
       />
     </Form>
   );
 }}
 "#,
-        requirements_comment, name, description
+        requirements_comment, name, description, name
     )
 }
 
