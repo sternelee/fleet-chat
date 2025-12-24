@@ -2388,7 +2388,6 @@ dependencies = [
  "ignore",
  "image",
  "jsonschema",
- "once_cell",
  "reqwest",
  "rig-core",
  "serde",

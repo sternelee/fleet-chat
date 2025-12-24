@@ -8,7 +8,7 @@ mod tauri_axum;
 use axum::Router;
 use axum_app::create_axum_app;
 use search::{
-    ask_ai_provider, generate_search_insights, get_applications, get_available_ai_providers, get_default_application,
+    ask_ai_provider, generate_search_insights, get_all_applications, get_available_ai_providers, get_default_application,
     get_frontmost_application, get_running_applications, search_applications, search_files, unified_search,
 };
 use std::sync::Arc;
@@ -101,13 +101,10 @@ pub fn run() {
             generate_search_insights,
             get_available_ai_providers,
             ask_ai_provider,
-            get_applications,
+            get_all_applications,
             get_frontmost_application,
             get_running_applications,
             get_default_application,
-            // Application cache commands
-            search::initialize_application_cache,
-            search::refresh_application_cache,
             // Plugin system commands
             plugins::load_plugin,
             plugins::unload_plugin,

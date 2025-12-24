@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { openPath, openUrl } from '@tauri-apps/plugin-opener'
+import { openPath } from '@tauri-apps/plugin-opener'
 import { css, html, LitElement } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { classMap } from 'lit/directives/class-map.js'
@@ -53,7 +53,7 @@ export class ViewSearch extends LitElement {
   @state() private results: SearchResult = { applications: [], files: [] }
   @state() private loading = false
   @state() private selectedIndex = 0
-  @state() private searchMode: 'all' | 'apps' | 'files' | 'plugins' = 'all'
+  @state() private searchMode: 'all' | 'apps' | 'files' | 'plugins' = 'apps'
   @state() private isVisible = true // Always visible in launcher mode
   @state() private recentSearches: string[] = []
   @state() private pluginCommands: PluginCommand[] = []
@@ -69,6 +69,9 @@ export class ViewSearch extends LitElement {
   @state() private showAiChatModal = false
   @state() private aiChatProvider = ''
 
+  // Frontend application cache (instant search)
+  private applicationCache: Application[] = []
+
   private searchDebounceTimer: number | null = null
   private animationTimeout: number | null = null
   private prefetchCache: Map<string, SearchResult> = new Map()
@@ -80,14 +83,8 @@ export class ViewSearch extends LitElement {
     this._addGlobalKeyListeners()
     this._loadFrecencyData()
 
-    // Initialize application cache in background
-    invoke<number>('initialize_application_cache')
-      .then((count) => {
-        console.log(`[Search] Application cache initialized with ${count} applications`)
-      })
-      .catch((error) => {
-        console.error('[Search] Failed to initialize application cache:', error)
-      })
+    // Load all applications for frontend caching
+    this._loadApplicationCache()
 
     // Fetch available AI providers
     try {
@@ -122,6 +119,45 @@ export class ViewSearch extends LitElement {
 
     // Auto-focus input
     this._focusInput()
+  }
+
+  /**
+   * Load all applications and cache them in memory
+   * This enables instant search without backend calls
+   */
+  private async _loadApplicationCache() {
+    try {
+      const apps = await invoke<Application[]>('get_all_applications')
+      this.applicationCache = apps
+      console.log(`[Search] Cached ${apps.length} applications for instant search`)
+    } catch (error) {
+      console.error('[Search] Failed to load application cache:', error)
+      this.applicationCache = []
+    }
+  }
+
+  /**
+   * Instant search applications from frontend cache
+   */
+  private _searchApplicationsFromCache(query: string): Application[] {
+    const queryLower = query.toLowerCase()
+    const filtered = this.applicationCache.filter((app) =>
+      app.name.toLowerCase().includes(queryLower)
+    )
+
+    // Sort by relevance
+    const results = filtered.sort((a, b) => {
+      const aLower = a.name.toLowerCase()
+      const bLower = b.name.toLowerCase()
+
+      if (aLower === queryLower) return -1
+      if (bLower === queryLower) return 1
+      if (aLower.startsWith(queryLower) && !bLower.startsWith(queryLower)) return -1
+      if (!aLower.startsWith(queryLower) && bLower.startsWith(queryLower)) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+    return results.slice(0, 10)
   }
 
   disconnectedCallback() {
@@ -350,35 +386,6 @@ export class ViewSearch extends LitElement {
 
     .search-input::placeholder {
       color: rgba(255, 255, 255, 0.5);
-    }
-
-    .search-filters {
-      display: flex;
-      gap: 6px;
-      padding: 0 4px;
-    }
-
-    .filter-btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.7);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: all 0.15s ease;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    .filter-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .filter-btn.active {
-      background: rgba(102, 126, 234, 0.8);
-      color: white;
     }
 
     .results-container {
@@ -977,33 +984,6 @@ export class ViewSearch extends LitElement {
           </div>
 
           ${this._renderPrefixHints()}
-
-          <div class="search-filters">
-            <button
-              class=${classMap({ 'filter-btn': true, active: this.searchMode === 'all' })}
-              @click=${() => this._setSearchMode('all')}
-            >
-              All
-            </button>
-            <button
-              class=${classMap({ 'filter-btn': true, active: this.searchMode === 'apps' })}
-              @click=${() => this._setSearchMode('apps')}
-            >
-              Apps
-            </button>
-            <button
-              class=${classMap({ 'filter-btn': true, active: this.searchMode === 'files' })}
-              @click=${() => this._setSearchMode('files')}
-            >
-              Files
-            </button>
-            <button
-              class=${classMap({ 'filter-btn': true, active: this.searchMode === 'plugins' })}
-              @click=${() => this._setSearchMode('plugins')}
-            >
-              Plugins
-            </button>
-          </div>
         </div>
 
         ${this._renderAIInsights()}
@@ -1032,7 +1012,7 @@ export class ViewSearch extends LitElement {
         <div class="results-container">
           <div class="empty-state">
             <div class="empty-icon">🔍</div>
-            <div class="empty-text">Type to search for applications and files</div>
+            <div class="empty-text">Type to search applications</div>
             <div class="keyboard-hint">Press <kbd class="kbd">⌘K</kbd> to toggle search</div>
           </div>
         </div>
@@ -1360,7 +1340,7 @@ export class ViewSearch extends LitElement {
     } else if (this.commandPrefix === '?') {
       return 'Search everything...'
     }
-    return 'Search apps, files, plugins... (> / ? for modes)'
+    return 'Search applications... (> / ? for more)'
   }
 
   private _getPrefixLabel(): string {
@@ -1509,6 +1489,8 @@ export class ViewSearch extends LitElement {
       }
     } else {
       this.commandPrefix = ''
+      // Default to apps mode when no prefix
+      this.searchMode = 'apps'
     }
   }
 
@@ -1539,23 +1521,37 @@ export class ViewSearch extends LitElement {
     this.loading = true
 
     try {
+      let applications: Application[] = []
+      let files: FileMatch[] = []
+
+      // Search mode determination
+      const includeApps = this.searchMode === 'all' || this.searchMode === 'apps'
       const includeFiles = this.searchMode === 'all' || this.searchMode === 'files'
-      const result = await invoke<SearchResult>('unified_search', {
-        query: actualQuery,
-        searchPath: null,
-        includeFiles,
-      })
 
-      // Sort results by frecency if available
-      result.applications = this._sortByFrecency(result.applications, actualQuery)
+      // Use frontend cache for instant application search
+      if (includeApps) {
+        applications = this._searchApplicationsFromCache(actualQuery)
+        // Sort by frecency if available
+        applications = this._sortByFrecency(applications, actualQuery)
+      }
 
-      // Filter results based on search mode
+      // Backend search for files (still needs backend)
+      if (includeFiles) {
+        const fileResult = await invoke<FileMatch[]>('search_files', {
+          query: actualQuery,
+          searchPath: null,
+          searchContent: false,
+        })
+        files = fileResult
+      }
+
+      // Combine results
       if (this.searchMode === 'apps') {
-        this.results = { applications: result.applications, files: [] }
+        this.results = { applications, files: [] }
       } else if (this.searchMode === 'files') {
-        this.results = { applications: [], files: result.files }
+        this.results = { applications: [], files }
       } else {
-        this.results = result
+        this.results = { applications, files }
       }
 
       // Cache the result
@@ -1575,11 +1571,6 @@ export class ViewSearch extends LitElement {
     } finally {
       this.loading = false
     }
-  }
-
-  private _setSearchMode(mode: 'all' | 'apps' | 'files' | 'plugins') {
-    this.searchMode = mode
-    this._performSearch()
   }
 
   private _handleKeyDown(e: KeyboardEvent) {
@@ -1834,12 +1825,14 @@ export class ViewSearch extends LitElement {
           this.requestUpdate()
         } catch (error) {
           console.error('插件加载失败:', error)
-          this._showUploadStatus(`❌ 加载 ${file.name} 失败: ${error.message}`, 'error')
+          const errorMsg = error instanceof Error ? error.message : String(error)
+          this._showUploadStatus(`❌ 加载 ${file.name} 失败: ${errorMsg}`, 'error')
         }
       }
     } catch (error) {
       console.error('插件处理失败:', error)
-      this._showUploadStatus(`❌ 插件处理失败: ${error.message}`, 'error')
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      this._showUploadStatus(`❌ 插件处理失败: ${errorMsg}`, 'error')
     }
 
     // 清空输入
