@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
-use tauri::{command, AppHandle, Emitter};
+use tauri::command;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -676,99 +676,4 @@ pub async fn ask_ai_provider(query: String, provider_name: String) -> Result<Str
         .map_err(|e| format!("Failed to generate response from {}: {}", provider_name, e))?;
 
     Ok(response.text)
-}
-
-/// Ask AI a question with a specific provider using streaming
-/// Emits events for each chunk of the response
-#[command]
-pub async fn ask_ai_provider_stream(query: String, provider_name: String, app_handle: AppHandle) -> Result<(), String> {
-    println!("[AI Stream] Starting stream for provider: {}", provider_name);
-
-    // Map provider name to AIProvider enum
-    let provider = match provider_name.as_str() {
-        "OpenAI" => AIProvider::OpenAI,
-        "Anthropic" => AIProvider::Anthropic,
-        "Gemini" => AIProvider::Gemini,
-        "DeepSeek" => AIProvider::DeepSeek,
-        "OpenRouter" => AIProvider::OpenRouter,
-        _ => return Err(format!("Unknown provider: {}", provider_name)),
-    };
-
-    // Initialize the Rig agent with specific provider
-    let agent = RigAgent::with_provider(provider)
-        .map_err(|e| format!("Failed to initialize {} agent: {}", provider_name, e))?;
-
-    // Create the AI options
-    let ai_options = AIOptions {
-        prompt: query,
-        model: None, // Use default model
-        temperature: Some(0.8),
-        max_tokens: Some(500),
-        top_p: None,
-        frequency_penalty: None,
-        presence_penalty: None,
-    };
-
-    // Create a unique session ID for this stream
-    use uuid::Uuid;
-    let session_id = Uuid::new_v4().to_string();
-
-    println!("[AI Stream] Session ID: {}", session_id);
-
-    // Send session started event
-    if let Err(e) = app_handle.emit("ai-stream-started", &session_id) {
-        println!("[AI Stream] Failed to emit started event: {}", e);
-    }
-
-    // Get the stream
-    let mut stream = agent.generate_stream(ai_options);
-    let mut chunk_count = 0;
-
-    // Process each chunk and emit events
-    use futures::stream::StreamExt;
-    while let Some(chunk_result) = stream.next().await {
-        match chunk_result {
-            Ok(chunk) => {
-                chunk_count += 1;
-                println!("[AI Stream] Sending chunk {}: {}", chunk_count, chunk);
-
-                // Emit chunk event with session_id and content
-                if let Err(e) = app_handle.emit(
-                    "ai-stream-chunk",
-                    serde_json::json!({
-                        "session_id": session_id,
-                        "content": chunk
-                    }),
-                ) {
-                    println!("[AI Stream] Failed to emit chunk event: {}", e);
-                }
-            }
-            Err(e) => {
-                println!("[AI Stream] Error: {}", e);
-
-                // Emit error event
-                let _ = app_handle.emit(
-                    "ai-stream-error",
-                    serde_json::json!({
-                        "session_id": session_id,
-                        "error": e.to_string()
-                    }),
-                );
-                return Err(format!("Stream error from {}: {}", provider_name, e));
-            }
-        }
-    }
-
-    println!("[AI Stream] Total chunks sent: {}", chunk_count);
-
-    // Send completion event
-    let _ = app_handle.emit(
-        "ai-stream-complete",
-        serde_json::json!({
-            "session_id": session_id
-        }),
-    );
-
-    println!("[AI Stream] Stream complete");
-    Ok(())
 }

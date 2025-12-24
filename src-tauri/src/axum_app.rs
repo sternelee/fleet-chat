@@ -966,7 +966,7 @@ pub fn create_axum_app() -> Router {
         .route("/a2ui/generate-plugin/stream", post(generate_plugin_stream))
         // Rig AI Agent endpoints
         .route("/ai/generate", post(ai_generate))
-        .route("/ai/generate/stream", post(ai_generate_stream))
+        .route("/ai/stream", post(ai_generate_stream))
         .route("/ai/chat", post(ai_chat))
         .route("/ai/embed", post(ai_embed))
         .route("/ai/moderate", post(ai_moderate))
@@ -1433,15 +1433,18 @@ async fn generate_plugin(
             manifest.name, manifest.description, plugin_type
         );
 
-        match agent.generate(AIOptions {
-            prompt,
-            model: None,
-            temperature: None,
-            max_tokens: None,
-            top_p: None,
-            frequency_penalty: None,
-            presence_penalty: None,
-        }).await {
+        match agent
+            .generate(AIOptions {
+                prompt,
+                model: None,
+                temperature: None,
+                max_tokens: None,
+                top_p: None,
+                frequency_penalty: None,
+                presence_penalty: None,
+            })
+            .await
+        {
             Ok(response) => response.text,
             Err(_) => format!(
                 "Generated a {} plugin named '{}'. {}",

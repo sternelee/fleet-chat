@@ -1,12 +1,16 @@
 /**
  * AI API
  *
- * Provides AI functionality for plugins via Rig agent backend
- * Requests are proxied through Tauri backend via tauri_axum.ts
+ * Provides AI functionality for plugins via Axum backend
+ * Requests are proxied through tauri_axum local_app_request
+ *
+ * NOTE: Streaming responses are buffered by the proxy and returned all at once
+ * For true real-time streaming, you would need to bypass the proxy with direct URLs
  */
 
 export interface AIOptions {
   prompt: string
+  provider?: string  // 'openai' | 'anthropic' | 'gemini' | 'deepseek' | 'openrouter'
   model?: string
   temperature?: number
   maxTokens?: number
@@ -44,7 +48,7 @@ export class AI {
 
   static async generate(options: AIOptions): Promise<AIResponse> {
     try {
-      const mergedOptions = { ...this.defaultOptions, ...options }
+      const mergedOptions = { ...AI.defaultOptions, ...options }
       const response = await fetch(`/ai/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,8 +66,8 @@ export class AI {
 
   static async generateStream(options: AIStreamOptions): Promise<void> {
     try {
-      const mergedOptions = { ...this.defaultOptions, ...options }
-      const response = await fetch(`/ai/generate/stream`, {
+      const mergedOptions = { ...AI.defaultOptions, ...options }
+      const response = await fetch('/ai/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mergedOptions),
@@ -90,15 +94,12 @@ export class AI {
         buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
-            if (data === 'done') {
-              options.onComplete?.({
-                text: '',
-                usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-              })
-              return
+          if (line.startsWith('data:')) {
+            const data = line.slice(5).trim()
+            if (data === '[DONE]' || data === '') {
+              continue
             }
+
             try {
               const parsed = JSON.parse(data)
               if (parsed.text && options.onChunk) {
@@ -108,11 +109,18 @@ export class AI {
                 options.onError(new Error(parsed.error))
               }
             } catch (e) {
-              console.error('Failed to parse SSE data:', e)
+              // Skip non-JSON lines
+              console.debug('Skipping non-JSON SSE line:', data)
             }
           }
         }
       }
+
+      // Call onComplete when stream finishes
+      options.onComplete?.({
+        text: '',
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      })
     } catch (error) {
       console.error('Failed to generate AI stream:', error)
       if (options.onError) {
@@ -126,7 +134,7 @@ export class AI {
     options?: Partial<AIOptions>,
   ): Promise<AIResponse> {
     try {
-      const mergedOptions = { ...this.defaultOptions, ...options }
+      const mergedOptions = { ...AI.defaultOptions, ...options }
       const response = await fetch(`/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

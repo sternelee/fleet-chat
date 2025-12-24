@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core'
-import { listen } from '@tauri-apps/api/event'
 import { openPath } from '@tauri-apps/plugin-opener'
 import { css, html, LitElement } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
@@ -147,7 +146,7 @@ export class ViewSearch extends LitElement {
   private _searchApplicationsFromCache(query: string): Application[] {
     const queryLower = query.toLowerCase()
     const filtered = this.applicationCache.filter((app) =>
-      app.name.toLowerCase().includes(queryLower)
+      app.name.toLowerCase().includes(queryLower),
     )
 
     // Sort by relevance
@@ -215,7 +214,7 @@ export class ViewSearch extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback()
     this._removeGlobalKeyListeners()
-    
+
     // Clean up timers
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer)
@@ -226,7 +225,7 @@ export class ViewSearch extends LitElement {
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout)
     }
-    
+
     // Clean up modal if it exists
     if (this.currentModal && this.currentModal.parentNode) {
       this.currentModal.parentNode.removeChild(this.currentModal)
@@ -1014,13 +1013,12 @@ export class ViewSearch extends LitElement {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               ></path>
             </svg>
-            ${
-              this.commandPrefix
-                ? html`
+            ${this.commandPrefix
+        ? html`
               <span class="command-prefix-badge">${this._getPrefixLabel()}</span>
             `
-                : null
-            }
+        : null
+      }
             <input
               type="text"
               class="search-input"
@@ -1077,9 +1075,9 @@ export class ViewSearch extends LitElement {
           <div class="results-section">
             <h3 class="section-title">Recent Searches</h3>
             ${repeat(
-              this.recentSearches,
-              (search) => search,
-              (search, index) => html`
+        this.recentSearches,
+        (search) => search,
+        (search, index) => html`
                 <div
                   class="result-item"
                   @click=${() => this._selectRecentSearch(search)}
@@ -1091,7 +1089,7 @@ export class ViewSearch extends LitElement {
                   </div>
                 </div>
               `,
-            )}
+      )}
           </div>
         </div>
       `
@@ -1110,8 +1108,8 @@ export class ViewSearch extends LitElement {
             <div class="results-section">
               <h3 class="section-title">Ask AI</h3>
               ${this.availableAIProviders.map((provider, index) =>
-                this._renderAIChatSuggestion(provider, index),
-              )}
+          this._renderAIChatSuggestion(provider, index),
+        )}
             </div>
           </div>
         `
@@ -1130,8 +1128,8 @@ export class ViewSearch extends LitElement {
 
     return html`
       <div class="results-container">
-        ${this._renderApplications()} 
-        ${this._renderFiles()} 
+        ${this._renderApplications()}
+        ${this._renderFiles()}
         ${this._renderPluginCommands()}
       </div>
     `
@@ -1159,8 +1157,8 @@ export class ViewSearch extends LitElement {
       <div class="results-section">
         <h3 class="section-title">Files</h3>
         ${this.results.files.map((file, index) =>
-          this._renderFileItem(file, this.results.applications.length + index),
-        )}
+      this._renderFileItem(file, this.results.applications.length + index),
+    )}
       </div>
     `
   }
@@ -1170,9 +1168,10 @@ export class ViewSearch extends LitElement {
 
     // Try icon cache first (async loaded icons), then backend icon, then fallback
     const cachedIcon = this.iconCache.get(app.path)
-    const iconContent = cachedIcon || app.icon_base64
-      ? html`<img src="${cachedIcon || app.icon_base64}" alt="${app.name}" />`
-      : html`${app.name.charAt(0).toUpperCase()}`
+    const iconContent =
+      cachedIcon || app.icon_base64
+        ? html`<img src="${cachedIcon || app.icon_base64}" alt="${app.name}" />`
+        : html`${app.name.charAt(0).toUpperCase()}`
 
     return html`
       <div
@@ -1200,11 +1199,10 @@ export class ViewSearch extends LitElement {
         <div class="result-content">
           <div class="result-title">${this._getFileName(file.path)}</div>
           <div class="result-path">${file.path}</div>
-          ${
-            file.line_content
-              ? html`<div class="result-line">Line ${file.line_number}: ${file.line_content}</div>`
-              : null
-          }
+          ${file.line_content
+        ? html`<div class="result-line">Line ${file.line_number}: ${file.line_content}</div>`
+        : null
+      }
         </div>
         <span class="result-badge badge-file">File</span>
       </div>
@@ -1426,8 +1424,8 @@ export class ViewSearch extends LitElement {
     return html`
       <div class="quick-actions-panel">
         ${actions.map(
-          (action) => html`
-          <button 
+      (action) => html`
+          <button
             class="quick-action-btn"
             @click=${action.action}
             title="${action.title}"
@@ -1437,7 +1435,7 @@ export class ViewSearch extends LitElement {
             <span class="quick-action-shortcut">${action.shortcut}</span>
           </button>
         `,
-        )}
+    )}
       </div>
     `
   }
@@ -1448,7 +1446,7 @@ export class ViewSearch extends LitElement {
     }
 
     return html`
-      <div 
+      <div
         class="ai-insights-container"
         role="region"
         aria-label="AI Insights"
@@ -1471,16 +1469,15 @@ export class ViewSearch extends LitElement {
           </button>
         </div>
         <div class="ai-insights-content">
-          ${
-            this.aiInsightsLoading
-              ? html`
+          ${this.aiInsightsLoading
+        ? html`
                 <div class="ai-insights-loading">
                   <div class="spinner"></div>
                   <span>Generating insights...</span>
                 </div>
               `
-              : html`<p class="ai-insights-text">${this.aiInsights}</p>`
-          }
+        : html`<p class="ai-insights-text">${this.aiInsights}</p>`
+      }
         </div>
       </div>
     `
@@ -1914,7 +1911,7 @@ export class ViewSearch extends LitElement {
     setTimeout(() => {
       this._showUploadStatus(
         `✅ 模拟加载完成: ${files.map((f) => f.name).join(', ')}\n` +
-          `💡 实际插件加载需要完整的插件系统支持`,
+        `💡 实际插件加载需要完整的插件系统支持`,
         'success',
       )
     }, 1000)
@@ -2091,7 +2088,8 @@ export class ViewSearch extends LitElement {
         this.aiInsights = insights
       } catch (error) {
         console.error('Failed to fetch AI insights:', error)
-        this.aiInsights = 'AI insights are currently unavailable. Please ensure an AI provider is configured.'
+        this.aiInsights =
+          'AI insights are currently unavailable. Please ensure an AI provider is configured.'
         // Hide after a delay if there's an error
         setTimeout(() => {
           this.showAiInsights = false
@@ -2120,71 +2118,95 @@ export class ViewSearch extends LitElement {
     this.aiChatProvider = provider
     this.showAiChatModal = true
 
-    // Capture `this` for use in event handlers
-    const self = this
-
     try {
-      // Set up event listeners for streaming
-      const unlistenStarted = await listen<string>('ai-stream-started', (event) => {
-        console.log('[AI] Stream started:', event.payload)
+      // Use fetch to call the Axum streaming endpoint directly
+      // Note: provider needs to be mapped to the actual AI provider type
+      const providerMap: Record<string, string> = {
+        OpenAI: 'openai',
+        Anthropic: 'anthropic',
+        Gemini: 'gemini',
+        DeepSeek: 'deepseek',
+        OpenRouter: 'openrouter',
+      }
+
+      const aiProvider = providerMap[provider] || 'openai'
+      // Stream responses are buffered by tauri_axum proxy and returned when complete
+      const response = await fetch('/ai/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: this.query,
+          provider: aiProvider,
+          temperature: 0.8,
+          max_tokens: 500,
+        }),
       })
 
-      const unlistenChunk = await listen<{ session_id: string; content: string }>(
-        'ai-stream-chunk',
-        (event) => {
-          console.log('[AI] Stream chunk:', event.payload.content)
-          // Stop loading state on first chunk
-          if (self.aiChatLoading) {
-            self.aiChatLoading = false
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No response body reader')
+      }
+
+      // Read the SSE stream
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) {
+          console.log('[AI] Stream complete')
+          break
+        }
+
+        // Decode the chunk
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.slice(5).trim()
+            if (data === '[DONE]') {
+              console.log('[AI] Stream done signal received')
+              break
+            }
+
+            try {
+              const json = JSON.parse(data)
+              if (json.event === 'chunk' && json.data) {
+                const content = json.data.text || json.data
+                console.log('[AI] Stream chunk:', content)
+
+                // Stop loading state on first chunk
+                if (this.aiChatLoading) {
+                  this.aiChatLoading = false
+                }
+
+                // Update response and force immediate render
+                this.aiChatResponse += content
+                this.performUpdate()
+              } else if (json.event === 'error') {
+                console.error('[AI] Stream error:', json)
+                throw new Error('Stream error occurred')
+              } else if (json.event === 'done') {
+                console.log('[AI] Stream done event received')
+                break
+              }
+            } catch (e) {
+              // Skip invalid JSON lines
+              console.debug('[AI] Skipping non-JSON line:', data)
+            }
           }
-          // Direct synchronous update
-          self.aiChatResponse += event.payload.content
-          // Force immediate update
-          self.performUpdate()
-        },
-      )
+        }
+      }
 
-      const unlistenError = await listen<{ session_id: string; error: string }>(
-        'ai-stream-error',
-        (event) => {
-          console.error('[AI] Stream error:', event.payload.error)
-          self.showAiChatModal = false
-          self.requestUpdate()
-          window.dispatchEvent(
-            new CustomEvent('plugin:toast', {
-              detail: {
-                title: 'AI Chat Error',
-                message: event.payload.error,
-                style: 'failure',
-              },
-            }),
-          )
-        },
-      )
-
-      const unlistenComplete = await listen<{ session_id: string }>(
-        'ai-stream-complete',
-        (event) => {
-          console.log('[AI] Stream complete:', event.payload)
-          self.aiChatLoading = false
-          self.requestUpdate()
-
-          // Clean up listeners
-          unlistenStarted()
-          unlistenChunk()
-          unlistenError()
-          unlistenComplete()
-        },
-      )
-
-      // Force an initial update to show the loading state
+      this.aiChatLoading = false
       this.requestUpdate()
-
-      // Start the streaming request after listeners are set up
-      await invoke('ask_ai_provider_stream', {
-        query: this.query,
-        providerName: provider,
-      })
     } catch (error) {
       console.error(`Failed to ask ${provider}:`, error)
       this.aiChatLoading = false
@@ -2220,13 +2242,13 @@ export class ViewSearch extends LitElement {
     }
 
     return html`
-      <div 
-        class="ai-chat-modal-overlay" 
+      <div
+        class="ai-chat-modal-overlay"
         @click=${(e: Event) => {
-          if (e.target === e.currentTarget) {
-            this._closeAIChatModal()
-          }
-        }}
+        if (e.target === e.currentTarget) {
+          this._closeAIChatModal()
+        }
+      }}
         @keydown=${this._handleModalKeyDown}
         role="dialog"
         aria-modal="true"
@@ -2253,13 +2275,14 @@ export class ViewSearch extends LitElement {
 
           <div class="ai-chat-modal-content">
             ${this.aiChatLoading
-              ? html`
+        ? html`
                 <div class="ai-chat-modal-loading">
                   <div class="spinner"></div>
                   <span>Generating response...</span>
                 </div>
               `
-              : html`<p class="ai-chat-response-text">${this.aiChatResponse}</p>`}
+        : html`<p class="ai-chat-response-text">${this.aiChatResponse}</p>`
+      }
           </div>
         </div>
       </div>
