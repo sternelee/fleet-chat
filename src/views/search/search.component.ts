@@ -66,11 +66,14 @@ export class ViewSearch extends LitElement {
   @state() private availableAIProviders: string[] = []
   @state() private aiChatResponse = ''
   @state() private aiChatLoading = false
+  @state() private showAiChatModal = false
+  @state() private aiChatProvider = ''
 
   private searchDebounceTimer: number | null = null
   private animationTimeout: number | null = null
   private prefetchCache: Map<string, SearchResult> = new Map()
   private aiInsightsDebounceTimer: number | null = null
+  private currentModal: HTMLElement | null = null
 
   async connectedCallback() {
     super.connectedCallback()
@@ -115,6 +118,22 @@ export class ViewSearch extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback()
     this._removeGlobalKeyListeners()
+    
+    // Clean up timers
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer)
+    }
+    if (this.aiInsightsDebounceTimer) {
+      clearTimeout(this.aiInsightsDebounceTimer)
+    }
+    if (this.animationTimeout) {
+      clearTimeout(this.animationTimeout)
+    }
+    
+    // Clean up modal if it exists
+    if (this.currentModal && this.currentModal.parentNode) {
+      this.currentModal.parentNode.removeChild(this.currentModal)
+    }
   }
 
   private _addGlobalKeyListeners() {
@@ -814,6 +833,104 @@ export class ViewSearch extends LitElement {
       font-family: "SF Mono", "Monaco", "Menlo", monospace;
       font-weight: 600;
     }
+
+    /* AI Chat Modal Styles */
+    .ai-chat-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .ai-chat-modal-container {
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 700px;
+      width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .ai-chat-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ai-chat-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: rgba(196, 181, 253, 0.9);
+    }
+
+    .ai-chat-modal-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.15s ease;
+    }
+
+    .ai-chat-modal-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .ai-chat-modal-query {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .ai-chat-modal-query strong {
+      font-weight: 600;
+    }
+
+    .ai-chat-modal-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
+      min-height: 60px;
+    }
+
+    .ai-chat-response-text {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .ai-chat-modal-loading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(196, 181, 253, 0.7);
+      font-size: 13px;
+      padding: 20px 0;
+      justify-content: center;
+    }
   `
 
   render() {
@@ -886,6 +1003,7 @@ export class ViewSearch extends LitElement {
 
         ${this._renderPluginUploadButton()}
         ${this._renderKeyboardHint()}
+        ${this._renderAIChatModal()}
       </div>
     `
   }
@@ -1092,6 +1210,8 @@ export class ViewSearch extends LitElement {
       OpenAI: '🤖',
       Anthropic: '🧠',
       Gemini: '✨',
+      DeepSeek: '🔮',
+      OpenRouter: '🌐',
     }
     const icon = iconMap[provider] || '💬'
 
@@ -1284,10 +1404,15 @@ export class ViewSearch extends LitElement {
     }
 
     return html`
-      <div class="ai-insights-container">
+      <div 
+        class="ai-insights-container"
+        role="region"
+        aria-label="AI Insights"
+        aria-live="polite"
+      >
         <div class="ai-insights-header">
           <div class="ai-insights-title">
-            <svg class="ai-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="ai-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -1297,7 +1422,7 @@ export class ViewSearch extends LitElement {
             </svg>
             <span>AI Insights</span>
           </div>
-          <button class="ai-insights-close" @click=${this._toggleAIInsights} title="Close AI insights">
+          <button class="ai-insights-close" @click=${this._toggleAIInsights} title="Close AI insights" aria-label="Close AI insights">
             ✕
           </button>
         </div>
@@ -1870,7 +1995,11 @@ export class ViewSearch extends LitElement {
 
   // AI Insights Methods
   private _hasResults(): boolean {
-    return this.results.applications.length > 0 || this.results.files.length > 0
+    return (
+      this.results.applications.length > 0 ||
+      this.results.files.length > 0 ||
+      this._getFilteredPluginCommands().length > 0
+    )
   }
 
   private async _fetchAIInsights(query: string, results: SearchResult) {
@@ -1911,8 +2040,16 @@ export class ViewSearch extends LitElement {
   private async _askAIProvider(provider: string) {
     console.log(`Asking ${provider} about: ${this.query}`)
 
+    // Clean up any existing modal
+    if (this.currentModal && this.currentModal.parentNode) {
+      this.currentModal.parentNode.removeChild(this.currentModal)
+      this.currentModal = null
+    }
+
     this.aiChatLoading = true
     this.aiChatResponse = ''
+    this.aiChatProvider = provider
+    this.showAiChatModal = true
 
     try {
       const response = await invoke<string>('ask_ai_provider', {
@@ -1921,9 +2058,9 @@ export class ViewSearch extends LitElement {
       })
 
       this.aiChatResponse = response
-      this._showAIChatModal(provider, response)
     } catch (error) {
       console.error(`Failed to ask ${provider}:`, error)
+      this.showAiChatModal = false
       window.dispatchEvent(
         new CustomEvent('plugin:toast', {
           detail: {
@@ -1938,119 +2075,69 @@ export class ViewSearch extends LitElement {
     }
   }
 
-  private _showAIChatModal(provider: string, response: string) {
-    // Create a modal to show the AI chat response
-    const modal = document.createElement('div')
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      animation: fadeIn 0.2s ease-out;
-    `
+  private _closeAIChatModal() {
+    this.showAiChatModal = false
+    this.aiChatResponse = ''
+    this.aiChatProvider = ''
+  }
 
-    const container = document.createElement('div')
-    container.style.cssText = `
-      background: rgba(17, 24, 39, 0.95);
-      backdrop-filter: blur(20px);
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 700px;
-      width: 90vw;
-      max-height: 80vh;
-      overflow-y: auto;
-      position: relative;
-      border: 1px solid rgba(139, 92, 246, 0.3);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    `
-
-    // Add header
-    const header = document.createElement('div')
-    header.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    `
-
-    const title = document.createElement('div')
-    title.style.cssText = `
-      font-size: 18px;
-      font-weight: 600;
-      color: rgba(196, 181, 253, 0.9);
-    `
-    title.textContent = `${provider} Response`
-
-    const closeBtn = document.createElement('button')
-    closeBtn.innerHTML = '✕'
-    closeBtn.style.cssText = `
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      border-radius: 6px;
-      color: white;
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      transition: all 0.15s ease;
-    `
-    closeBtn.onmouseover = () => {
-      closeBtn.style.background = 'rgba(255, 255, 255, 0.2)'
+  private _handleModalKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      this._closeAIChatModal()
     }
-    closeBtn.onmouseout = () => {
-      closeBtn.style.background = 'rgba(255, 255, 255, 0.1)'
-    }
-    closeBtn.onclick = () => document.body.removeChild(modal)
+  }
 
-    header.appendChild(title)
-    header.appendChild(closeBtn)
-
-    // Add query display
-    const queryDisplay = document.createElement('div')
-    queryDisplay.style.cssText = `
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.7);
-    `
-    queryDisplay.innerHTML = `<strong>Query:</strong> ${this.query}`
-
-    // Add response content
-    const content = document.createElement('div')
-    content.style.cssText = `
-      font-size: 14px;
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.85);
-      white-space: pre-wrap;
-    `
-    content.textContent = response
-
-    container.appendChild(header)
-    container.appendChild(queryDisplay)
-    container.appendChild(content)
-    modal.appendChild(container)
-
-    // Close on background click
-    modal.onclick = (e) => {
-      if (e.target === modal) {
-        document.body.removeChild(modal)
-      }
+  private _renderAIChatModal() {
+    if (!this.showAiChatModal) {
+      return null
     }
 
-    document.body.appendChild(modal)
+    return html`
+      <div 
+        class="ai-chat-modal-overlay" 
+        @click=${(e: Event) => {
+          if (e.target === e.currentTarget) {
+            this._closeAIChatModal()
+          }
+        }}
+        @keydown=${this._handleModalKeyDown}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-chat-modal-title"
+      >
+        <div class="ai-chat-modal-container">
+          <div class="ai-chat-modal-header">
+            <div class="ai-chat-modal-title" id="ai-chat-modal-title">
+              ${this.aiChatProvider} Response
+            </div>
+            <button
+              class="ai-chat-modal-close"
+              @click=${this._closeAIChatModal}
+              aria-label="Close modal"
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="ai-chat-modal-query">
+            <strong>Query:</strong> ${this.query}
+          </div>
+
+          <div class="ai-chat-modal-content">
+            ${this.aiChatLoading
+              ? html`
+                <div class="ai-chat-modal-loading">
+                  <div class="spinner"></div>
+                  <span>Generating response...</span>
+                </div>
+              `
+              : html`<p class="ai-chat-response-text">${this.aiChatResponse}</p>`}
+          </div>
+        </div>
+      </div>
+    `
   }
 }
 

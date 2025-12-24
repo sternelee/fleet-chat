@@ -119,6 +119,8 @@ pub enum AIProvider {
     Anthropic,
     Gemini,
     Ollama,
+    DeepSeek,
+    OpenRouter,
 }
 
 impl AIProvider {
@@ -129,6 +131,10 @@ impl AIProvider {
             AIProvider::Anthropic
         } else if env::var("GEMINI_API_KEY").is_ok() {
             AIProvider::Gemini
+        } else if env::var("DEEPSEEK_API_KEY").is_ok() {
+            AIProvider::DeepSeek
+        } else if env::var("OPENROUTER_API_KEY").is_ok() {
+            AIProvider::OpenRouter
         } else {
             // Default to OpenAI - will fail if no key
             AIProvider::OpenAI
@@ -141,6 +147,16 @@ impl AIProvider {
             AIProvider::Anthropic => "claude-3-5-sonnet-20241022".to_string(),
             AIProvider::Gemini => "gemini-2.0-flash-exp".to_string(),
             AIProvider::Ollama => "llama3.2".to_string(),
+            AIProvider::DeepSeek => "deepseek-chat".to_string(),
+            AIProvider::OpenRouter => "meta-llama/llama-3.3-70b-instruct".to_string(),
+        }
+    }
+    
+    pub fn api_base(&self) -> Option<String> {
+        match self {
+            AIProvider::DeepSeek => Some("https://api.deepseek.com/v1".to_string()),
+            AIProvider::OpenRouter => Some("https://openrouter.ai/api/v1".to_string()),
+            _ => None,
         }
     }
 }
@@ -195,6 +211,14 @@ impl RigAgent {
             AIProvider::Gemini => {
                 env::var("GEMINI_API_KEY").map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
             }
+            AIProvider::DeepSeek => {
+                env::var("DEEPSEEK_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
+            }
+            AIProvider::OpenRouter => {
+                env::var("OPENROUTER_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
+            }
             AIProvider::Ollama => {
                 // Ollama doesn't need an API key
             }
@@ -208,6 +232,34 @@ impl RigAgent {
 
     pub fn with_provider(provider: AIProvider) -> Result<Self, RigAgentError> {
         let default_model = provider.default_model();
+
+        // Verify that we have the required API key for this provider
+        match provider {
+            AIProvider::OpenAI => {
+                env::var("OPENAI_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENAI_API_KEY".to_string()))?;
+            }
+            AIProvider::Anthropic => {
+                env::var("ANTHROPIC_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("ANTHROPIC_API_KEY".to_string()))?;
+            }
+            AIProvider::Gemini => {
+                env::var("GEMINI_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("GEMINI_API_KEY".to_string()))?;
+            }
+            AIProvider::DeepSeek => {
+                env::var("DEEPSEEK_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
+            }
+            AIProvider::OpenRouter => {
+                env::var("OPENROUTER_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
+            }
+            AIProvider::Ollama => {
+                // Ollama doesn't need an API key
+            }
+        }
+
         Ok(Self {
             provider,
             default_model,
@@ -251,6 +303,22 @@ impl RigAgent {
                 return Err(RigAgentError::NotSupported(
                     "Ollama text generation not yet implemented".to_string(),
                 ));
+            }
+            AIProvider::DeepSeek => {
+                let api_key = env::var("DEEPSEEK_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
+                let client = openai::Client::new(&api_key)
+                    .with_base_url("https://api.deepseek.com/v1");
+                let agent = client.agent(&model).build();
+                agent.prompt(&options.prompt).await?
+            }
+            AIProvider::OpenRouter => {
+                let api_key = env::var("OPENROUTER_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
+                let client = openai::Client::new(&api_key)
+                    .with_base_url("https://openrouter.ai/api/v1");
+                let agent = client.agent(&model).build();
+                agent.prompt(&options.prompt).await?
             }
         };
 

@@ -565,6 +565,12 @@ pub async fn get_available_ai_providers() -> Result<Vec<String>, String> {
     if env::var("GEMINI_API_KEY").is_ok() {
         providers.push("Gemini".to_string());
     }
+    if env::var("DEEPSEEK_API_KEY").is_ok() {
+        providers.push("DeepSeek".to_string());
+    }
+    if env::var("OPENROUTER_API_KEY").is_ok() {
+        providers.push("OpenRouter".to_string());
+    }
 
     Ok(providers)
 }
@@ -580,6 +586,8 @@ pub async fn ask_ai_provider(
         "OpenAI" => AIProvider::OpenAI,
         "Anthropic" => AIProvider::Anthropic,
         "Gemini" => AIProvider::Gemini,
+        "DeepSeek" => AIProvider::DeepSeek,
+        "OpenRouter" => AIProvider::OpenRouter,
         _ => return Err(format!("Unknown provider: {}", provider_name)),
     };
 
