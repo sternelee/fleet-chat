@@ -1,5 +1,6 @@
-use crate::rig_agent::{AIOptions, RigAgent};
+use crate::rig_agent::{AIOptions, AIProvider, RigAgent};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::path::Path;
 use tauri::command;
 
@@ -546,6 +547,62 @@ pub async fn generate_search_insights(
         .generate(ai_options)
         .await
         .map_err(|e| format!("Failed to generate AI insights: {}", e))?;
+
+    Ok(response.text)
+}
+
+/// Get available AI providers
+#[command]
+pub async fn get_available_ai_providers() -> Result<Vec<String>, String> {
+    let mut providers = Vec::new();
+
+    if env::var("OPENAI_API_KEY").is_ok() {
+        providers.push("OpenAI".to_string());
+    }
+    if env::var("ANTHROPIC_API_KEY").is_ok() {
+        providers.push("Anthropic".to_string());
+    }
+    if env::var("GEMINI_API_KEY").is_ok() {
+        providers.push("Gemini".to_string());
+    }
+
+    Ok(providers)
+}
+
+/// Ask AI a question with a specific provider
+#[command]
+pub async fn ask_ai_provider(
+    query: String,
+    provider_name: String,
+) -> Result<String, String> {
+    // Map provider name to AIProvider enum
+    let provider = match provider_name.as_str() {
+        "OpenAI" => AIProvider::OpenAI,
+        "Anthropic" => AIProvider::Anthropic,
+        "Gemini" => AIProvider::Gemini,
+        _ => return Err(format!("Unknown provider: {}", provider_name)),
+    };
+
+    // Initialize the Rig agent with specific provider
+    let agent = RigAgent::with_provider(provider)
+        .map_err(|e| format!("Failed to initialize {} agent: {}", provider_name, e))?;
+
+    // Create the AI options
+    let ai_options = AIOptions {
+        prompt: query,
+        model: None, // Use default model
+        temperature: Some(0.8),
+        max_tokens: Some(500),
+        top_p: None,
+        frequency_penalty: None,
+        presence_penalty: None,
+    };
+
+    // Generate the AI response
+    let response = agent
+        .generate(ai_options)
+        .await
+        .map_err(|e| format!("Failed to generate response from {}: {}", provider_name, e))?;
 
     Ok(response.text)
 }
