@@ -105,7 +105,7 @@ pub async fn unload_plugin(state: State<'_, PluginManagerState>, plugin_id: Stri
 
 #[command]
 pub async fn execute_plugin_command(
-    app: AppHandle,
+    _app: AppHandle,
     state: State<'_, PluginManagerState>,
     plugin_id: String,
     command_name: String,
@@ -231,7 +231,7 @@ pub mod extension_manager {
             &self,
             plugin_id: &str,
             command_name: &str,
-            context: Option<serde_json::Value>,
+            _context: Option<serde_json::Value>,
         ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
             println!("Executing command: {} from plugin: {}", command_name, plugin_id);
 

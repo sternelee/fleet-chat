@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fleet Chat is an experimental desktop application built with Tauri v2 (Rust backend) and Lit (TypeScript frontend). It provides a VS Code-like interface with a multi-panel layout including explorer, terminal, chat, and other development tools.
+Fleet Chat is an experimental Raycast-like desktop application built with Tauri v2 (Rust backend) and Lit (TypeScript frontend). It provides a multi-panel layout including explorer, terminal, chat, and plugin system with AI-powered capabilities.
 
 ## Common Commands
 
@@ -75,15 +75,15 @@ node tools/plugin-cli.js list                    # List available plugins
   - Session management and conversation state tracking
 - **Plugins**: Multiple Tauri plugins (fs, clipboard, opener, shell, dialog, http, log, notification)
 
-### Plugin System (Vicinae-inspired Architecture)
+### Plugin System
 - **Framework**: React-to-Lit compilation pipeline for Raycast plugin compatibility
-- **AI Generation**: A2UI-powered plugin generation from descriptions
+- **AI Generation**: A2UI-powered plugin generation from natural language descriptions
+- **Package Structure**: Core plugin functionality in `packages/fleet-chat-api/` (shared workspace package)
 - **Isolation**: Web Worker-based plugin execution with sandboxed environments
-- **API Compatibility**: Full Raycast API compatibility layer with Lit web components
+- **API Compatibility**: Full Raycast API compatibility layer via `@raycast/api` re-exports
+- **Plugin Formats**: Supports both source plugins and packaged (.fcp) plugins via drag-drop
 - **Module Management**: pnpm workspace for plugin development and management
-- **Storage**: FCLocalStorage and FCCache with TTL and memory caching
-- **System Integration**: FCClipboard and FCFileSystem with Tauri integration
-- **UI Components**: Complete set of Raycast-compatible components (List, Grid, Detail, Form, Action, ActionPanel)
+- **UI Components**: Complete set of Raycast-compatible components (List, Grid, Detail, Form, Action, Color, Icon, Toast, MenuBarExtra)
 - **Development Tools**: CLI tool for plugin creation and management (`tools/plugin-cli.js`)
 
 ### Panel System
@@ -112,15 +112,16 @@ The application features a flexible, state-persistent panel system:
 - `vite.config.ts` - Frontend build configuration with Lightning CSS
 - `biome.json` - Linter and formatter configuration (replaces ESLint/Prettier)
 - `src/routes.ts` - Application routing configuration
-- `src-tauri/src/a2ui_schema.json` - JSON schema for A2UI message validation
+- `src-tauri/src/a2ui/schema.json` - JSON schema for A2UI message validation
 - `src-tauri/src/templates/` - Pre-built A2UI UI templates (contact_list, contact_card, action_confirmation, etc.)
 - `src-tauri/src/a2ui/plugin_generator.rs` - AI-powered plugin code generation
 - `src/plugins/a2ui-plugin-bridge.ts` - Bridge between A2UI and plugin system
-- `pnpm-workspace.yaml` - pnpm workspace configuration for plugin management
-- `src/plugins/plugin-system.ts` - Core plugin system type definitions
-- `src/plugins/plugin-manager.ts` - Plugin lifecycle and execution management
+- `src/plugins/plugin-loader.ts` - Plugin loader for packaged (.fcp) plugins with drag-drop support
+- `src/plugins/plugin-manager.ts` - Plugin lifecycle, execution, and worker management
 - `src/plugins/plugin-integration.ts` - Integration with Fleet Chat UI and Tauri APIs
 - `src/views/plugin-generator/` - Plugin generator UI component
+- `packages/fleet-chat-api/` - Shared plugin API package (components, storage, system APIs)
+- `pnpm-workspace.yaml` - pnpm workspace configuration for plugin management
 - `tools/plugin-cli.js` - CLI tool for plugin development and management
 
 ## Development Notes
@@ -160,6 +161,7 @@ The application features a flexible, state-persistent panel system:
 
 ### Key Backend Dependencies
 - `axum` - Web framework for HTTP server
+- `rig` - AI agent framework for multi-provider LLM integration (OpenAI, Anthropic, Gemini)
 - `reqwest` - HTTP client for AI API calls (OpenAI, Gemini)
 - `jsonschema` - JSON schema validation
 - `async-trait` - Async trait support for provider abstraction
@@ -172,27 +174,37 @@ The application features a flexible, state-persistent panel system:
 - **lib.rs** - Main Tauri application entry point and plugin setup
 - **axum_app.rs** - Axum web server with A2UI RESTful API endpoints
 - **plugins.rs** - Tauri plugin system integration for plugin management
+- **search.rs** - Application/file search with ICNS icon extraction
+- **rig_agent.rs** - Rig AI agent for search insights (multi-provider: OpenAI, Anthropic, Gemini)
 - **a2ui/agent.rs** - A2UI backend service implementing Google ADK patterns
 - **a2ui/provider.rs** - AI provider abstraction layer (OpenAI, Gemini)
 - **a2ui/schema.rs** - A2UI message schema definitions
 - **a2ui/plugin_generator.rs** - AI-powered plugin code generation engine
+- **a2ui/mod.rs** - A2UI module exports
 - **gemini_agent.rs** - Legacy Gemini AI client (being phased out)
 - **tauri_axum.rs** - Bridge between Tauri and Axum for local HTTP requests
 - **window.rs** - macOS-specific window styling and customization
+- **templates/** - Pre-built A2UI UI templates (contact_list, contact_card, action_confirmation, etc.)
 
 ### Plugin System Modules (`src/plugins/`)
 - **plugin-system.ts** - Core plugin system type definitions and interfaces
 - **plugin-manager.ts** - Plugin lifecycle, execution, and worker management
+- **plugin-loader.ts** - Plugin loader for packaged (.fcp) plugins with drag-drop support
 - **plugin-integration.ts** - Integration layer with Fleet Chat UI and Tauri APIs
 - **a2ui-plugin-bridge.ts** - Bridge between A2UI generation and plugin installation
-- **storage/local-storage.ts** - FCLocalStorage for persistent data storage
-- **storage/cache.ts** - FCCache with TTL and memory caching capabilities
-- **system/clipboard.ts** - FCClipboard with Tauri and browser fallback support
-- **system/filesystem.ts** - FCFileSystem with file operations and metadata
-- **ui/components/** - Raycast-compatible UI components (List, Grid, Detail, Form, Action)
-- **renderer/** - React-to-Lit compilation and rendering system
-- **examples/** - Example plugins demonstrating the plugin system
-- **public/workers/** - Web Workers for isolated plugin execution
+
+### Fleet Chat API Package (`packages/fleet-chat-api/`)
+This is the shared plugin API package that provides the core functionality for Fleet Chat plugins:
+- **api/** - Tauri command wrappers (storage, clipboard, filesystem, applications, etc.)
+- **components/** - Raycast-compatible UI components (List, Grid, Detail, Form, Action, Color, Icon, Toast, MenuBarExtra)
+- **plugins/core/** - Core plugin types and manager interfaces
+- **plugins/loader/** - Plugin loader for packaged plugins
+- **storage/** - LocalStorage and Cache implementations
+- **system/** - System integrations (clipboard, filesystem)
+- **renderer/** - React-to-Lit compilation system
+- **utils/** - Utility functions (logger, react-to-lit transformer)
+- **raycast-api/** - Raycast API compatibility layer
+- **examples/** - Example plugins (hello-world, testplugin)
 
 ### Key A2UI Components
 - **A2UIAgent** - Core agent with session management and tool calling
@@ -207,9 +219,10 @@ The application features a flexible, state-persistent panel system:
 ### AI Provider Configuration
 The system supports multiple AI providers through environment variables:
 - `OPENAI_API_KEY` - For OpenAI/GPT models (checked first)
-- `GEMINI_API_KEY` - For Google Gemini models (fallback)
+- `ANTHROPIC_API_KEY` - For Anthropic/Claude models (second priority)
+- `GEMINI_API_KEY` - For Google Gemini models (third priority/fallback)
 - Provider selection is automatic based on available API keys
-- Default models: GPT-4 for OpenAI, Gemini 2.5 Flash for Gemini
+- Default models: GPT-4 for OpenAI, Claude for Anthropic, Gemini 2.5 Flash for Gemini
 
 ## Testing
 

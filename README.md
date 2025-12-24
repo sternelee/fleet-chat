@@ -8,14 +8,13 @@
 > [!WARNING]
 > This project is experimental and may not be stable.
 
-Fleet Chat is an experimental VS Code-like desktop application built with Tauri and Lit web components, featuring a multi-panel layout with advanced development tools.
+Fleet Chat is an experimental Raycast-like desktop application built with Tauri and Lit web components, featuring a multi-panel layout with advanced development tools.
 
 <img src="./assets/images/screenshot.png" alt="banner" width="100%" />
 
 ## ✨ Features
 
 - [x] **Tauri v2 + Lit + TypeScript** - Modern desktop app framework with web technologies
-- [x] **VS Code-like Interface** - Multi-panel layout with explorer, terminal, chat, and search
 - [x] **Built-in Router** - Client-side routing for multi-page applications
 - [x] **Optimized CSS** - Lightning CSS with OKLCH color space
 - [x] **Themeable Components** - Customizable component system

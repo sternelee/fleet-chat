@@ -9,7 +9,7 @@ use rig::{
     completion::{Chat, Message, Prompt, PromptError},
     embeddings::EmbeddingError,
     embeddings::EmbeddingModel,
-    providers::{anthropic, gemini, openai},
+    providers::{anthropic, deepseek, gemini, openai, openrouter},
 };
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -303,16 +303,16 @@ impl RigAgent {
                 ));
             }
             AIProvider::DeepSeek => {
-                let api_key = env::var("DEEPSEEK_API_KEY")
+                let _ = env::var("DEEPSEEK_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
-                let client = openai::Client::new(&api_key).with_base_url("https://api.deepseek.com/v1");
+                let client = deepseek::Client::from_env();
                 let agent = client.agent(&model).build();
                 agent.prompt(&options.prompt).await?
             }
             AIProvider::OpenRouter => {
-                let api_key = env::var("OPENROUTER_API_KEY")
+                let _ = env::var("OPENROUTER_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-                let client = openai::Client::new(&api_key).with_base_url("https://openrouter.ai/api/v1");
+                let client = openrouter::Client::from_env();
                 let agent = client.agent(&model).build();
                 agent.prompt(&options.prompt).await?
             }
@@ -414,6 +414,36 @@ impl RigAgent {
                 return Err(RigAgentError::NotSupported(
                     "Ollama chat not yet implemented".to_string(),
                 ));
+            }
+            AIProvider::DeepSeek => {
+                let _ = env::var("DEEPSEEK_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("DEEPSEEK_API_KEY".to_string()))?;
+                let client = deepseek::Client::from_env();
+                let agent = client.agent(&model).build();
+
+                let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
+                let chat_history = if rig_messages.len() > 1 {
+                    rig_messages[..rig_messages.len() - 1].to_vec()
+                } else {
+                    vec![]
+                };
+
+                agent.chat(prompt_msg, chat_history).await?
+            }
+            AIProvider::OpenRouter => {
+                let _ = env::var("OPENROUTER_API_KEY")
+                    .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
+                let client = openrouter::Client::from_env();
+                let agent = client.agent(&model).build();
+
+                let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
+                let chat_history = if rig_messages.len() > 1 {
+                    rig_messages[..rig_messages.len() - 1].to_vec()
+                } else {
+                    vec![]
+                };
+
+                agent.chat(prompt_msg, chat_history).await?
             }
         };
 
@@ -595,6 +625,34 @@ impl RigAgent {
                 description: "Meta's open source model".to_string(),
                 context_length: 128000,
             }]),
+            AIProvider::DeepSeek => Ok(vec![
+                ModelInfo {
+                    id: "deepseek-chat".to_string(),
+                    name: "DeepSeek Chat".to_string(),
+                    description: "DeepSeek's advanced chat model".to_string(),
+                    context_length: 128000,
+                },
+                ModelInfo {
+                    id: "deepseek-coder".to_string(),
+                    name: "DeepSeek Coder".to_string(),
+                    description: "DeepSeek's code-specialized model".to_string(),
+                    context_length: 128000,
+                },
+            ]),
+            AIProvider::OpenRouter => Ok(vec![
+                ModelInfo {
+                    id: "meta-llama/llama-3.3-70b-instruct".to_string(),
+                    name: "Llama 3.3 70B".to_string(),
+                    description: "Meta's large language model via OpenRouter".to_string(),
+                    context_length: 128000,
+                },
+                ModelInfo {
+                    id: "anthropic/claude-3.5-sonnet".to_string(),
+                    name: "Claude 3.5 Sonnet".to_string(),
+                    description: "Anthropic's Claude via OpenRouter".to_string(),
+                    context_length: 200000,
+                },
+            ]),
         }
     }
 }

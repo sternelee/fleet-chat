@@ -1412,16 +1412,24 @@ async fn generate_plugin(
     let source_code = generate_plugin_code(&manifest, plugin_type, &requirements, include_sample_data)
         .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Generate explanation using A2UI agent if available
-    let explanation = if let Some(agent) = state.a2ui_agent.as_ref() {
+    // Generate explanation using Rig agent if available
+    let explanation = if let Some(agent) = state.rig_agent.as_ref() {
         // Use AI to generate a better explanation
         let prompt = format!(
             "Explain the following plugin that was generated:\n\nName: {}\nDescription: {}\nType: {}\n\nProvide a brief, helpful explanation for the user.",
             manifest.name, manifest.description, plugin_type
         );
 
-        match agent.generate_text(&prompt).await {
-            Ok(response) => response.content,
+        match agent.generate(AIOptions {
+            prompt,
+            model: None,
+            temperature: None,
+            max_tokens: None,
+            top_p: None,
+            frequency_penalty: None,
+            presence_penalty: None,
+        }).await {
+            Ok(response) => response.text,
             Err(_) => format!(
                 "Generated a {} plugin named '{}'. {}",
                 plugin_type, manifest.name, manifest.description
@@ -1458,7 +1466,7 @@ async fn generate_plugin(
 
 /// Generate a Fleet Chat plugin with streaming response
 async fn generate_plugin_stream(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(request): Json<PluginGenerationRequest>,
 ) -> Result<Sse<impl futures_util::Stream<Item = Result<Event, std::convert::Infallible>>>, http::StatusCode> {
     use futures_util::stream;

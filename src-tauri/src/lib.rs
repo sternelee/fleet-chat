@@ -14,7 +14,6 @@ use search::{
 use std::sync::Arc;
 use tauri::Manager;
 use tauri::{async_runtime::Mutex, State};
-use tauri::{webview::WebviewWindowBuilder, WebviewUrl};
 use tauri_axum::{LocalRequest, LocalResponse};
 
 struct AppState {
@@ -48,7 +47,7 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder
-            .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
                 let _ = app.get_webview_window("main").expect("no main window").set_focus();
             }))
             .plugin(tauri_plugin_localhost::Builder::new(port).build())
@@ -70,7 +69,7 @@ pub fn run() {
         .setup(move |app| {
             #[cfg(desktop)]
             {
-                app.handle().plugin(tauri_plugin_positioner::init());
+                let _ = app.handle().plugin(tauri_plugin_positioner::init());
                 tauri::tray::TrayIconBuilder::new()
                     .on_tray_icon_event(|tray_handle, event| {
                         tauri_plugin_positioner::on_tray_event(tray_handle.app_handle(), &event);

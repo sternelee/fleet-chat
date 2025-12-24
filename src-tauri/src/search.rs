@@ -92,10 +92,8 @@ fn extract_app_icon(app_path: &str) -> Option<String> {
 
 #[cfg(target_os = "macos")]
 fn convert_icns_to_png(icon_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
-    use base64::{engine::general_purpose, Engine as _};
     use icns::{IconFamily, IconType};
     use std::fs::File;
-    use std::io::Cursor;
 
     // Read the .icns file
     let file = File::open(icon_path)?;
@@ -146,7 +144,7 @@ fn extract_app_icon(_app_path: &str) -> Option<String> {
 /// Search for applications installed on the system
 #[command]
 pub async fn search_applications(query: String) -> Result<Vec<Application>, String> {
-    use applications::{AppInfo, AppInfoContext, AppTrait};
+    use applications::{AppInfo, AppInfoContext};
 
     let query_lower = query.to_lowercase();
 
@@ -333,7 +331,7 @@ pub async fn unified_search(
 /// Get all applications installed on the system
 #[command]
 pub async fn get_applications() -> Result<Vec<Application>, String> {
-    use applications::{AppInfo, AppInfoContext, AppTrait};
+    use applications::{AppInfo, AppInfoContext};
 
     // Create context and refresh apps
     let mut ctx = AppInfoContext::new(vec![]);
@@ -381,7 +379,7 @@ pub async fn get_applications() -> Result<Vec<Application>, String> {
 /// Get the frontmost application
 #[command]
 pub async fn get_frontmost_application() -> Result<Option<Application>, String> {
-    use applications::{AppInfo, AppInfoContext, AppTrait};
+    use applications::{AppInfo, AppInfoContext};
 
     let mut ctx = AppInfoContext::new(vec![]);
     ctx.refresh_apps()
@@ -421,7 +419,7 @@ pub async fn get_frontmost_application() -> Result<Option<Application>, String> 
 /// Get all running applications
 #[command]
 pub async fn get_running_applications() -> Result<Vec<Application>, String> {
-    use applications::{AppInfo, AppInfoContext, AppTrait};
+    use applications::{AppInfo, AppInfoContext};
 
     let mut ctx = AppInfoContext::new(vec![]);
     ctx.refresh_apps()
@@ -465,7 +463,7 @@ pub async fn get_running_applications() -> Result<Vec<Application>, String> {
 /// Get default application for file extension
 #[command]
 pub async fn get_default_application(extension: String) -> Result<Option<Application>, String> {
-    use applications::{AppInfo, AppInfoContext, AppTrait};
+    use applications::{AppInfo, AppInfoContext};
 
     let mut ctx = AppInfoContext::new(vec![]);
     ctx.refresh_apps()
