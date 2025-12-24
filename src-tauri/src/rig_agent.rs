@@ -314,15 +314,22 @@ impl RigAgent {
                 let api_key = env::var("OPENROUTER_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
 
-                // Temporarily set OPENAI_BASE_URL to point to OpenRouter
+                println!("[RigAgent] Creating OpenRouter client with model: {}", model);
+
+                // Set environment variables before creating the client
                 env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
                 env::set_var("OPENAI_API_KEY", &api_key);
 
-                // Use Completions API for better OpenRouter compatibility
-                let completions_client = openai::Client::from_env().completions_api();
+                // Use CompletionsClient directly (not Responses API client)
+                let completions_client = openai::CompletionsClient::from_env();
                 let completion_model = completions_client.completion_model(&model);
                 let agent = completion_model.into_agent_builder().build();
-                agent.prompt(&options.prompt).await?
+
+                println!("[RigAgent] Sending prompt to OpenRouter...");
+                let result = agent.prompt(&options.prompt).await?;
+                println!("[RigAgent] OpenRouter response received");
+
+                result
             }
         };
 
@@ -443,12 +450,14 @@ impl RigAgent {
                 let api_key = env::var("OPENROUTER_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
 
-                // Temporarily set OPENAI_BASE_URL to point to OpenRouter
+                println!("[RigAgent] Creating OpenRouter client for chat with model: {}", model);
+
+                // Set environment variables before creating the client
                 env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
                 env::set_var("OPENAI_API_KEY", &api_key);
 
-                // Use Completions API for better OpenRouter compatibility
-                let completions_client = openai::Client::from_env().completions_api();
+                // Use CompletionsClient directly (not Responses API client)
+                let completions_client = openai::CompletionsClient::from_env();
                 let completion_model = completions_client.completion_model(&model);
                 let agent = completion_model.into_agent_builder().build();
 
@@ -459,7 +468,11 @@ impl RigAgent {
                     vec![]
                 };
 
-                agent.chat(prompt_msg, chat_history).await?
+                println!("[RigAgent] Sending chat request to OpenRouter...");
+                let result = agent.chat(prompt_msg, chat_history).await?;
+                println!("[RigAgent] OpenRouter chat response received");
+
+                result
             }
         };
 
