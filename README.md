@@ -26,6 +26,7 @@ Fleet Chat is an experimental VS Code-like desktop application built with Tauri 
 - [x] **File Search** - Fast file content and name search
 - [x] **AI Search Insights** - Intelligent search result summaries powered by Rig agent
 - [x] **A2UI Framework** - Agent-to-UI system with multi-provider AI support
+- [x] **🆕 AI Plugin Generator** - Generate plugins from natural language descriptions
 - [x] **Plugin System** - Vicinae-inspired architecture with Raycast plugin compatibility
 - [x] **React-to-Lit Compilation** - Seamlessly run existing Raycast plugins
 - [x] **Web Worker Isolation** - Secure sandboxed plugin execution
@@ -71,6 +72,46 @@ When an AI provider is configured, search results will automatically include int
 - Pattern recognition in search results
 
 See [docs/AI_SEARCH_INTEGRATION.md](./docs/AI_SEARCH_INTEGRATION.md) for detailed documentation.
+
+## 🤖 AI-Powered Plugin Generation
+
+Fleet Chat features an innovative **A2UI Plugin Generator** that uses AI to create plugins from natural language descriptions. Simply describe what you want your plugin to do, and the system generates complete, working code.
+
+### Quick Example
+
+**Via UI:**
+1. Navigate to `/plugin-generator` in Fleet Chat
+2. Describe your plugin: "Display GitHub repositories with star count and open in browser action"
+3. Click "Generate Plugin"
+4. Review, customize, and install!
+
+**Via API:**
+```bash
+curl -X POST http://localhost:3000/a2ui/generate-plugin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Todo list manager with categories and completion tracking",
+    "plugin_type": "list",
+    "include_sample_data": true
+  }'
+```
+
+### Supported Plugin Types
+- 📋 **List** - Display items with search and actions
+- 🎯 **Grid** - Visual grid layout for images/cards
+- 📄 **Detail** - Detailed information with markdown
+- 📝 **Form** - Collect user input
+
+### What Gets Generated
+- ✅ Complete TypeScript/React source code
+- ✅ Package manifest (package.json)
+- ✅ Raycast API integration
+- ✅ Local storage & clipboard support
+- ✅ Search & filtering (List plugins)
+- ✅ Action panels with multiple actions
+- ✅ Error handling & loading states
+
+See [docs/A2UI_PLUGIN_GENERATION.md](./docs/A2UI_PLUGIN_GENERATION.md) for complete documentation and [docs/A2UI_PLUGIN_EXAMPLES.md](./docs/A2UI_PLUGIN_EXAMPLES.md) for 10+ practical examples.
 
 ## 🔌 Plugin Development
 
