@@ -9,7 +9,7 @@ use rig::{
     completion::{Chat, Message, Prompt, PromptError},
     embeddings::EmbeddingError,
     embeddings::EmbeddingModel,
-    providers::{anthropic, deepseek, gemini, openai, openrouter},
+    providers::{anthropic, deepseek, gemini, openai},
 };
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -310,9 +310,15 @@ impl RigAgent {
                 agent.prompt(&options.prompt).await?
             }
             AIProvider::OpenRouter => {
-                let _ = env::var("OPENROUTER_API_KEY")
+                // Use OpenAI client with OpenRouter's base URL for better compatibility
+                let api_key = env::var("OPENROUTER_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-                let client = openrouter::Client::from_env();
+
+                // Temporarily set OPENAI_BASE_URL to point to OpenRouter
+                env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
+                env::set_var("OPENAI_API_KEY", &api_key);
+
+                let client = openai::Client::from_env();
                 let agent = client.agent(&model).build();
                 agent.prompt(&options.prompt).await?
             }
@@ -431,9 +437,15 @@ impl RigAgent {
                 agent.chat(prompt_msg, chat_history).await?
             }
             AIProvider::OpenRouter => {
-                let _ = env::var("OPENROUTER_API_KEY")
+                // Use OpenAI client with OpenRouter's base URL for better compatibility
+                let api_key = env::var("OPENROUTER_API_KEY")
                     .map_err(|_| RigAgentError::ApiKeyNotFound("OPENROUTER_API_KEY".to_string()))?;
-                let client = openrouter::Client::from_env();
+
+                // Temporarily set OPENAI_BASE_URL to point to OpenRouter
+                env::set_var("OPENAI_BASE_URL", "https://openrouter.ai/api/v1");
+                env::set_var("OPENAI_API_KEY", &api_key);
+
+                let client = openai::Client::from_env();
                 let agent = client.agent(&model).build();
 
                 let prompt_msg = rig_messages.last().cloned().unwrap_or_else(|| Message::user(""));
