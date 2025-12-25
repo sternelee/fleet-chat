@@ -3,6 +3,7 @@ mod axum_app;
 mod gemini_agent;
 mod plugins;
 mod rig_agent;
+mod routes;
 mod search;
 mod tauri_axum;
 use axum::Router;

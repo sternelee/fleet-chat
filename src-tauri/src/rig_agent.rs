@@ -7,6 +7,7 @@
  * Refactored to use AgentBuilder::new() pattern uniformly across all providers
  */
 use futures::stream::{Stream, StreamExt};
+use reqwest::Client;
 use rig::{
     agent::{AgentBuilder, MultiTurnStreamItem},
     client::{CompletionClient, EmbeddingsClient, ProviderClient},
@@ -36,6 +37,51 @@ enum ProviderCompletionModel {
     Gemini(rig::providers::gemini::completion::CompletionModel),
     DeepSeek(rig::providers::deepseek::CompletionModel),
     OpenRouter(rig::providers::openrouter::completion::CompletionModel),
+}
+
+// ============================================================================
+// API Model Fetching Types
+// ============================================================================
+
+/// OpenAI models API response
+#[derive(Debug, Deserialize)]
+struct OpenAIModelsResponse {
+    data: Vec<OpenAIModel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAIModel {
+    id: String,
+    #[serde(default)]
+    created: u64,
+    #[serde(default)]
+    owned_by: String,
+}
+
+/// DeepSeek models API response (same format as OpenAI)
+type DeepSeekModelsResponse = OpenAIModelsResponse;
+
+/// OpenRouter models API response
+#[derive(Debug, Deserialize)]
+struct OpenRouterModelsResponse {
+    data: Vec<OpenRouterModel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenRouterModel {
+    id: String,
+    name: Option<String>,
+    #[serde(default)]
+    context_length: Option<usize>,
+    #[serde(default)]
+    description: Option<String>,
+}
+
+// Helper to create HTTP client with proper headers
+fn create_http_client() -> Result<Client, RigAgentError> {
+    Client::builder()
+        .build()
+        .map_err(|e| RigAgentError::Other(format!("Failed to create HTTP client: {}", e)))
 }
 
 // ============================================================================
@@ -791,108 +837,346 @@ impl RigAgent {
     // Model Information
     // ========================================================================
 
+    /// Fetch available models from the provider's API
+    ///
+    /// This function makes actual API calls to fetch the model list:
+    /// - OpenAI: https://api.openai.com/v1/models
+    /// - DeepSeek: https://api.deepseek.com/v1/models
+    /// - OpenRouter: https://openrouter.ai/api/v1/models
+    /// - Anthropic, Gemini: Return known model lists (no public API)
+    /// - Ollama: Return known models (would require local API access)
     pub async fn get_models(&self) -> Result<Vec<ModelInfo>, RigAgentError> {
+        let client = create_http_client()?;
+
         match self.provider {
-            AIProvider::OpenAI => Ok(vec![
-                ModelInfo {
-                    id: "gpt-4o".to_string(),
-                    name: "GPT-4 Omni".to_string(),
-                    description: "OpenAI's most advanced multimodal model".to_string(),
-                    context_length: 128000,
-                },
-                ModelInfo {
-                    id: "gpt-4o-mini".to_string(),
-                    name: "GPT-4 Omni Mini".to_string(),
-                    description: "Faster, cheaper version of GPT-4o".to_string(),
-                    context_length: 128000,
-                },
-                ModelInfo {
-                    id: "gpt-4-turbo".to_string(),
-                    name: "GPT-4 Turbo".to_string(),
-                    description: "High-intelligence model with vision capabilities".to_string(),
-                    context_length: 128000,
-                },
-                ModelInfo {
-                    id: "gpt-3.5-turbo".to_string(),
-                    name: "GPT-3.5 Turbo".to_string(),
-                    description: "Fast, efficient model for most tasks".to_string(),
-                    context_length: 16385,
-                },
-            ]),
-            AIProvider::Anthropic => Ok(vec![
-                ModelInfo {
-                    id: "claude-3-5-sonnet-20241022".to_string(),
-                    name: "Claude 3.5 Sonnet".to_string(),
-                    description: "Most intelligent model for complex tasks".to_string(),
-                    context_length: 200000,
-                },
-                ModelInfo {
-                    id: "claude-3-5-haiku-20241022".to_string(),
-                    name: "Claude 3.5 Haiku".to_string(),
-                    description: "Fastest model for simple tasks".to_string(),
-                    context_length: 200000,
-                },
-                ModelInfo {
-                    id: "claude-3-opus-20240229".to_string(),
-                    name: "Claude 3 Opus".to_string(),
-                    description: "Powerful model for nuanced tasks".to_string(),
-                    context_length: 200000,
-                },
-            ]),
-            AIProvider::Gemini => Ok(vec![
-                ModelInfo {
-                    id: "gemini-2.0-flash-exp".to_string(),
-                    name: "Gemini 2.0 Flash".to_string(),
-                    description: "Google's latest experimental flash model".to_string(),
-                    context_length: 1000000,
-                },
-                ModelInfo {
-                    id: "gemini-1.5-pro".to_string(),
-                    name: "Gemini 1.5 Pro".to_string(),
-                    description: "Google's advanced model with long context".to_string(),
-                    context_length: 2000000,
-                },
-                ModelInfo {
-                    id: "gemini-1.5-flash".to_string(),
-                    name: "Gemini 1.5 Flash".to_string(),
-                    description: "Google's fast, efficient model".to_string(),
-                    context_length: 1000000,
-                },
-            ]),
-            AIProvider::Ollama => Ok(vec![ModelInfo {
-                id: "llama3.2".to_string(),
-                name: "Llama 3.2".to_string(),
-                description: "Meta's open source model".to_string(),
-                context_length: 128000,
-            }]),
-            AIProvider::DeepSeek => Ok(vec![
-                ModelInfo {
-                    id: "deepseek-chat".to_string(),
-                    name: "DeepSeek Chat".to_string(),
-                    description: "DeepSeek's advanced chat model".to_string(),
-                    context_length: 128000,
-                },
-                ModelInfo {
-                    id: "deepseek-coder".to_string(),
-                    name: "DeepSeek Coder".to_string(),
-                    description: "DeepSeek's code-specialized model".to_string(),
-                    context_length: 128000,
-                },
-            ]),
-            AIProvider::OpenRouter => Ok(vec![
-                ModelInfo {
-                    id: "meta-llama/llama-3.3-70b-instruct".to_string(),
-                    name: "Llama 3.3 70B".to_string(),
-                    description: "Meta's large language model via OpenRouter".to_string(),
-                    context_length: 128000,
-                },
-                ModelInfo {
-                    id: "anthropic/claude-3.5-sonnet".to_string(),
-                    name: "Claude 3.5 Sonnet".to_string(),
-                    description: "Anthropic's Claude via OpenRouter".to_string(),
-                    context_length: 200000,
-                },
-            ]),
+            AIProvider::OpenAI => {
+                let api_key = env::var("OPENAI_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+
+                let response = client
+                    .get("https://api.openai.com/v1/models")
+                    .header("Authorization", format!("Bearer {}", api_key))
+                    .send()
+                    .await
+                    .map_err(|e| RigAgentError::HttpError(format!("OpenAI API request failed: {}", e)))?;
+
+                if !response.status().is_success() {
+                    let status = response.status();
+                    let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                    return Err(RigAgentError::HttpError(format!(
+                        "OpenAI API returned error: {} - {}",
+                        status, error_text
+                    )));
+                }
+
+                let models_response: OpenAIModelsResponse = response
+                    .json()
+                    .await
+                    .map_err(|e| RigAgentError::Other(format!("Failed to parse OpenAI models response: {}", e)))?;
+
+                // Filter and convert to ModelInfo, only include chat models
+                let models: Vec<ModelInfo> = models_response
+                    .data
+                    .into_iter()
+                    .filter(|m| {
+                        // Filter for GPT models
+                        m.id.starts_with("gpt-") || m.id.starts_with("o1-") || m.id == "chatgpt-4o-latest"
+                    })
+                    .map(|m| {
+                        let (name, description, context_length) = Self::describe_openai_model(&m.id);
+                        ModelInfo {
+                            id: m.id.clone(),
+                            name,
+                            description,
+                            context_length,
+                        }
+                    })
+                    .collect();
+
+                if models.is_empty() {
+                    // Fallback to known models if API returns empty
+                    return Ok(Self::get_known_openai_models());
+                }
+
+                Ok(models)
+            }
+            AIProvider::Anthropic => {
+                // Anthropic doesn't have a public models API, return known models
+                Ok(Self::get_known_anthropic_models())
+            }
+            AIProvider::Gemini => {
+                // Gemini doesn't have a public models API, return known models
+                Ok(Self::get_known_gemini_models())
+            }
+            AIProvider::DeepSeek => {
+                let api_key = env::var("DEEPSEEK_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+
+                let response = client
+                    .get("https://api.deepseek.com/v1/models")
+                    .header("Authorization", format!("Bearer {}", api_key))
+                    .send()
+                    .await
+                    .map_err(|e| RigAgentError::HttpError(format!("DeepSeek API request failed: {}", e)))?;
+
+                if !response.status().is_success() {
+                    let status = response.status();
+                    let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                    return Err(RigAgentError::HttpError(format!(
+                        "DeepSeek API returned error: {} - {}",
+                        status, error_text
+                    )));
+                }
+
+                let models_response: DeepSeekModelsResponse = response
+                    .json()
+                    .await
+                    .map_err(|e| RigAgentError::Other(format!("Failed to parse DeepSeek models response: {}", e)))?;
+
+                let models: Vec<ModelInfo> = models_response
+                    .data
+                    .into_iter()
+                    .map(|m| {
+                        let (name, description, context_length) = Self::describe_deepseek_model(&m.id);
+                        ModelInfo {
+                            id: m.id.clone(),
+                            name,
+                            description,
+                            context_length,
+                        }
+                    })
+                    .collect();
+
+                if models.is_empty() {
+                    return Ok(Self::get_known_deepseek_models());
+                }
+
+                Ok(models)
+            }
+            AIProvider::OpenRouter => {
+                let api_key =
+                    env::var("OPENROUTER_API_KEY").map_err(|e| RigAgentError::ApiKeyNotFound(e.to_string()))?;
+
+                let response = client
+                    .get("https://openrouter.ai/api/v1/models")
+                    .header("Authorization", format!("Bearer {}", api_key))
+                    .send()
+                    .await
+                    .map_err(|e| RigAgentError::HttpError(format!("OpenRouter API request failed: {}", e)))?;
+
+                if !response.status().is_success() {
+                    let status = response.status();
+                    let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                    return Err(RigAgentError::HttpError(format!(
+                        "OpenRouter API returned error: {} - {}",
+                        status, error_text
+                    )));
+                }
+
+                let models_response: OpenRouterModelsResponse = response
+                    .json()
+                    .await
+                    .map_err(|e| RigAgentError::Other(format!("Failed to parse OpenRouter models response: {}", e)))?;
+
+                let models: Vec<ModelInfo> = models_response
+                    .data
+                    .into_iter()
+                    .map(|m| ModelInfo {
+                        id: m.id.clone(),
+                        name: m.name.unwrap_or_else(|| m.id.clone()),
+                        description: m.description.unwrap_or_else(|| {
+                            let provider = m.id.split('/').next().unwrap_or("openrouter");
+                            format!("Model via {}", provider)
+                        }),
+                        context_length: m.context_length.unwrap_or(128000),
+                    })
+                    .collect();
+
+                if models.is_empty() {
+                    return Ok(Self::get_known_openrouter_models());
+                }
+
+                Ok(models)
+            }
+            AIProvider::Ollama => {
+                // Ollama would require local API access, return known models for now
+                Ok(Self::get_known_ollama_models())
+            }
         }
+    }
+
+    // Helper functions to describe models
+    fn describe_openai_model(id: &str) -> (String, String, usize) {
+        match id {
+            "gpt-4o" | "chatgpt-4o-latest" => (
+                "GPT-4 Omni".to_string(),
+                "OpenAI's most advanced multimodal model".to_string(),
+                128000,
+            ),
+            "gpt-4o-mini" => (
+                "GPT-4 Omni Mini".to_string(),
+                "Faster, cheaper version of GPT-4o".to_string(),
+                128000,
+            ),
+            "gpt-4-turbo" | "gpt-4-turbo-2024-04-09" => (
+                "GPT-4 Turbo".to_string(),
+                "High-intelligence model with vision capabilities".to_string(),
+                128000,
+            ),
+            "gpt-4" => (
+                "GPT-4".to_string(),
+                "OpenAI's previous flagship model".to_string(),
+                8192,
+            ),
+            "gpt-3.5-turbo" => (
+                "GPT-3.5 Turbo".to_string(),
+                "Fast, efficient model for most tasks".to_string(),
+                16385,
+            ),
+            "o1-preview" => (
+                "OpenAI o1 Preview".to_string(),
+                "OpenAI's reasoning model".to_string(),
+                128000,
+            ),
+            "o1-mini" => (
+                "OpenAI o1 Mini".to_string(),
+                "OpenAI's fast reasoning model".to_string(),
+                128000,
+            ),
+            _ => (id.to_string(), format!("OpenAI model: {}", id), 128000),
+        }
+    }
+
+    fn describe_deepseek_model(id: &str) -> (String, String, usize) {
+        match id {
+            "deepseek-chat" => (
+                "DeepSeek Chat".to_string(),
+                "DeepSeek's advanced chat model".to_string(),
+                128000,
+            ),
+            "deepseek-coder" => (
+                "DeepSeek Coder".to_string(),
+                "DeepSeek's code-specialized model".to_string(),
+                128000,
+            ),
+            _ => (id.to_string(), format!("DeepSeek model: {}", id), 128000),
+        }
+    }
+
+    // Fallback known model lists
+    fn get_known_openai_models() -> Vec<ModelInfo> {
+        vec![
+            ModelInfo {
+                id: "gpt-4o".to_string(),
+                name: "GPT-4 Omni".to_string(),
+                description: "OpenAI's most advanced multimodal model".to_string(),
+                context_length: 128000,
+            },
+            ModelInfo {
+                id: "gpt-4o-mini".to_string(),
+                name: "GPT-4 Omni Mini".to_string(),
+                description: "Faster, cheaper version of GPT-4o".to_string(),
+                context_length: 128000,
+            },
+            ModelInfo {
+                id: "gpt-4-turbo".to_string(),
+                name: "GPT-4 Turbo".to_string(),
+                description: "High-intelligence model with vision capabilities".to_string(),
+                context_length: 128000,
+            },
+            ModelInfo {
+                id: "gpt-3.5-turbo".to_string(),
+                name: "GPT-3.5 Turbo".to_string(),
+                description: "Fast, efficient model for most tasks".to_string(),
+                context_length: 16385,
+            },
+        ]
+    }
+
+    fn get_known_anthropic_models() -> Vec<ModelInfo> {
+        vec![
+            ModelInfo {
+                id: "claude-3-5-sonnet-20241022".to_string(),
+                name: "Claude 3.5 Sonnet".to_string(),
+                description: "Most intelligent model for complex tasks".to_string(),
+                context_length: 200000,
+            },
+            ModelInfo {
+                id: "claude-3-5-haiku-20241022".to_string(),
+                name: "Claude 3.5 Haiku".to_string(),
+                description: "Fastest model for simple tasks".to_string(),
+                context_length: 200000,
+            },
+            ModelInfo {
+                id: "claude-3-opus-20240229".to_string(),
+                name: "Claude 3 Opus".to_string(),
+                description: "Powerful model for nuanced tasks".to_string(),
+                context_length: 200000,
+            },
+        ]
+    }
+
+    fn get_known_gemini_models() -> Vec<ModelInfo> {
+        vec![
+            ModelInfo {
+                id: "gemini-2.0-flash-exp".to_string(),
+                name: "Gemini 2.0 Flash".to_string(),
+                description: "Google's latest experimental flash model".to_string(),
+                context_length: 1000000,
+            },
+            ModelInfo {
+                id: "gemini-1.5-pro".to_string(),
+                name: "Gemini 1.5 Pro".to_string(),
+                description: "Google's advanced model with long context".to_string(),
+                context_length: 2000000,
+            },
+            ModelInfo {
+                id: "gemini-1.5-flash".to_string(),
+                name: "Gemini 1.5 Flash".to_string(),
+                description: "Google's fast, efficient model".to_string(),
+                context_length: 1000000,
+            },
+        ]
+    }
+
+    fn get_known_deepseek_models() -> Vec<ModelInfo> {
+        vec![
+            ModelInfo {
+                id: "deepseek-chat".to_string(),
+                name: "DeepSeek Chat".to_string(),
+                description: "DeepSeek's advanced chat model".to_string(),
+                context_length: 128000,
+            },
+            ModelInfo {
+                id: "deepseek-coder".to_string(),
+                name: "DeepSeek Coder".to_string(),
+                description: "DeepSeek's code-specialized model".to_string(),
+                context_length: 128000,
+            },
+        ]
+    }
+
+    fn get_known_openrouter_models() -> Vec<ModelInfo> {
+        vec![
+            ModelInfo {
+                id: "meta-llama/llama-3.3-70b-instruct".to_string(),
+                name: "Llama 3.3 70B".to_string(),
+                description: "Meta's large language model via OpenRouter".to_string(),
+                context_length: 128000,
+            },
+            ModelInfo {
+                id: "anthropic/claude-3.5-sonnet".to_string(),
+                name: "Claude 3.5 Sonnet".to_string(),
+                description: "Anthropic's Claude via OpenRouter".to_string(),
+                context_length: 200000,
+            },
+        ]
+    }
+
+    fn get_known_ollama_models() -> Vec<ModelInfo> {
+        vec![ModelInfo {
+            id: "llama3.2".to_string(),
+            name: "Llama 3.2".to_string(),
+            description: "Meta's open source model".to_string(),
+            context_length: 128000,
+        }]
     }
 }
