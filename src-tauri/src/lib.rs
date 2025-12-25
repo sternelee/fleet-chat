@@ -39,8 +39,6 @@ fn greet(name: &str) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let router: Router = create_axum_app();
-    let port: u16 = 9527;
-
     let app_state = AppState {
         router: Arc::new(Mutex::new(router)),
     };
@@ -52,7 +50,6 @@ pub fn run() {
             .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
                 let _ = app.get_webview_window("main").expect("no main window").set_focus();
             }))
-            .plugin(tauri_plugin_localhost::Builder::new(port).build())
             .plugin(tauri_plugin_process::init());
     }
 
@@ -77,11 +74,6 @@ pub fn run() {
                         tauri_plugin_positioner::on_tray_event(tray_handle.app_handle(), &event);
                     })
                     .build(app)?;
-
-                // let url = format!("http://localhost:{}", port).parse().unwrap();
-                // WebviewWindowBuilder::new(app, "main".to_string(), WebviewUrl::External(url))
-                //     .title("Localhost Example")
-                //     .build()?;
             }
             // Note: Window is now configured via tauri.conf.json (windows array)
             // No need to manually create window here, as it causes duplicate window error

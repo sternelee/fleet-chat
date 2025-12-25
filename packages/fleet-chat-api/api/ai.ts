@@ -67,6 +67,7 @@ export class AI {
   static async generateStream(options: AIStreamOptions): Promise<void> {
     try {
       const mergedOptions = { ...AI.defaultOptions, ...options }
+      // tauri_axum proxy automatically bypasses streaming requests for true SSE
       const response = await fetch('/ai/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,19 +94,65 @@ export class AI {
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
 
+        let currentEvent = ''
+
         for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const data = line.slice(5).trim()
-            if (data === '[DONE]' || data === '') {
+          const trimmed = line.trim()
+
+          // Skip empty lines (SSE event separator)
+          if (!trimmed) {
+            if (currentEvent === 'done') {
+              break
+            }
+            currentEvent = ''
+            continue
+          }
+
+          // Parse event type
+          if (trimmed.startsWith('event:')) {
+            currentEvent = trimmed.slice(6).trim()
+            continue
+          }
+
+          // Parse data
+          if (trimmed.startsWith('data:')) {
+            const data = trimmed.slice(5).trim()
+
+            // Handle OpenAI-style [DONE] signal
+            if (data === '[DONE]') {
+              break
+            }
+
+            if (data === '') {
               continue
             }
 
             try {
               const parsed = JSON.parse(data)
-              if (parsed.text && options.onChunk) {
+
+              // Handle chunk events
+              if (currentEvent === 'chunk' || parsed.event === 'chunk') {
+                const text = parsed.text || parsed.data?.text || parsed.data || ''
+                if (text && options.onChunk) {
+                  options.onChunk(text)
+                }
+              }
+              // Handle error events
+              else if (currentEvent === 'error' || parsed.event === 'error') {
+                if (options.onError) {
+                  options.onError(new Error(parsed.error || parsed.data?.error || 'Unknown error'))
+                }
+              }
+              // Handle done events
+              else if (currentEvent === 'done' || parsed.event === 'done') {
+                break
+              }
+              // Legacy format: direct text field
+              else if (parsed.text && options.onChunk) {
                 options.onChunk(parsed.text)
               }
-              if (parsed.error && options.onError) {
+              // Legacy error handling
+              else if (parsed.error && options.onError) {
                 options.onError(new Error(parsed.error))
               }
             } catch (e) {

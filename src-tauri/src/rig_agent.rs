@@ -143,13 +143,43 @@ impl RigAgent {
         Ok(())
     }
 
-    fn resolve_model(&self, options: &AIOptions) -> String {
-        options.model.clone().unwrap_or_else(|| self.default_model.clone())
+    /// Resolve provider from request options, fallback to instance provider
+    fn resolve_provider(&self, options: &AIOptions) -> AIProvider {
+        if let Some(provider_str) = &options.provider {
+            match provider_str.to_lowercase().as_str() {
+                "openai" => AIProvider::OpenAI,
+                "anthropic" | "claude" => AIProvider::Anthropic,
+                "gemini" | "google" => AIProvider::Gemini,
+                "deepseek" => AIProvider::DeepSeek,
+                "openrouter" => AIProvider::OpenRouter,
+                "ollama" => AIProvider::Ollama,
+                _ => {
+                    eprintln!(
+                        "[resolve_provider] Unknown provider '{}', using instance provider",
+                        provider_str
+                    );
+                    self.provider.clone()
+                }
+            }
+        } else {
+            self.provider.clone()
+        }
     }
 
-    /// Get the completion model for the current provider
-    fn get_completion_model(&self, model: &str) -> Result<ProviderCompletionModel, RigAgentError> {
-        match self.provider {
+    fn resolve_model(&self, options: &AIOptions) -> (AIProvider, String) {
+        let provider = self.resolve_provider(options);
+        let default_model = provider.default_model();
+        let model = options.model.clone().unwrap_or(default_model);
+        (provider, model)
+    }
+
+    /// Get the completion model for the specified provider
+    fn get_completion_model(
+        &self,
+        provider: &AIProvider,
+        model: &str,
+    ) -> Result<ProviderCompletionModel, RigAgentError> {
+        match provider {
             AIProvider::OpenAI => {
                 let client = openai::Client::from_env();
                 Ok(ProviderCompletionModel::OpenAI(client.completion_model(model)))
@@ -163,8 +193,25 @@ impl RigAgent {
                 Ok(ProviderCompletionModel::Gemini(client.completion_model(model)))
             }
             AIProvider::DeepSeek => {
-                let client = deepseek::Client::from_env();
-                Ok(ProviderCompletionModel::DeepSeek(client.completion_model(model)))
+                println!("[get_completion_model] Creating DeepSeek client with model: {}", model);
+                let api_key = env::var("DEEPSEEK_API_KEY").map_err(|e| {
+                    eprintln!("[get_completion_model] DEEPSEEK_API_KEY not found: {}", e);
+                    RigAgentError::ApiKeyNotFound(e.to_string())
+                })?;
+                println!(
+                    "[get_completion_model] DEEPSEEK_API_KEY found (length: {})",
+                    api_key.len()
+                );
+
+                let client = deepseek::Client::new(&api_key).map_err(|e| {
+                    eprintln!("[get_completion_model] Failed to create DeepSeek client: {}", e);
+                    RigAgentError::Other(format!("Failed to create DeepSeek client: {}", e))
+                })?;
+
+                println!("[get_completion_model] DeepSeek client created successfully, getting completion model");
+                let completion_model = client.completion_model(model);
+                println!("[get_completion_model] DeepSeek completion model created");
+                Ok(ProviderCompletionModel::DeepSeek(completion_model))
             }
             AIProvider::OpenRouter => {
                 let client = openrouter::Client::from_env();
@@ -178,6 +225,8 @@ impl RigAgent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIOptions {
     pub prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -304,7 +353,7 @@ impl AIProvider {
             AIProvider::Gemini => "gemini-2.0-flash-exp".to_string(),
             AIProvider::Ollama => "llama3.2".to_string(),
             AIProvider::DeepSeek => "deepseek-chat".to_string(),
-            AIProvider::OpenRouter => "meta-llama/llama-3.3-70b-instruct".to_string(),
+            AIProvider::OpenRouter => "openrouter/auto".to_string(),
         }
     }
 
@@ -360,12 +409,12 @@ impl RigAgent {
 
     /// Generate text using AgentBuilder::new() pattern
     pub async fn generate(&self, options: AIOptions) -> Result<AIResponse, RigAgentError> {
-        let model = self.resolve_model(&options);
+        let (provider, model) = self.resolve_model(&options);
         let temperature = options.temperature.map(|t| t as f64);
         let max_tokens = options.max_tokens.map(|t| t as u64);
 
-        // Get completion model for current provider
-        let completion_model = self.get_completion_model(&model)?;
+        // Get completion model for specified provider
+        let completion_model = self.get_completion_model(&provider, &model)?;
 
         // Build agent and call prompt
         let text = match completion_model {
@@ -399,11 +448,14 @@ impl RigAgent {
                 builder.build().prompt(&options.prompt).await?
             }
             ProviderCompletionModel::DeepSeek(model) => {
+                println!("[generate] Building DeepSeek agent for prompt generation");
                 let mut builder = AgentBuilder::new(model);
                 if let Some(temp) = temperature {
+                    println!("[generate] Setting temperature: {}", temp);
                     builder = builder.temperature(temp);
                 }
                 if let Some(tokens) = max_tokens {
+                    println!("[generate] Setting max_tokens: {}", tokens);
                     builder = builder.max_tokens(tokens);
                 }
                 builder.build().prompt(&options.prompt).await?
@@ -437,11 +489,18 @@ impl RigAgent {
         use tokio::sync::mpsc;
         use tokio_stream::wrappers::ReceiverStream;
 
-        let model = self.resolve_model(&options);
-        let provider = self.provider.clone();
-        let prompt = options.prompt;
+        let (provider, model) = self.resolve_model(&options);
+        let prompt = options.prompt.clone();
         let temperature = options.temperature.map(|t| t as f64);
         let max_tokens = options.max_tokens.map(|t| t as u64);
+
+        eprintln!("[generate_stream] ========== START ==========");
+        eprintln!("[generate_stream] provider: {:?}", provider);
+        eprintln!("[generate_stream] model: {}", model);
+        eprintln!("[generate_stream] prompt: {}", prompt);
+        eprintln!("[generate_stream] temperature: {:?}", temperature);
+        eprintln!("[generate_stream] max_tokens: {:?}", max_tokens);
+        eprintln!("[generate_stream] =============================");
 
         // Create a channel for sending chunks
         let (tx, rx) = mpsc::channel(100);
@@ -464,8 +523,39 @@ impl RigAgent {
                         ProviderCompletionModel::Gemini(client.completion_model(&model))
                     }
                     AIProvider::DeepSeek => {
-                        let client = deepseek::Client::from_env();
-                        ProviderCompletionModel::DeepSeek(client.completion_model(&model))
+                        println!("[generate_stream] Creating DeepSeek client with model: {}", model);
+                        let api_key = match env::var("DEEPSEEK_API_KEY") {
+                            Ok(key) => {
+                                println!("[generate_stream] DEEPSEEK_API_KEY found (length: {})", key.len());
+                                key
+                            }
+                            Err(e) => {
+                                eprintln!("[generate_stream] DEEPSEEK_API_KEY not found: {}", e);
+                                let _ = tx.send(Err(RigAgentError::ApiKeyNotFound(e.to_string()))).await;
+                                return Ok(());
+                            }
+                        };
+
+                        let client = match deepseek::Client::new(&api_key) {
+                            Ok(client) => {
+                                println!("[generate_stream] DeepSeek client created successfully");
+                                client
+                            }
+                            Err(e) => {
+                                eprintln!("[generate_stream] Failed to create DeepSeek client: {}", e);
+                                let _ = tx
+                                    .send(Err(RigAgentError::Other(format!(
+                                        "Failed to create DeepSeek client: {}",
+                                        e
+                                    ))))
+                                    .await;
+                                return Ok(());
+                            }
+                        };
+
+                        let completion_model = client.completion_model(&model);
+                        println!("[generate_stream] DeepSeek completion model created");
+                        ProviderCompletionModel::DeepSeek(completion_model)
                     }
                     AIProvider::OpenRouter => {
                         let client = openrouter::Client::from_env();
@@ -569,33 +659,56 @@ impl RigAgent {
                         }
                     }
                     ProviderCompletionModel::DeepSeek(model) => {
+                        println!("[generate_stream] Building DeepSeek agent");
                         let mut builder = AgentBuilder::new(model);
                         if let Some(temp) = temperature {
+                            println!("[generate_stream] Setting temperature: {}", temp);
                             builder = builder.temperature(temp);
                         }
                         if let Some(tokens) = max_tokens {
+                            println!("[generate_stream] Setting max_tokens: {}", tokens);
                             builder = builder.max_tokens(tokens);
                         }
                         let agent = std::sync::Arc::new(builder.build());
+                        println!("[generate_stream] DeepSeek agent built, calling stream_prompt");
 
                         let mut stream = agent.stream_prompt(&prompt).await;
+                        println!("[generate_stream] DeepSeek stream created, starting to consume");
+                        let mut chunk_count = 0;
+
                         while let Some(item) = stream.next().await {
+                            chunk_count += 1;
+                            println!(
+                                "[generate_stream] DeepSeek chunk #{}, item type: {:?}",
+                                chunk_count,
+                                std::mem::discriminant(&item)
+                            );
+
                             match item {
                                 Ok(chunk) => match chunk {
                                     MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(text)) => {
-                                        let _ = tx.send(Ok(text.text)).await;
+                                        println!("[generate_stream] DeepSeek text chunk: '{}'", text.text);
+                                        if tx.send(Ok(text.text)).await.is_err() {
+                                            eprintln!("[generate_stream] Failed to send chunk, channel closed");
+                                            break;
+                                        }
                                     }
                                     MultiTurnStreamItem::FinalResponse(_) => {
+                                        println!("[generate_stream] DeepSeek FinalResponse received");
                                         break;
                                     }
-                                    _ => {}
+                                    _ => {
+                                        println!("[generate_stream] DeepSeek ignoring non-text chunk");
+                                    }
                                 },
                                 Err(e) => {
+                                    eprintln!("[generate_stream] DeepSeek stream error: {:?}", e);
                                     let _ = tx.send(Err(RigAgentError::Other(e.to_string()))).await;
                                     break;
                                 }
                             }
                         }
+                        println!("[generate_stream] DeepSeek stream ended, total chunks: {}", chunk_count);
                     }
                     ProviderCompletionModel::OpenRouter(model) => {
                         let mut builder = AgentBuilder::new(model);
@@ -649,6 +762,7 @@ impl RigAgent {
     ) -> Result<AIResponse, RigAgentError> {
         let default_options = options.unwrap_or_else(|| AIOptions {
             prompt: String::new(),
+            provider: None,
             model: None,
             temperature: None,
             max_tokens: None,
@@ -656,7 +770,7 @@ impl RigAgent {
             frequency_penalty: None,
             presence_penalty: None,
         });
-        let model = self.resolve_model(&default_options);
+        let (provider, model) = self.resolve_model(&default_options);
         let temperature = default_options.temperature.map(|t| t as f64);
         let max_tokens = default_options.max_tokens.map(|t| t as u64);
 
@@ -678,8 +792,8 @@ impl RigAgent {
             vec![]
         };
 
-        // Get completion model for current provider
-        let completion_model = self.get_completion_model(&model)?;
+        // Get completion model for specified provider
+        let completion_model = self.get_completion_model(&provider, &model)?;
 
         // Build agent and call chat
         let text = match completion_model {
@@ -712,11 +826,14 @@ impl RigAgent {
                 builder.build().chat(prompt_msg, chat_history).await?
             }
             ProviderCompletionModel::DeepSeek(model) => {
+                println!("[chat] Building DeepSeek agent for chat");
                 let mut builder = AgentBuilder::new(model);
                 if let Some(temp) = temperature {
+                    println!("[chat] Setting temperature: {}", temp);
                     builder = builder.temperature(temp);
                 }
                 if let Some(tokens) = max_tokens {
+                    println!("[chat] Setting max_tokens: {}", tokens);
                     builder = builder.max_tokens(tokens);
                 }
                 builder.build().chat(prompt_msg, chat_history).await?

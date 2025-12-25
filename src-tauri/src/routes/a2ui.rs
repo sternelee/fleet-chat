@@ -76,10 +76,7 @@ pub struct UserActionRequest {
 // ============================================================================
 
 /// Create a new surface for rendering
-pub async fn create_surface(
-    State(state): State<A2UIState>,
-    Json(request): Json<CreateSurfaceRequest>,
-) -> Json<Value> {
+pub async fn create_surface(State(state): State<A2UIState>, Json(request): Json<CreateSurfaceRequest>) -> Json<Value> {
     let surface_id = request.surface_id.unwrap_or_else(|| Uuid::new_v4().to_string());
 
     let mut surfaces = state.surfaces.lock().unwrap();
@@ -166,10 +163,7 @@ pub async fn update_data_model(
 }
 
 /// Handle user actions from the UI
-pub async fn handle_user_action(
-    State(state): State<A2UIState>,
-    Json(request): Json<UserActionRequest>,
-) -> Json<Value> {
+pub async fn handle_user_action(State(state): State<A2UIState>, Json(request): Json<UserActionRequest>) -> Json<Value> {
     let mut surfaces = state.surfaces.lock().unwrap();
 
     if let Some(surface) = surfaces.get_mut(&request.surface_id) {
@@ -195,10 +189,7 @@ pub async fn handle_user_action(
 }
 
 /// Delete a surface
-pub async fn delete_surface(
-    State(state): State<A2UIState>,
-    Path(surface_id): Path<String>,
-) -> Json<Value> {
+pub async fn delete_surface(State(state): State<A2UIState>, Path(surface_id): Path<String>) -> Json<Value> {
     let mut surfaces = state.surfaces.lock().unwrap();
 
     if surfaces.remove(&surface_id).is_some() {
@@ -221,10 +212,7 @@ pub async fn delete_surface(
 }
 
 /// Get a surface by ID
-pub async fn get_surface(
-    State(state): State<A2UIState>,
-    Path(surface_id): Path<String>,
-) -> Json<Value> {
+pub async fn get_surface(State(state): State<A2UIState>, Path(surface_id): Path<String>) -> Json<Value> {
     let surfaces = state.surfaces.lock().unwrap();
 
     if let Some(surface) = surfaces.get(&surface_id) {
@@ -276,10 +264,8 @@ pub async fn a2ui_agent_chat(
         .ok_or(http::StatusCode::BAD_REQUEST)?
         .to_string();
 
-    let _tool_context: Option<HashMap<String, String>> = request
-        .get("tool_context")
-        .and_then(|v| v.as_object())
-        .map(|obj| {
+    let _tool_context: Option<HashMap<String, String>> =
+        request.get("tool_context").and_then(|v| v.as_object()).map(|obj| {
             obj.iter()
                 .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
                 .collect()
@@ -426,7 +412,11 @@ pub async fn generate_plugin(
     Json(request): Json<PluginGenerationRequest>,
 ) -> Result<Json<PluginGenerationResponse>, http::StatusCode> {
     let plugin_type = request.plugin_type.as_deref().unwrap_or("list");
-    let plugin_name = request.name.as_ref().map(|s| s.as_str()).unwrap_or(&request.description);
+    let plugin_name = request
+        .name
+        .as_ref()
+        .map(|s| s.as_str())
+        .unwrap_or(&request.description);
     let sanitized_name = sanitize_plugin_name(plugin_name);
 
     let manifest = generate_default_manifest(plugin_name, &request.description, plugin_type);
@@ -447,6 +437,7 @@ pub async fn generate_plugin(
         match agent
             .generate(AIOptions {
                 prompt,
+                provider: None,
                 model: None,
                 temperature: None,
                 max_tokens: None,
@@ -496,7 +487,11 @@ pub async fn generate_plugin_stream(
     Json(request): Json<PluginGenerationRequest>,
 ) -> Result<Sse<impl futures_util::Stream<Item = Result<Event, std::convert::Infallible>>>, http::StatusCode> {
     let plugin_type = request.plugin_type.as_deref().unwrap_or("list");
-    let plugin_name = request.name.as_ref().map(|s| s.as_str()).unwrap_or(&request.description);
+    let plugin_name = request
+        .name
+        .as_ref()
+        .map(|s| s.as_str())
+        .unwrap_or(&request.description);
     let sanitized_name = sanitize_plugin_name(plugin_name);
     let manifest = generate_default_manifest(plugin_name, &request.description, plugin_type);
 

@@ -601,6 +601,7 @@ pub async fn generate_search_insights(query: String, search_results: SearchResul
     // Generate the AI response
     let ai_options = AIOptions {
         prompt,
+        provider: None,
         model: None, // Use default model
         temperature: Some(0.7),
         max_tokens: Some(200),
@@ -661,6 +662,7 @@ pub async fn ask_ai_provider(query: String, provider_name: String) -> Result<Str
     // Create the AI options
     let ai_options = AIOptions {
         prompt: query,
+        provider: None,
         model: None, // Use default model
         temperature: Some(0.8),
         max_tokens: Some(500),

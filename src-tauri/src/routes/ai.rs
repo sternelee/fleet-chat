@@ -17,6 +17,7 @@ use axum::{
 use futures::stream::StreamExt;
 use serde_json::json;
 use std::sync::Arc;
+use tauri_plugin_log::log::{debug, error, info, warn};
 
 /// The application state used by AI handlers
 #[derive(Clone)]
@@ -56,39 +57,72 @@ pub async fn ai_generate_stream(
     State(state): State<AIState>,
     Json(options): Json<AIOptions>,
 ) -> Result<Response, http::StatusCode> {
+    eprintln!("[ai_generate_stream] ====== REQUEST START ======");
+    eprintln!(
+        "[ai_generate_stream] Received request, prompt length: {}",
+        options.prompt.len()
+    );
+    eprintln!(
+        "[ai_generate_stream] Options: model={:?}, temperature={:?}",
+        options.model, options.temperature
+    );
+
     let agent = state.rig_agent.as_ref().ok_or(http::StatusCode::SERVICE_UNAVAILABLE)?;
+    eprintln!("[ai_generate_stream] Got RigAgent instance");
 
     let mut stream = agent.generate_stream(options);
+    eprintln!("[ai_generate_stream] Created stream from RigAgent");
 
     // Create a channel for SSE events
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, std::convert::Infallible>>(32);
+    info!("[ai_generate_stream] Created mpsc channel for SSE events");
 
     // Spawn a task to consume the stream and send SSE events
     tokio::spawn(async move {
+        info!("[ai_generate_stream] Task started: consuming stream and sending SSE events");
+        let mut chunk_count = 0;
+
         while let Some(chunk_result) = stream.next().await {
+            chunk_count += 1;
+            debug!(
+                "[ai_generate_stream] Received chunk #{}, result: {:?}",
+                chunk_count,
+                chunk_result.is_ok()
+            );
+
             match chunk_result {
                 Ok(chunk) => {
+                    debug!("[ai_generate_stream] Chunk text length: {}", chunk.len());
                     let data = json!({ "text": chunk });
-                    if tx
-                        .send(Ok(Event::default().data(data.to_string()).event("chunk")))
-                        .await
-                        .is_err()
-                    {
+                    let event = Event::default().data(data.to_string()).event("chunk");
+                    debug!("[ai_generate_stream] Sending SSE chunk event #{}", chunk_count);
+
+                    if tx.send(Ok(event)).await.is_err() {
+                        warn!("[ai_generate_stream] Failed to send SSE chunk, channel closed");
                         break;
                     }
                 }
-                Err(_) => {
-                    let _ = tx.send(Ok(Event::default().event("error")));
+                Err(e) => {
+                    error!("[ai_generate_stream] Stream error: {:?}", e);
+                    let error_data = json!({ "error": format!("{:?}", e) });
+                    let _ = tx
+                        .send(Ok(Event::default().data(error_data.to_string()).event("error")))
+                        .await;
                     break;
                 }
             }
         }
 
+        info!("[ai_generate_stream] Stream ended, total chunks: {}", chunk_count);
+
         // Send completion event
-        let _ = tx.send(Ok(Event::default().event("done")));
+        debug!("[ai_generate_stream] Sending 'done' event");
+        let _ = tx.send(Ok(Event::default().event("done"))).await;
+        info!("[ai_generate_stream] Task completed");
     });
 
     let stream = tokio_stream::wrappers::ReceiverStream::new(rx);
+    info!("[ai_generate_stream] Created ReceiverStream, returning SSE response");
     Ok(Sse::new(stream).into_response())
 }
 
