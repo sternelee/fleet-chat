@@ -2128,8 +2128,7 @@ export class ViewSearch extends LitElement {
       };
 
       const aiProvider = providerMap[provider] || "openai";
-      // tauri_axum proxy automatically bypasses streaming requests for true SSE
-      const response = await fetch("/ai/stream", {
+      const response = await fetch("/ai/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2146,90 +2145,11 @@ export class ViewSearch extends LitElement {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      // /ai/generate returns JSON directly (non-streaming)
+      const result = await response.json();
+      console.log("[AI] Response received:", result);
 
-      if (!reader) {
-        throw new Error("No response body reader");
-      }
-
-      // Read the SSE stream
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          console.log("[AI] Stream complete");
-          break;
-        }
-
-        // Decode the chunk
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-
-        let currentEvent = "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-
-          // Skip empty lines (SSE event separator)
-          if (!trimmed) {
-            // Process the accumulated event when we hit empty line
-            if (currentEvent === "done") {
-              console.log("[AI] Stream done event received");
-              return;
-            }
-            currentEvent = "";
-            continue;
-          }
-
-          // Parse event type
-          if (trimmed.startsWith("event:")) {
-            currentEvent = trimmed.slice(6).trim();
-            continue;
-          }
-
-          // Parse data
-          if (trimmed.startsWith("data:")) {
-            const data = trimmed.slice(5).trim();
-
-            // Handle OpenAI-style [DONE] signal
-            if (data === "[DONE]") {
-              console.log("[AI] Stream done signal received");
-              return;
-            }
-
-            try {
-              const json = JSON.parse(data);
-
-              if (currentEvent === "chunk" || json.event === "chunk") {
-                const content = json.text || json.data?.text || json.data || "";
-                if (content) {
-                  console.log("[AI] Stream chunk:", content);
-
-                  // Stop loading state on first chunk
-                  if (this.aiChatLoading) {
-                    this.aiChatLoading = false;
-                  }
-
-                  // Update response and force immediate render
-                  this.aiChatResponse += content;
-                  this.performUpdate();
-                }
-              } else if (currentEvent === "error" || json.event === "error") {
-                console.error("[AI] Stream error:", json);
-                throw new Error("Stream error occurred");
-              } else if (currentEvent === "done" || json.event === "done") {
-                console.log("[AI] Stream done event received");
-                return;
-              }
-            } catch (e) {
-              // Skip invalid JSON lines
-              console.debug("[AI] Skipping non-JSON line:", data);
-            }
-          }
-        }
-      }
-
+      this.aiChatResponse = result.text || "";
       this.aiChatLoading = false;
       this.requestUpdate();
     } catch (error) {
