@@ -5,8 +5,7 @@ import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
 import { executePluginCommand, pluginIntegration } from "../../plugins/plugin-integration";
-import { getCurrentMention, parseInput, type Mention, type ParsedInput } from "../../utils/mention-parser";
-import type { SuggestionDropdown } from "../../components/suggestion-dropdown";
+import { getCurrentMention, parseInput, type Mention } from "../../utils/mention-parser";
 
 interface Application {
   name: string;
@@ -75,7 +74,6 @@ export class ViewSearch extends LitElement {
   @state() private currentMention: Mention | null = null;
   @state() private mentionSuggestions: Array<{ id: string; name: string; path?: string; icon?: string; type: 'app' | 'file' }> = [];
   @state() private showMentionDropdown = false;
-  @state() private parsedInput: ParsedInput | null = null;
 
   // Frontend application cache (instant search)
   private applicationCache: Application[] = [];
@@ -1523,8 +1521,8 @@ export class ViewSearch extends LitElement {
     const target = e.target as HTMLInputElement;
     this.query = target.value;
     
-    // Parse input for mentions
-    this.parsedInput = parseInput(this.query);
+    // Parse input for mentions (not stored, just for current processing)
+    parseInput(this.query);
 
     // Detect command prefix
     this._detectCommandPrefix();
@@ -2351,13 +2349,17 @@ export class ViewSearch extends LitElement {
     
     if (!this.currentMention) return;
     
+    // Save current mention details before clearing
+    const mentionStartIndex = this.currentMention.startIndex;
+    const mentionType = this.currentMention.type;
+    const mentionPrefix = mentionType === 'app' ? '@' : '#';
+    
     // Replace the partial mention with the selected item
     const input = this.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
     if (!input) return;
     
-    const beforeMention = this.query.substring(0, this.currentMention.startIndex);
+    const beforeMention = this.query.substring(0, mentionStartIndex);
     const afterMention = this.query.substring(this.currentMention.endIndex);
-    const mentionPrefix = this.currentMention.type === 'app' ? '@' : '#';
     
     // Insert the selected mention
     this.query = `${beforeMention}${mentionPrefix}${suggestion.name}${afterMention}`;
@@ -2365,16 +2367,15 @@ export class ViewSearch extends LitElement {
     // Update input value
     input.value = this.query;
     
+    // Calculate cursor position after the mention
+    const newCursorPos = mentionStartIndex + mentionPrefix.length + suggestion.name.length;
+    
     // Close dropdown
     this.showMentionDropdown = false;
     this.currentMention = null;
     this.mentionSuggestions = [];
     
-    // Re-parse input
-    this.parsedInput = parseInput(this.query);
-    
     // Set cursor position after the mention
-    const newCursorPos = this.currentMention.startIndex + mentionPrefix.length + suggestion.name.length;
     input.setSelectionRange(newCursorPos, newCursorPos);
     input.focus();
     
