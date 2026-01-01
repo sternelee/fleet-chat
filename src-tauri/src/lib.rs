@@ -11,7 +11,7 @@ use axum_app::create_axum_app;
 use search::{
     ask_ai_provider, generate_search_insights, get_all_applications, get_application_icon, get_available_ai_providers,
     get_default_application, get_frontmost_application, get_running_applications, search_applications, search_files,
-    unified_search,
+    unified_search, search_app_suggestions, search_file_suggestions,
 };
 use std::sync::Arc;
 use tauri::Manager;
@@ -100,6 +100,8 @@ pub fn run() {
             get_frontmost_application,
             get_running_applications,
             get_default_application,
+            search_app_suggestions,
+            search_file_suggestions,
             // Plugin system commands
             plugins::load_plugin,
             plugins::unload_plugin,

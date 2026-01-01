@@ -5,6 +5,8 @@ import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
 import { executePluginCommand, pluginIntegration } from "../../plugins/plugin-integration";
+import { getCurrentMention, parseInput, type Mention, type ParsedInput } from "../../utils/mention-parser";
+import type { SuggestionDropdown } from "../../components/suggestion-dropdown";
 
 interface Application {
   name: string;
@@ -68,6 +70,12 @@ export class ViewSearch extends LitElement {
   @state() private aiChatLoading = false;
   @state() private showAiChatModal = false;
   @state() private aiChatProvider = "";
+  
+  // Mention/autocomplete state
+  @state() private currentMention: Mention | null = null;
+  @state() private mentionSuggestions: Array<{ id: string; name: string; path?: string; icon?: string; type: 'app' | 'file' }> = [];
+  @state() private showMentionDropdown = false;
+  @state() private parsedInput: ParsedInput | null = null;
 
   // Frontend application cache (instant search)
   private applicationCache: Application[] = [];
@@ -1041,6 +1049,7 @@ export class ViewSearch extends LitElement {
 
         ${this._renderPluginUploadButton()} ${this._renderKeyboardHint()}
         ${this._renderAIChatModal()}
+        ${this._renderMentionDropdown()}
       </div>
     `;
   }
@@ -1390,7 +1399,7 @@ export class ViewSearch extends LitElement {
     } else if (this.commandPrefix === "?") {
       return "Search everything...";
     }
-    return "Search applications... (> / ? for more)";
+    return "Search or ask AI... (Use @app and #file to mention)";
   }
 
   private _getPrefixLabel(): string {
@@ -1487,6 +1496,14 @@ export class ViewSearch extends LitElement {
     return html`
       <div class="prefix-hints">
         <div class="prefix-hint">
+          <span class="prefix-hint-key">@</span>
+          <span>Mention apps</span>
+        </div>
+        <div class="prefix-hint">
+          <span class="prefix-hint-key">#</span>
+          <span>Mention files</span>
+        </div>
+        <div class="prefix-hint">
           <span class="prefix-hint-key">></span>
           <span>Plugins</span>
         </div>
@@ -1498,10 +1515,6 @@ export class ViewSearch extends LitElement {
           <span class="prefix-hint-key">?</span>
           <span>Everything</span>
         </div>
-        <div class="prefix-hint">
-          <span class="prefix-hint-key">⌘↵</span>
-          <span>Quick Actions</span>
-        </div>
       </div>
     `;
   }
@@ -1509,9 +1522,27 @@ export class ViewSearch extends LitElement {
   private async _handleInput(e: Event) {
     const target = e.target as HTMLInputElement;
     this.query = target.value;
+    
+    // Parse input for mentions
+    this.parsedInput = parseInput(this.query);
 
     // Detect command prefix
     this._detectCommandPrefix();
+    
+    // Check for active mention being typed
+    const cursorPos = target.selectionStart || 0;
+    const activeMention = getCurrentMention(this.query, cursorPos);
+    
+    if (activeMention) {
+      // User is typing a mention, show suggestions
+      this.currentMention = activeMention;
+      await this._fetchMentionSuggestions(activeMention);
+    } else {
+      // No active mention, hide dropdown
+      this.currentMention = null;
+      this.showMentionDropdown = false;
+      this.mentionSuggestions = [];
+    }
 
     // Clear previous timer
     if (this.searchDebounceTimer) {
@@ -2228,6 +2259,171 @@ export class ViewSearch extends LitElement {
           </div>
         </div>
       </div>
+    `;
+  }
+  
+  // ===== Mention/Autocomplete Methods =====
+  
+  /**
+   * Fetch suggestions for the current mention being typed
+   */
+  private async _fetchMentionSuggestions(mention: Mention) {
+    if (!mention.text || mention.text.length < 1) {
+      this.mentionSuggestions = [];
+      this.showMentionDropdown = false;
+      return;
+    }
+    
+    try {
+      if (mention.type === 'app') {
+        // Fetch application suggestions
+        const apps = await invoke<Application[]>('search_app_suggestions', {
+          query: mention.text,
+          limit: 10,
+        });
+        
+        this.mentionSuggestions = apps.map(app => ({
+          id: app.path,
+          name: app.name,
+          path: app.path,
+          icon: app.icon_base64,
+          type: 'app' as const,
+        }));
+      } else if (mention.type === 'file') {
+        // Fetch file suggestions
+        const files = await invoke<FileMatch[]>('search_file_suggestions', {
+          query: mention.text,
+          searchPath: null,
+          limit: 10,
+        });
+        
+        this.mentionSuggestions = files.map(file => ({
+          id: file.path,
+          name: this._getFileName(file.path),
+          path: file.path,
+          type: 'file' as const,
+        }));
+      }
+      
+      this.showMentionDropdown = this.mentionSuggestions.length > 0;
+      
+      // Load icons for app suggestions asynchronously
+      if (mention.type === 'app') {
+        this._loadIconsForMentionSuggestions();
+      }
+    } catch (error) {
+      console.error('Failed to fetch mention suggestions:', error);
+      this.mentionSuggestions = [];
+      this.showMentionDropdown = false;
+    }
+  }
+  
+  /**
+   * Load icons for mention suggestions asynchronously
+   */
+  private async _loadIconsForMentionSuggestions() {
+    for (const suggestion of this.mentionSuggestions) {
+      if (suggestion.type === 'app' && !suggestion.icon) {
+        try {
+          const icon = await invoke<string | null>('get_application_icon', {
+            appPath: suggestion.path,
+          });
+          if (icon) {
+            // Update the suggestion with the icon
+            const index = this.mentionSuggestions.findIndex(s => s.id === suggestion.id);
+            if (index !== -1) {
+              this.mentionSuggestions[index] = { ...suggestion, icon };
+              this.requestUpdate();
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load icon for mention:', error);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Handle mention suggestion selection
+   */
+  private _handleMentionSelect(e: CustomEvent) {
+    const suggestion = e.detail;
+    
+    if (!this.currentMention) return;
+    
+    // Replace the partial mention with the selected item
+    const input = this.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    if (!input) return;
+    
+    const beforeMention = this.query.substring(0, this.currentMention.startIndex);
+    const afterMention = this.query.substring(this.currentMention.endIndex);
+    const mentionPrefix = this.currentMention.type === 'app' ? '@' : '#';
+    
+    // Insert the selected mention
+    this.query = `${beforeMention}${mentionPrefix}${suggestion.name}${afterMention}`;
+    
+    // Update input value
+    input.value = this.query;
+    
+    // Close dropdown
+    this.showMentionDropdown = false;
+    this.currentMention = null;
+    this.mentionSuggestions = [];
+    
+    // Re-parse input
+    this.parsedInput = parseInput(this.query);
+    
+    // Set cursor position after the mention
+    const newCursorPos = this.currentMention.startIndex + mentionPrefix.length + suggestion.name.length;
+    input.setSelectionRange(newCursorPos, newCursorPos);
+    input.focus();
+    
+    // Trigger update
+    this.requestUpdate();
+  }
+  
+  /**
+   * Handle mention dropdown close
+   */
+  private _handleMentionClose() {
+    this.showMentionDropdown = false;
+    this.currentMention = null;
+    this.mentionSuggestions = [];
+  }
+  
+  /**
+   * Get dropdown position relative to the input
+   */
+  private _getMentionDropdownPosition(): { top: number; left: number } {
+    const input = this.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    if (!input) return { top: 0, left: 0 };
+    
+    const rect = input.getBoundingClientRect();
+    return {
+      top: rect.bottom + 8,
+      left: rect.left,
+    };
+  }
+  
+  /**
+   * Render the mention suggestion dropdown
+   */
+  private _renderMentionDropdown() {
+    if (!this.showMentionDropdown || !this.currentMention) {
+      return null;
+    }
+    
+    const position = this._getMentionDropdownPosition();
+    
+    return html`
+      <suggestion-dropdown
+        .mentionType=${this.currentMention.type}
+        .suggestions=${this.mentionSuggestions}
+        .position=${position}
+        .visible=${this.showMentionDropdown}
+        @suggestion-select=${this._handleMentionSelect}
+        @suggestion-close=${this._handleMentionClose}
+      ></suggestion-dropdown>
     `;
   }
 }

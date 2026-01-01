@@ -679,3 +679,133 @@ pub async fn ask_ai_provider(query: String, provider_name: String) -> Result<Str
 
     Ok(response.text)
 }
+
+/// Search applications for mention suggestions (optimized for autocomplete)
+#[command]
+pub async fn search_app_suggestions(query: String, limit: Option<usize>) -> Result<Vec<Application>, String> {
+    use applications::{AppInfo, AppInfoContext};
+
+    let query_lower = query.to_lowercase();
+    let result_limit = limit.unwrap_or(10);
+
+    // Create context and refresh apps
+    let mut ctx = AppInfoContext::new(vec![]);
+    ctx.refresh_apps()
+        .map_err(|e| format!("Failed to refresh applications: {}", e))?;
+
+    // Get all applications
+    let apps = ctx.get_all_apps();
+
+    // Filter and map to our Application struct
+    let mut results: Vec<Application> = apps
+        .into_iter()
+        .filter(|app| app.name.to_lowercase().contains(&query_lower))
+        .map(|app| {
+            let exe_path = app
+                .app_path_exe
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
+
+            // Convert executable path to .app bundle root path
+            let app_bundle_path = if exe_path.contains("/Contents/MacOS/") {
+                if let Some(bundle_end) = exe_path.find(".app/Contents/MacOS/") {
+                    exe_path[..bundle_end + 4].to_string()
+                } else {
+                    exe_path
+                }
+            } else {
+                exe_path
+            };
+
+            Application {
+                name: app.name.clone(),
+                path: app_bundle_path,
+                icon_path: None,
+                icon_base64: None, // Icons loaded separately on-demand
+            }
+        })
+        .collect();
+
+    // Sort by relevance
+    results.sort_by(|a, b| {
+        let a_lower = a.name.to_lowercase();
+        let b_lower = b.name.to_lowercase();
+
+        if a_lower == query_lower {
+            std::cmp::Ordering::Less
+        } else if b_lower == query_lower {
+            std::cmp::Ordering::Greater
+        } else if a_lower.starts_with(&query_lower) && !b_lower.starts_with(&query_lower) {
+            std::cmp::Ordering::Less
+        } else if !a_lower.starts_with(&query_lower) && b_lower.starts_with(&query_lower) {
+            std::cmp::Ordering::Greater
+        } else {
+            a.name.cmp(&b.name)
+        }
+    });
+
+    // Limit results
+    results.truncate(result_limit);
+    Ok(results)
+}
+
+/// Search files for mention suggestions (optimized for autocomplete)
+#[command]
+pub async fn search_file_suggestions(
+    query: String,
+    search_path: Option<String>,
+    limit: Option<usize>,
+) -> Result<Vec<FileMatch>, String> {
+    use ignore::WalkBuilder;
+
+    let query_lower = query.to_lowercase();
+    let base_path = search_path.unwrap_or_else(|| {
+        std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .unwrap_or_else(|_| ".".to_string())
+    });
+
+    let mut results = Vec::new();
+    let max_results = limit.unwrap_or(10);
+
+    // Use ignore crate to respect .gitignore files
+    let walker = WalkBuilder::new(&base_path)
+        .hidden(false) // Show hidden files
+        .git_ignore(true) // Respect .gitignore
+        .max_depth(Some(5)) // Limit depth for performance
+        .build();
+
+    for entry in walker {
+        if results.len() >= max_results {
+            break;
+        }
+
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        if !entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+            continue;
+        }
+
+        let path = entry.path();
+        let path_str = path.to_string_lossy().to_string();
+
+        // Search by filename
+        if let Some(filename) = path.file_name() {
+            let filename_str = filename.to_string_lossy().to_lowercase();
+            if filename_str.contains(&query_lower) {
+                results.push(FileMatch {
+                    path: path_str.clone(),
+                    line_number: None,
+                    line_content: None,
+                    match_type: "name".to_string(),
+                });
+            }
+        }
+    }
+
+    Ok(results)
+}
