@@ -1832,6 +1832,7 @@ export class ViewSearch extends LitElement {
     if (!this.query) {
       return html`
         <div class="keyboard-hint">
+          <kbd class="kbd">@</kbd> mention apps • <kbd class="kbd">#</kbd> mention files •
           <kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd> to navigate •
           <kbd class="kbd">↵</kbd> to open • <kbd class="kbd">Esc</kbd> to clear
         </div>
@@ -2146,6 +2147,40 @@ export class ViewSearch extends LitElement {
     this.showAiChatModal = true;
 
     try {
+      // Parse mentions from query
+      const parsedQuery = parseInput(this.query);
+      
+      // Build context for AI based on mentions
+      let contextPrompt = this.query;
+      
+      if (parsedQuery.mentions.length > 0) {
+        // Add context about mentioned entities
+        contextPrompt += "\n\nContext:\n";
+        
+        for (const mention of parsedQuery.mentions) {
+          if (mention.type === 'app') {
+            contextPrompt += `- Application "${mention.text}" refers to an installed application\n`;
+          } else if (mention.type === 'file') {
+            contextPrompt += `- File "${mention.text}" refers to a file in the system\n`;
+          }
+        }
+        
+        // Try to resolve mentions to actual entities
+        const resolvedMentions = await this._resolveMentions(parsedQuery.mentions);
+        if (resolvedMentions.length > 0) {
+          contextPrompt += "\nResolved entities:\n";
+          for (const resolved of resolvedMentions) {
+            if (resolved.entity) {
+              if (resolved.type === 'app') {
+                contextPrompt += `- App: ${resolved.entity.name} (${resolved.entity.path})\n`;
+              } else if (resolved.type === 'file') {
+                contextPrompt += `- File: ${resolved.entity.path}\n`;
+              }
+            }
+          }
+        }
+      }
+      
       // Use fetch to call the Axum streaming endpoint directly
       // Note: provider needs to be mapped to the actual AI provider type
       const providerMap: Record<string, string> = {
@@ -2163,7 +2198,7 @@ export class ViewSearch extends LitElement {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: this.query,
+          prompt: contextPrompt,
           provider: aiProvider,
           temperature: 0.8,
           max_tokens: 500,
@@ -2261,6 +2296,59 @@ export class ViewSearch extends LitElement {
   }
   
   // ===== Mention/Autocomplete Methods =====
+  
+  /**
+   * Resolve mentions to actual entities (apps/files)
+   */
+  private async _resolveMentions(mentions: Mention[]): Promise<Array<Mention & { entity?: any }>> {
+    const resolved: Array<Mention & { entity?: any }> = [];
+    
+    for (const mention of mentions) {
+      try {
+        if (mention.type === 'app') {
+          // Try to find exact match application
+          const apps = await invoke<Application[]>('search_app_suggestions', {
+            query: mention.text,
+            limit: 5,
+          });
+          
+          // Find exact match or best match
+          const exactMatch = apps.find(app => 
+            app.name.toLowerCase() === mention.text.toLowerCase()
+          );
+          
+          resolved.push({
+            ...mention,
+            entity: exactMatch || apps[0],
+          });
+        } else if (mention.type === 'file') {
+          // Try to find exact match file
+          const files = await invoke<FileMatch[]>('search_file_suggestions', {
+            query: mention.text,
+            searchPath: null,
+            limit: 5,
+          });
+          
+          // Find exact match or best match
+          const exactMatch = files.find(file => {
+            const fileName = file.path.split('/').pop() || '';
+            return fileName.toLowerCase() === mention.text.toLowerCase();
+          });
+          
+          resolved.push({
+            ...mention,
+            entity: exactMatch || files[0],
+          });
+        }
+      } catch (error) {
+        console.error('Failed to resolve mention:', mention, error);
+        // Still include the mention without entity
+        resolved.push(mention);
+      }
+    }
+    
+    return resolved;
+  }
   
   /**
    * Fetch suggestions for the current mention being typed
