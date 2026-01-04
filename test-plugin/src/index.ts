@@ -2,7 +2,7 @@
  * Test Plugin for Fleet Chat
  */
 
-import { showHUD, showToast, Toast } from '@fleet-chat/api/raycast-compat'
+import { showHUD, showToast, Toast } from '@fleet-chat/core-api'
 
 export default async function TestCommand() {
   try {

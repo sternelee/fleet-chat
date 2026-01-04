@@ -1,4 +1,5 @@
 import { resolve } from 'node:path'
+// @ts-ignore - browserslist default import
 import browserslist from 'browserslist'
 import { browserslistToTargets } from 'lightningcss'
 import { defineConfig } from 'vite'
@@ -37,7 +38,6 @@ export default defineConfig({
       },
     },
     outDir: resolve('.output/frontend'),
-    terserOptions: { format: { comments: false } },
     minify: process.env.NODE_ENV === 'production',
     cssMinify: 'lightningcss',
   },

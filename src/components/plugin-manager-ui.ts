@@ -8,7 +8,7 @@ import { css, html, LitElement } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { PluginLoader } from '../plugins/plugin-loader'
 import { PluginManager } from '../plugins/plugin-manager'
-import type { PluginManifest } from '../plugins/plugin-system'
+import type { PluginManifestData } from '../plugins/plugin-system.js'
 import './drop-zone.js'
 
 @customElement('plugin-manager-ui')
@@ -374,7 +374,7 @@ export class PluginManagerUI extends LitElement {
 
   @state()
   private plugins: Array<{
-    manifest: PluginManifest
+    manifest: PluginManifestData
     status: string
     errors?: string[]
   }> = []
@@ -434,7 +434,7 @@ export class PluginManagerUI extends LitElement {
     return this.plugins.filter(
       (p) =>
         p.manifest.name.toLowerCase().includes(term) ||
-        p.manifest.description.toLowerCase().includes(term) ||
+        (p.manifest.description && p.manifest.description.toLowerCase().includes(term)) ||
         (p.manifest.author && p.manifest.author.toLowerCase().includes(term)),
     )
   }

@@ -1,0 +1,29 @@
+{
+  "name": "search-list",
+  "version": "1.0.0",
+  "description": "An example plugin demonstrating searchable lists with filtering",
+  "author": "Fleet Chat",
+  "license": "MIT",
+  "icon": "🔍",
+  "categories": ["Examples"],
+  "commands": [
+    {
+      "name": "default",
+      "title": "Search Examples",
+      "description": "Browse and search through example items",
+      "mode": "view"
+    },
+    {
+      "name": "tasks",
+      "title": "Task List",
+      "description": "Manage your tasks with filtering",
+      "mode": "view"
+    },
+    {
+      "name": "bookmarks",
+      "title": "Bookmarks",
+      "description": "Quick access to your bookmarks",
+      "mode": "view"
+    }
+  ]
+}

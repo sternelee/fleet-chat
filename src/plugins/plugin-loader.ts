@@ -5,12 +5,12 @@
  */
 
 import { unzip } from 'unzipit'
-import type { Plugin, PluginManifest } from '../../packages/fleet-chat-api/plugins/core/types.js'
+import type { Plugin, PluginManifestData } from './plugin-system.js'
 import type { PluginManager } from './plugin-manager.js'
 
 // Plugin loader specific interface
 export interface LoadedPlugin {
-  manifest: PluginManifest
+  manifest: PluginManifestData
   plugin: Plugin
   path: string
   metadata?: PackageMetadata
@@ -18,7 +18,7 @@ export interface LoadedPlugin {
 
 // Package metadata interface
 interface PackageMetadata {
-  manifest: PluginManifest
+  manifest: PluginManifestData
   checksum?: string
   buildTime?: string
   fleetChatVersion?: string
@@ -116,7 +116,7 @@ export class PluginLoader {
     }
 
     const manifestJson = await manifestEntry.text()
-    const manifest: PluginManifest = JSON.parse(manifestJson)
+    const manifest: PluginManifestData = JSON.parse(manifestJson)
 
     // Extract metadata (optional)
     let metadata: PackageMetadata | undefined
@@ -264,9 +264,9 @@ export class PluginLoader {
       // Validate manifest
       const manifestEntry = entries['manifest.json']
       const manifestJson = await manifestEntry.text()
-      const manifest: PluginManifest = JSON.parse(manifestJson)
+      const manifest: PluginManifestData = JSON.parse(manifestJson)
 
-      const requiredFields: (keyof PluginManifest)[] = ['name', 'version', 'description', 'author']
+      const requiredFields: (keyof PluginManifestData)[] = ['name', 'version', 'description', 'author']
       for (const field of requiredFields) {
         if (!manifest[field]) {
           return { valid: false, error: `Missing required field '${String(field)}' in manifest` }
@@ -307,8 +307,8 @@ export class PluginLoader {
 
     for (const path in entries) {
       const entry = entries[path]
-      // Only extract JavaScript/TypeScript files
-      if (path.endsWith('.js') || path.endsWith('.ts') || path === 'plugin.js') {
+      // Only extract JavaScript/TypeScript/TSX files
+      if (path.endsWith('.js') || path.endsWith('.ts') || path.endsWith('.tsx') || path === 'plugin.js') {
         code[path] = await entry.text()
       }
     }
@@ -320,7 +320,7 @@ export class PluginLoader {
    * Create plugin object from extracted code
    */
   private async createPluginFromCode(
-    manifest: PluginManifest,
+    manifest: PluginManifestData,
     code: { [key: string]: string },
   ): Promise<Plugin> {
     // Create a plugin object with the manifest
@@ -408,20 +408,20 @@ export class PluginLoader {
     }
   }
 
-  private async readDirectory(path: string): Promise<string[]> {
+  private async readDirectory(_path: string): Promise<string[]> {
     // Implementation depends on environment (Tauri vs web)
     return []
   }
 
-  private async createDirectory(path: string): Promise<void> {
+  private async createDirectory(_path: string): Promise<void> {
     // Implementation depends on environment
   }
 
-  private async deleteFile(path: string): Promise<void> {
+  private async deleteFile(_path: string): Promise<void> {
     // Implementation depends on environment
   }
 
-  private async stat(path: string): Promise<{ isDirectory: boolean }> {
+  private async stat(_path: string): Promise<{ isDirectory: boolean }> {
     // Implementation depends on environment
     return { isDirectory: false }
   }

@@ -1,0 +1,51 @@
+{
+  "name": "form-input",
+  "version": "1.0.0",
+  "description": "An example plugin demonstrating form input and validation",
+  "author": "Fleet Chat",
+  "license": "MIT",
+  "icon": "📝",
+  "categories": ["Examples"],
+  "preferences": [
+    {
+      "name": "defaultCity",
+      "type": "textfield",
+      "title": "Default City",
+      "description": "Default city for weather lookup",
+      "default": "San Francisco",
+      "required": false
+    },
+    {
+      "name": "temperatureUnit",
+      "type": "dropdown",
+      "title": "Temperature Unit",
+      "description": "Preferred temperature unit",
+      "data": [
+        { "title": "Celsius", "value": "celsius" },
+        { "title": "Fahrenheit", "value": "fahrenheit" }
+      ],
+      "default": "celsius",
+      "required": false
+    }
+  ],
+  "commands": [
+    {
+      "name": "default",
+      "title": "Quick Note",
+      "description": "Create and save quick notes",
+      "mode": "view"
+    },
+    {
+      "name": "todo",
+      "title": "Todo Form",
+      "description": "Add todos using a form",
+      "mode": "view"
+    },
+    {
+      "name": "settings",
+      "title": "Settings Form",
+      "description": "Configure plugin settings",
+      "mode": "view"
+    }
+  ]
+}

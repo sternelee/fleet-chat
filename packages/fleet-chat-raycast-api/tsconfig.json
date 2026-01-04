@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./node_modules/.tsbuildinfo",
+    "paths": {
+      "@/*": ["./*"],
+      "@fleet-chat/core-api": ["../fleet-chat-core-api/index.ts"]
+    }
+  },
+  "include": [
+    "index.ts",
+    "components/**/*.ts",
+    "system/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"],
+  "references": [
+    { "path": "../fleet-chat-core-api" }
+  ]
+}

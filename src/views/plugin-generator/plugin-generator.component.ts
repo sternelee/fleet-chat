@@ -1,11 +1,9 @@
-import { invoke } from '@tauri-apps/api/core'
 import { css, html, LitElement } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import {
   downloadGeneratedPlugin,
   type GeneratedPluginData,
   getA2UIBridge,
-  initializeA2UIBridge,
   previewGeneratedPlugin,
 } from '../../plugins/a2ui-plugin-bridge.js'
 

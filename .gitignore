@@ -79,3 +79,6 @@ target/
 src-tauri/gen/
 src/libs/bindings.ts
 /plugins
+
+# Continuous Claude cache (local only)
+.claude/cache/

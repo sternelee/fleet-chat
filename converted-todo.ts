@@ -1,4 +1,4 @@
-import { List } from '@fleet-chat/api/raycast-compat';
+import { List } from '@fleet-chat/core-api';
 import { useAtom } from "jotai";
 import { css, html, LitElement } from 'lit';
 import { customElement, property } from 'lit/decorators.js';

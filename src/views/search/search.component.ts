@@ -1205,7 +1205,8 @@ export class ViewSearch extends LitElement {
   }
 
   private _renderPluginCommands() {
-    if (this.searchMode === "apps" || this.searchMode === "files") {
+    // Only exclude plugins in files mode - they should be visible in apps and all modes
+    if (this.searchMode === "files") {
       return null;
     }
 

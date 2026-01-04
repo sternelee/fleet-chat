@@ -120,7 +120,15 @@ class NativePluginPacker {
     // Update imports
     converted = converted.replace(
       /from\s+['"]@raycast\/api['"]/g,
-      "from '@fleet-chat/api/raycast-compat'"
+      "from '@fleet-chat/core-api'"
+    );
+    converted = converted.replace(
+      /from\s+['"]@fleet-chat\/api['"]/g,
+      "from '@fleet-chat/core-api'"
+    );
+    converted = converted.replace(
+      /from\s+['"]@fleet-chat\/api\/raycast-compat['"]/g,
+      "from '@fleet-chat/core-api'"
     );
 
     // Convert default function exports to Lit classes

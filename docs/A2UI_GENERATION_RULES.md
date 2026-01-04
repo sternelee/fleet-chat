@@ -2,11 +2,11 @@
 
 ## 概述
 
-本文档定义了基于 `@fleet-chat/api` 插件系统的 A2UI 生成规则。这些规则确保生成的插件完全兼容 Fleet Chat 的 API 和组件系统。
+本文档定义了基于 `@fleet-chat/core-api` 插件系统的 A2UI 生成规则。这些规则确保生成的插件完全兼容 Fleet Chat 的 API 和组件系统。
 
 ## 核心原则
 
-1. **100% Fleet Chat API 兼容**：使用 `@fleet-chat/api` 而不是 `@raycast/api`
+1. **100% Fleet Chat API 兼容**：使用 `@fleet-chat/core-api` 而不是 `@raycast/api`
 2. **Lit 组件架构**：生成的组件基于 Lit web components
 3. **Tauri 增强功能**：利用 Tauri 的原生系统能力
 4. **TypeScript 优先**：所有代码使用 TypeScript 编写
@@ -33,7 +33,7 @@ import {
   useNavigation,
   push,
   pop
-} from '@fleet-chat/api';
+} from '@fleet-chat/core-api';
 ```
 
 ### 错误的导入方式
@@ -52,7 +52,7 @@ import { List } from '@fleet-chat/raycast-api';
 
 #### 基础结构
 ```typescript
-import { List, ActionPanel, Action, showToast } from '@fleet-chat/api';
+import { List, ActionPanel, Action, showToast } from '@fleet-chat/core-api';
 import { useState, useEffect } from 'lit/decorators.js';
 
 export default function Command() {
@@ -143,7 +143,7 @@ export default function Command() {
 ### 2. Grid 组件
 
 ```typescript
-import { Grid, ActionPanel, Action } from '@fleet-chat/api';
+import { Grid, ActionPanel, Action } from '@fleet-chat/core-api';
 
 export default function Command() {
   const [items, setItems] = useState<GridItem[]>([]);
@@ -180,7 +180,7 @@ export default function Command() {
 ### 3. Detail 组件
 
 ```typescript
-import { Detail, ActionPanel, Action } from '@fleet-chat/api';
+import { Detail, ActionPanel, Action } from '@fleet-chat/core-api';
 
 export default function Command() {
   const [content, setContent] = useState('');
@@ -234,7 +234,7 @@ Content goes here with **markdown** support.
 ### 4. Form 组件
 
 ```typescript
-import { Form, ActionPanel, Action, showToast } from '@fleet-chat/api';
+import { Form, ActionPanel, Action, showToast } from '@fleet-chat/core-api';
 
 interface FormValues {
   name: string;
@@ -353,7 +353,7 @@ export default function Command() {
 ### LocalStorage
 
 ```typescript
-import { LocalStorage } from '@fleet-chat/api';
+import { LocalStorage } from '@fleet-chat/core-api';
 
 // 保存数据
 await LocalStorage.setItem('key', JSON.stringify(data));
@@ -377,7 +377,7 @@ const keys = await LocalStorage.allKeys();
 ### Cache
 
 ```typescript
-import { Cache } from '@fleet-chat/api';
+import { Cache } from '@fleet-chat/core-api';
 
 const cache = new Cache();
 
@@ -399,7 +399,7 @@ await cache.clear();
 ### 使用导航 Hooks
 
 ```typescript
-import { useNavigation, push, pop } from '@fleet-chat/api';
+import { useNavigation, push, pop } from '@fleet-chat/core-api';
 
 export default function Command() {
   const { push, pop } = useNavigation();
@@ -441,7 +441,7 @@ export default function Command() {
 ## Toast 通知
 
 ```typescript
-import { showToast, Toast } from '@fleet-chat/api';
+import { showToast, Toast } from '@fleet-chat/core-api';
 
 // 成功通知
 await showToast({
@@ -478,7 +478,7 @@ await showToast({
 ### Clipboard
 
 ```typescript
-import { Clipboard } from '@fleet-chat/api';
+import { Clipboard } from '@fleet-chat/core-api';
 
 // 复制文本
 await Clipboard.copy('Hello World');
@@ -493,7 +493,7 @@ await Clipboard.copy(JSON.stringify({ data: 'value' }));
 ### 应用程序管理
 
 ```typescript
-import { getApplications, openApplication } from '@fleet-chat/api';
+import { getApplications, openApplication } from '@fleet-chat/core-api';
 
 // 获取所有应用
 const apps = await getApplications();
@@ -538,7 +538,7 @@ await openApplication('/Applications/Safari.app');
     }
   ],
   "dependencies": {
-    "@fleet-chat/api": "^1.0.0"
+    "@fleet-chat/core-api": "^1.0.0"
   }
 }
 ```
@@ -651,7 +651,7 @@ interface UseDataResult<T> {
 ### 必须包含的元素
 
 1. **导入声明**
-   - 使用 `@fleet-chat/api`
+   - 使用 `@fleet-chat/core-api`
    - 导入所需的组件和 API
 
 2. **类型定义**
@@ -699,7 +699,7 @@ import {
   LocalStorage,
   Clipboard,
   useNavigation
-} from '@fleet-chat/api';
+} from '@fleet-chat/core-api';
 import { useState, useEffect } from 'lit/decorators.js';
 
 interface Todo {

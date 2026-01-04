@@ -1,0 +1,63 @@
+{
+  "name": "@fleet-chat/raycast-api",
+  "version": "1.0.0",
+  "description": "Fleet Chat Raycast API Compatibility Layer - Full @raycast/api compatibility",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./components/*": {
+      "types": "./dist/components/*.d.ts",
+      "import": "./dist/components/*.js"
+    },
+    "./system/*": {
+      "types": "./dist/system/*.d.ts",
+      "import": "./dist/system/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@fleet-chat/core-api": "workspace:*",
+    "@raycast/api": "^1.104.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@types/react": "^18.2.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.9.3"
+  },
+  "tsup": {
+    "entry": [
+      "index.ts",
+      "components/**/*.ts",
+      "system/**/*.ts"
+    ],
+    "format": "esm",
+    "dts": true,
+    "splitting": false,
+    "sourcemap": true,
+    "clean": true,
+    "target": "es2020",
+    "treeshake": true
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "author": "Fleet Chat",
+  "license": "MIT"
+}

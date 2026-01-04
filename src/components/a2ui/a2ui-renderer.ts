@@ -611,7 +611,6 @@ export class A2UIRenderer extends LitElement {
           type="${props.type || 'text'}"
           .value=${value}
           @input=${(e: Event) => {
-            const _target = e.target as HTMLInputElement
             this.handleAction(action, e)
           }}
         />
@@ -622,7 +621,7 @@ export class A2UIRenderer extends LitElement {
   private renderTabs(props: any, weight?: number) {
     const children = this.renderChildren(props.children)
     const selectedTabBinding = props.selectedTabBinding
-    const _selectedTab = this.resolveBinding({ path: selectedTabBinding }) || ''
+    this.resolveBinding({ path: selectedTabBinding }) || ''
 
     return html` <div class="tabs" style="${weight ? `flex: ${weight};` : ''}">${children}</div> `
   }

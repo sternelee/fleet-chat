@@ -5,7 +5,7 @@
  * Handles conversion from generated code to installable plugins.
  */
 
-import type { PluginManifest } from '../../packages/fleet-chat-api/plugins/core/types.js'
+import type { PluginManifestData } from './plugin-system.js'
 import { PluginLoader } from './plugin-loader.js'
 import type { PluginManager } from './plugin-manager.js'
 
@@ -33,7 +33,7 @@ export interface GeneratedPluginData {
 }
 
 export interface PluginPackage {
-  manifest: PluginManifest
+  manifest: PluginManifestData
   code: string
   metadata: {
     generatedBy: 'a2ui'
@@ -43,11 +43,9 @@ export interface PluginPackage {
 }
 
 export class A2UIPluginBridge {
-  private pluginManager: PluginManager
   private pluginLoader: PluginLoader
 
   constructor(pluginManager: PluginManager) {
-    this.pluginManager = pluginManager
     this.pluginLoader = new PluginLoader(pluginManager)
   }
 
@@ -55,8 +53,8 @@ export class A2UIPluginBridge {
    * Convert A2UI generated plugin data to Fleet Chat plugin package
    */
   convertToPluginPackage(generatedData: GeneratedPluginData): PluginPackage {
-    // Convert the generated manifest to Fleet Chat's PluginManifest format
-    const manifest: PluginManifest = {
+    // Convert the generated manifest to Fleet Chat's PluginManifestData format
+    const manifest: PluginManifestData = {
       name: generatedData.manifest.name,
       version: generatedData.manifest.version,
       description: generatedData.manifest.description,

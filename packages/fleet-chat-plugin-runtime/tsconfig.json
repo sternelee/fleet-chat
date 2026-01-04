@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./node_modules/.tsbuildinfo",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "lib": ["ES2022", "WebWorker"]
+  },
+  "include": [
+    "index.ts",
+    "worker/**/*.ts",
+    "loader/**/*.ts",
+    "manager/**/*.ts",
+    "sandbox/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+}

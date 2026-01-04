@@ -1,0 +1,30 @@
+{
+  "name": "async-data",
+  "version": "1.0.0",
+  "description": "An example plugin demonstrating async data fetching and state management",
+  "author": "Fleet Chat",
+  "license": "MIT",
+  "icon": "⚡",
+  "categories": ["Examples"],
+  "permissions": ["network"],
+  "commands": [
+    {
+      "name": "default",
+      "title": "GitHub Search",
+      "description": "Search GitHub repositories",
+      "mode": "view"
+    },
+    {
+      "name": "weather",
+      "title": "Weather",
+      "description": "Get weather information",
+      "mode": "view"
+    },
+    {
+      "name": "jokes",
+      "title": "Random Jokes",
+      "description": "Fetch random jokes from an API",
+      "mode": "view"
+    }
+  ]
+}

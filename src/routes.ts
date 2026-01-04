@@ -5,7 +5,6 @@ import './components/global-drop-handler.js'
 
 // Polyfills URLPattern to handle better borwsers compatibility.
 // @see: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern#browser_compatibility
-// @ts-expect-error: Property 'UrlPattern' does not exist
 import 'urlpattern-polyfill'
 
 @customElement('my-app')

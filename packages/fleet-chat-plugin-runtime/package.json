@@ -1,0 +1,73 @@
+{
+  "name": "@fleet-chat/plugin-runtime",
+  "version": "1.0.0",
+  "description": "Fleet Chat Plugin Runtime - Web Worker isolation and plugin lifecycle management",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./worker/*": {
+      "types": "./dist/worker/*.d.ts",
+      "import": "./dist/worker/*.js"
+    },
+    "./loader/*": {
+      "types": "./dist/loader/*.d.ts",
+      "import": "./dist/loader/*.js"
+    },
+    "./manager/*": {
+      "types": "./dist/manager/*.d.ts",
+      "import": "./dist/manager/*.js"
+    },
+    "./sandbox/*": {
+      "types": "./dist/sandbox/*.d.ts",
+      "import": "./dist/sandbox/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsup": "^8.4.0",
+    "typescript": "^5.9.3"
+  },
+  "tsup": {
+    "entry": {
+      "index": "index.ts",
+      "worker/worker-entry": "worker/worker-entry.ts",
+      "worker/types": "worker/types.ts",
+      "worker/worker": "worker/worker.ts",
+      "loader/loader": "loader/loader.ts",
+      "loader/manifest": "loader/manifest.ts",
+      "manager/manager": "manager/manager.ts",
+      "sandbox/sandbox": "sandbox/sandbox.ts"
+    },
+    "format": "esm",
+    "dts": true,
+    "splitting": false,
+    "sourcemap": true,
+    "clean": true,
+    "target": "es2020",
+    "treeshake": true
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "author": "Fleet Chat",
+  "license": "MIT"
+}

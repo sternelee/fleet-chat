@@ -1,13 +1,15 @@
 {
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./",
-        "declaration": true,
-        "declarationMap": true,
-        "composite": true,
-        "incremental": true
-    },
-    "include": ["**/*.ts"],
-    "exclude": ["dist", "node_modules", "**/*.test.ts", "**/*.spec.ts"]
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./node_modules/.tsbuildinfo",
+    "incremental": true
+  },
+  "include": [
+    "index.ts"
+  ],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }

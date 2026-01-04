@@ -17,9 +17,12 @@ import {
   rmSync,
   statSync,
   writeFileSync,
+  createWriteStream,
 } from 'fs'
 import { dirname, join, relative } from 'path'
 import { fileURLToPath } from 'url'
+import archiver from 'archiver'
+import { pipeline } from 'stream/promises'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -289,7 +292,7 @@ export default function Command() {
       target: 'ES2020',
       lib: ['ES2020', 'DOM', 'DOM.Iterable'],
       jsx: 'react-jsx',
-      jsxImportSource: '@fleet-chat/raycast-api',
+      jsxImportSource: '@fleet-chat/core-api',
       allowSyntheticDefaultImports: true,
       esModuleInterop: true,
       skipLibCheck: true,
@@ -303,7 +306,7 @@ export default function Command() {
       paths: {
         '@/*': ['src/*'],
         '@raycast/api': ['./node_modules/@fleet-chat/raycast-api'],
-        '@fleet-chat/api': ['./node_modules/@fleet-chat/api'],
+        '@fleet-chat/core-api': ['./node_modules/@fleet-chat/core-api'],
       },
     },
     include: ['src/**/*'],
@@ -631,7 +634,7 @@ export default function Command() {
 /**
  * Package a plugin as .fcp file
  */
-function packagePlugin(name) {
+async function packagePlugin(name) {
   const pluginDir = join(process.cwd(), 'src/plugins/examples', name)
 
   if (!existsSync(pluginDir)) {
@@ -641,15 +644,8 @@ function packagePlugin(name) {
 
   console.log(`Packaging plugin: ${name}`)
 
-  // Import archiver dynamically
-  const archiver = require('archiver')
-  const output = require('fs').createWriteStream(`${name}.fcp`)
+  const output = createWriteStream(`${name}.fcp`)
   const archive = archiver('zip', { zlib: { level: 9 } })
-
-  output.on('close', () => {
-    console.log(`✅ Plugin packaged: ${archive.pointer()} bytes`)
-    console.log(`📦 Output: ${name}.fcp`)
-  })
 
   archive.on('error', (err) => {
     console.error(`❌ Packaging error: ${err}`)
@@ -663,7 +659,6 @@ function packagePlugin(name) {
 
   // Add manifest.json (for compatibility)
   if (existsSync(join(pluginDir, 'package.json'))) {
-    const manifest = JSON.parse(readFileSync(join(pluginDir, 'package.json'), 'utf-8'))
     archive.file(join(pluginDir, 'package.json'), { name: 'manifest.json' })
   }
 
@@ -691,7 +686,12 @@ function packagePlugin(name) {
   }
   archive.append(JSON.stringify(metadata, null, 2), { name: 'metadata.json' })
 
-  archive.finalize()
+  await archive.finalize()
+
+  await pipeline(archive, output)
+
+  console.log(`✅ Plugin packaged: ${archive.pointer()} bytes`)
+  console.log(`📦 Output: ${name}.fcp`)
 }
 
 function getFleetChatVersion() {
@@ -894,74 +894,82 @@ For more information, see: https://github.com/sternelee/fleet-chat/blob/main/WOR
 }
 
 // CLI logic
-const args = process.argv.slice(2)
-const command = args[0]
-const options = {
-  force: args.includes('--force'),
-  template: args.find((arg) => arg.startsWith('--template='))?.split('=')[1],
-  name: args.find((arg) => arg.startsWith('--name='))?.split('=')[1],
+async function main() {
+  const args = process.argv.slice(2)
+  const command = args[0]
+  const options = {
+    force: args.includes('--force'),
+    template: args.find((arg) => arg.startsWith('--template='))?.split('=')[1],
+    name: args.find((arg) => arg.startsWith('--name='))?.split('=')[1],
+  }
+
+  if (!command || command === 'help') {
+    showHelp()
+  } else if (command === 'create') {
+    const name = args.find((arg) => !arg.startsWith('--') && arg !== 'create')
+    if (!name) {
+      console.error('Plugin name is required.')
+      process.exit(1)
+    }
+    createPlugin(name, options)
+  } else if (command === 'convert') {
+    const raycastPath = args.find((arg) => !arg.startsWith('--') && arg !== 'convert')
+    if (!raycastPath) {
+      console.error('Raycast extension path is required.')
+      console.log('Usage: pnpm plugin convert <raycast-path>')
+      process.exit(1)
+    }
+    convertRaycastPlugin(raycastPath, options)
+  } else if (command === 'list') {
+    listPlugins()
+  } else if (command === 'build') {
+    const name = args.find((arg) => !arg.startsWith('--') && arg !== 'build')
+    if (!name) {
+      console.error('Plugin name is required.')
+      process.exit(1)
+    }
+    await buildPlugin(name)
+  } else if (command === 'package') {
+    const name = args.find((arg) => !arg.startsWith('--') && arg !== 'package')
+    if (!name) {
+      console.error('Plugin name is required.')
+      process.exit(1)
+    }
+    await packagePlugin(name)
+  } else if (command === 'validate') {
+    const path = args.find((arg) => !arg.startsWith('--') && arg !== 'validate')
+    if (!path) {
+      console.error('Plugin path is required.')
+      process.exit(1)
+    }
+    validatePlugin(path)
+  } else if (command === 'dev') {
+    const name = args.find((arg) => !arg.startsWith('--') && arg !== 'dev')
+    if (!name) {
+      console.error('Plugin name is required.')
+      process.exit(1)
+    }
+
+    const pluginDir = join(process.cwd(), 'src/plugins/examples', name)
+    if (!existsSync(pluginDir)) {
+      console.error(`Plugin "${name}" not found.`)
+      process.exit(1)
+    }
+
+    console.log(`Starting development mode for plugin: ${name}`)
+    const dev = spawn('pnpm', ['dev'], {
+      cwd: pluginDir,
+      stdio: 'inherit',
+    })
+  } else {
+    console.error(`Unknown command: ${command}`)
+    showHelp()
+    process.exit(1)
+  }
 }
 
-if (!command || command === 'help') {
-  showHelp()
-} else if (command === 'create') {
-  const name = args.find((arg) => !arg.startsWith('--') && arg !== 'create')
-  if (!name) {
-    console.error('Plugin name is required.')
-    process.exit(1)
-  }
-  createPlugin(name, options)
-} else if (command === 'convert') {
-  const raycastPath = args.find((arg) => !arg.startsWith('--') && arg !== 'convert')
-  if (!raycastPath) {
-    console.error('Raycast extension path is required.')
-    console.log('Usage: pnpm plugin convert <raycast-path>')
-    process.exit(1)
-  }
-  convertRaycastPlugin(raycastPath, options)
-} else if (command === 'list') {
-  listPlugins()
-} else if (command === 'build') {
-  const name = args.find((arg) => !arg.startsWith('--') && arg !== 'build')
-  if (!name) {
-    console.error('Plugin name is required.')
-    process.exit(1)
-  }
-  buildPlugin(name)
-} else if (command === 'package') {
-  const name = args.find((arg) => !arg.startsWith('--') && arg !== 'package')
-  if (!name) {
-    console.error('Plugin name is required.')
-    process.exit(1)
-  }
-  packagePlugin(name)
-} else if (command === 'validate') {
-  const path = args.find((arg) => !arg.startsWith('--') && arg !== 'validate')
-  if (!path) {
-    console.error('Plugin path is required.')
-    process.exit(1)
-  }
-  validatePlugin(path)
-} else if (command === 'dev') {
-  const name = args.find((arg) => !arg.startsWith('--') && arg !== 'dev')
-  if (!name) {
-    console.error('Plugin name is required.')
-    process.exit(1)
-  }
-
-  const pluginDir = join(process.cwd(), 'src/plugins/examples', name)
-  if (!existsSync(pluginDir)) {
-    console.error(`Plugin "${name}" not found.`)
-    process.exit(1)
-  }
-
-  console.log(`Starting development mode for plugin: ${name}`)
-  const dev = spawn('pnpm', ['dev'], {
-    cwd: pluginDir,
-    stdio: 'inherit',
-  })
-} else {
-  console.error(`Unknown command: ${command}`)
-  showHelp()
+// Run the CLI
+main().catch((error) => {
+  console.error('CLI error:', error)
   process.exit(1)
-}
+})

@@ -3,8 +3,8 @@
  * Integrates the plugin system with the main Fleet Chat application
  */
 
-import { PluginManager } from '../../packages/fleet-chat-api/plugins/core/manager.js'
-import type { PluginAPI } from '../../packages/fleet-chat-api/plugins/core/types.js'
+import { PluginManager } from './plugin-manager.js'
+import type { PluginAPI } from './plugin-system.js'
 
 /**
  * Plugin Integration Service
@@ -135,6 +135,14 @@ export class PluginIntegration {
       clear: async () => {
         // Integrate with Fleet Chat navigation
         console.log('Navigation.clear called by plugin')
+      },
+      open: async (url: string) => {
+        // Integrate with Fleet Chat URL opening
+        console.log('open called by plugin:', url)
+      },
+      closeMainWindow: async () => {
+        // Integrate with Fleet Chat window management
+        console.log('closeMainWindow called by plugin')
       },
 
       // System APIs - use Fleet Chat enhanced APIs

@@ -56,7 +56,7 @@ node tools/native-packager.cjs <plugin-path> <output-file>
 import { List, ActionPanel } from "@raycast/api";
 
 // 转换后的 Fleet Chat
-import { List, ActionPanel } from '@fleet-chat/api/raycast-compat';
+import { List, ActionPanel } from '@fleet-chat/core-api';
 ```
 
 ### 2. 组件转换

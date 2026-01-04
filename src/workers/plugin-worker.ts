@@ -4,10 +4,9 @@
  */
 
 import type {
-  PluginAPI,
   PluginContext,
-  PluginManifest,
-} from '../../packages/fleet-chat-api/plugins/core/types.js'
+  PluginManifestData,
+} from '../plugins/plugin-system.js'
 
 // Define RaycastAPI interface locally since it's not in the central API
 interface RaycastAPI {
@@ -43,7 +42,7 @@ interface RaycastAPI {
 declare global {
   var __pluginContext: PluginContext | undefined
   var __pluginAPI: RaycastAPI | undefined
-  var __pluginManifest: PluginManifest | undefined
+  var __pluginManifest: PluginManifestData | undefined
 }
 
 interface WorkerMessage {
@@ -56,7 +55,6 @@ interface WorkerMessage {
  */
 class PluginWorker {
   private context: PluginContext | null = null
-  private api: RaycastAPI | null = null
   private currentPlugin: any = null
 
   constructor() {
@@ -95,11 +93,21 @@ class PluginWorker {
     const { type, data } = message
 
     switch (type) {
+      case 'initialize':
+        // Respond to initialization message
+        this.postMessage({ type: 'initialized', data: { timestamp: Date.now() } })
+        break
+
       case 'execute':
         await this.executeCommand(data)
         break
 
       case 'load':
+        await this.loadPlugin(data)
+        break
+
+      case 'loadPlugin':
+        // Alias for load - plugin manager sends this
         await this.loadPlugin(data)
         break
 
@@ -116,7 +124,7 @@ class PluginWorker {
    * Execute a plugin command
    */
   private async executeCommand(data: any): Promise<void> {
-    const { pluginId, commandName, context, mode } = data
+    const { pluginId, commandName, context, mode, executionId } = data
 
     // Set global context
     globalThis.__pluginContext = context
@@ -127,7 +135,7 @@ class PluginWorker {
       const pluginModule = await this.loadPluginModule(pluginId)
 
       if (mode === 'view') {
-        await this.executeViewCommand(pluginModule, commandName)
+        await this.executeViewCommand(pluginModule, commandName, executionId)
       } else {
         await this.executeNoViewCommand(pluginModule, commandName)
       }
@@ -138,43 +146,29 @@ class PluginWorker {
 
   /**
    * Execute a view command (React/Lit component)
+   *
+   * IMPORTANT: Web Workers don't have DOM access, so we can't create
+   * HTMLElements or execute plugin code here. Instead, we send the
+   * plugin code back to the main thread for evaluation.
    */
-  private async executeViewCommand(pluginModule: any, commandName: string): Promise<void> {
-    // Get the command function
-    const command = pluginModule[commandName] || pluginModule.default?.[commandName]
-
-    if (!command) {
-      throw new Error(`Command ${commandName} not found`)
-    }
-
-    // Execute the command to get the component
-    const Component = typeof command === 'function' ? await command() : command
-
-    if (!Component) {
-      throw new Error(`Command ${commandName} did not return a component`)
-    }
-
-    // Create the component
-    let component: HTMLElement
-
-    if (this.isLitElement(Component)) {
-      // Handle Lit components
-      component = this.createLitComponent(Component)
-    } else if (this.isReactComponent(Component)) {
-      // Handle React components (would need React renderer)
-      component = await this.createReactComponent(Component)
-    } else {
-      // Handle plain HTML elements
-      component = this.createHTMLComponent(Component)
-    }
-
-    // Send the component back to main thread
+  private async executeViewCommand(
+    _pluginModule: any,
+    commandName: string,
+    executionId?: string,
+  ): Promise<void> {
+    // Send the plugin code back to main thread for evaluation
+    // The main thread will create a Blob URL and dynamically import the module
     this.postMessage({
       type: 'viewCreated',
       data: {
-        view: component,
-        html: component.outerHTML,
-        styles: this.extractStyles(component),
+        executionId,
+        component: {
+          type: 'react',
+          name: commandName,
+        },
+        // Include plugin code for main thread evaluation
+        pluginCode: this.currentPlugin?.code,
+        commandName,
       },
     })
   }
@@ -220,103 +214,6 @@ class PluginWorker {
     }
 
     return mockModule
-  }
-
-  /**
-   * Check if value is a Lit Element
-   */
-  private isLitElement(value: any): boolean {
-    return (
-      value &&
-      typeof value === 'function' &&
-      value.prototype &&
-      typeof value.prototype.render === 'function'
-    )
-  }
-
-  /**
-   * Check if value is a React Component
-   */
-  private isReactComponent(value: any): boolean {
-    return (
-      value &&
-      (typeof value === 'function' || typeof value === 'object') &&
-      value.$$typeof &&
-      value.$$typeof.toString() === 'Symbol(react.element)'
-    )
-  }
-
-  /**
-   * Create Lit component instance
-   */
-  private createLitComponent(ComponentClass: any): HTMLElement {
-    const component = new ComponentClass()
-
-    // Set properties from context
-    if (this.context?.arguments) {
-      Object.assign(component, this.context.arguments)
-    }
-
-    // Request update
-    component.requestUpdate()
-
-    return component
-  }
-
-  /**
-   * Create React component instance
-   */
-  private async createReactComponent(Component: any): Promise<HTMLElement> {
-    // This would require setting up a React renderer
-    // For now, return a simple div
-    const container = document.createElement('div')
-    container.innerHTML = 'React Component (placeholder)'
-    return container
-  }
-
-  /**
-   * Create HTML element
-   */
-  private createHTMLComponent(element: any): HTMLElement {
-    if (typeof element === 'string') {
-      const div = document.createElement('div')
-      div.innerHTML = element
-      return (div.firstElementChild as HTMLElement) || div
-    }
-
-    if (element instanceof HTMLElement) {
-      return element
-    }
-
-    // Default to div with string content
-    const div = document.createElement('div')
-    div.textContent = String(element)
-    return div
-  }
-
-  /**
-   * Extract styles from component
-   */
-  private extractStyles(component: HTMLElement): string[] {
-    const styles: string[] = []
-
-    // Get shadow DOM styles
-    if (component.shadowRoot) {
-      const styleSheets = component.shadowRoot.styleSheets
-      for (let i = 0; i < styleSheets.length; i++) {
-        try {
-          styles.push(
-            Array.from(styleSheets[i].cssRules)
-              .map((rule) => rule.cssText)
-              .join('\n'),
-          )
-        } catch (e) {
-          // Skip inaccessible stylesheets
-        }
-      }
-    }
-
-    return styles
   }
 
   /**
@@ -384,7 +281,7 @@ class PluginWorker {
     return new Proxy(
       {},
       {
-        get: (target, prop) => {
+        get: (_target, prop) => {
           if (prop === 'default') {
             return this.createComponentProxy(componentName)
           }
@@ -407,7 +304,7 @@ class PluginWorker {
     return new Proxy(
       {},
       {
-        get: (target, prop) => {
+        get: (_target, prop) => {
           if (typeof prop === 'string') {
             return (...args: any[]) => {
               return this.callMainAPI('storageOperation', {
@@ -429,7 +326,7 @@ class PluginWorker {
     return new Proxy(
       {},
       {
-        get: (target, prop) => {
+        get: (_target, prop) => {
           if (typeof prop === 'string') {
             return (...args: any[]) => {
               return this.callMainAPI('clipboardOperation', {
@@ -485,22 +382,21 @@ class PluginWorker {
   }
 
   /**
-   * Log message to main thread
-   */
-  private log(message: string, level: 'log' | 'warn' | 'error' = 'log'): void {
-    this.postMessage({
-      type: 'log',
-      data: { message, level },
-    })
-  }
-
-  /**
    * Load plugin from data
    */
   private async loadPlugin(data: any): Promise<void> {
     console.log('Loading plugin:', data)
     // Store plugin data for later use
     this.currentPlugin = data
+
+    // Send pluginLoaded response to main thread
+    this.postMessage({
+      type: 'pluginLoaded',
+      data: {
+        pluginId: data.pluginId,
+        timestamp: Date.now(),
+      },
+    })
   }
 
   /**
