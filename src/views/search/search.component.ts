@@ -5,6 +5,7 @@ import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
 import { executePluginCommand, pluginIntegration } from "../../plugins/plugin-integration";
+import { getCurrentMention, parseInput, type Mention } from "../../utils/mention-parser";
 
 interface Application {
   name: string;
@@ -68,6 +69,11 @@ export class ViewSearch extends LitElement {
   @state() private aiChatLoading = false;
   @state() private showAiChatModal = false;
   @state() private aiChatProvider = "";
+  
+  // Mention/autocomplete state
+  @state() private currentMention: Mention | null = null;
+  @state() private mentionSuggestions: Array<{ id: string; name: string; path?: string; icon?: string; type: 'app' | 'file' }> = [];
+  @state() private showMentionDropdown = false;
 
   // Frontend application cache (instant search)
   private applicationCache: Application[] = [];
@@ -1041,6 +1047,7 @@ export class ViewSearch extends LitElement {
 
         ${this._renderPluginUploadButton()} ${this._renderKeyboardHint()}
         ${this._renderAIChatModal()}
+        ${this._renderMentionDropdown()}
       </div>
     `;
   }
@@ -1391,7 +1398,7 @@ export class ViewSearch extends LitElement {
     } else if (this.commandPrefix === "?") {
       return "Search everything...";
     }
-    return "Search applications... (> / ? for more)";
+    return "Search or ask AI... (Use @app and #file to mention)";
   }
 
   private _getPrefixLabel(): string {
@@ -1488,6 +1495,14 @@ export class ViewSearch extends LitElement {
     return html`
       <div class="prefix-hints">
         <div class="prefix-hint">
+          <span class="prefix-hint-key">@</span>
+          <span>Mention apps</span>
+        </div>
+        <div class="prefix-hint">
+          <span class="prefix-hint-key">#</span>
+          <span>Mention files</span>
+        </div>
+        <div class="prefix-hint">
           <span class="prefix-hint-key">></span>
           <span>Plugins</span>
         </div>
@@ -1499,10 +1514,6 @@ export class ViewSearch extends LitElement {
           <span class="prefix-hint-key">?</span>
           <span>Everything</span>
         </div>
-        <div class="prefix-hint">
-          <span class="prefix-hint-key">⌘↵</span>
-          <span>Quick Actions</span>
-        </div>
       </div>
     `;
   }
@@ -1510,9 +1521,27 @@ export class ViewSearch extends LitElement {
   private async _handleInput(e: Event) {
     const target = e.target as HTMLInputElement;
     this.query = target.value;
+    
+    // Parse input for mentions (not stored, just for current processing)
+    parseInput(this.query);
 
     // Detect command prefix
     this._detectCommandPrefix();
+    
+    // Check for active mention being typed
+    const cursorPos = target.selectionStart || 0;
+    const activeMention = getCurrentMention(this.query, cursorPos);
+    
+    if (activeMention) {
+      // User is typing a mention, show suggestions
+      this.currentMention = activeMention;
+      await this._fetchMentionSuggestions(activeMention);
+    } else {
+      // No active mention, hide dropdown
+      this.currentMention = null;
+      this.showMentionDropdown = false;
+      this.mentionSuggestions = [];
+    }
 
     // Clear previous timer
     if (this.searchDebounceTimer) {
@@ -1804,6 +1833,7 @@ export class ViewSearch extends LitElement {
     if (!this.query) {
       return html`
         <div class="keyboard-hint">
+          <kbd class="kbd">@</kbd> mention apps • <kbd class="kbd">#</kbd> mention files •
           <kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd> to navigate •
           <kbd class="kbd">↵</kbd> to open • <kbd class="kbd">Esc</kbd> to clear
         </div>
@@ -2118,6 +2148,40 @@ export class ViewSearch extends LitElement {
     this.showAiChatModal = true;
 
     try {
+      // Parse mentions from query
+      const parsedQuery = parseInput(this.query);
+      
+      // Build context for AI based on mentions
+      let contextPrompt = this.query;
+      
+      if (parsedQuery.mentions.length > 0) {
+        // Add context about mentioned entities
+        contextPrompt += "\n\nContext:\n";
+        
+        for (const mention of parsedQuery.mentions) {
+          if (mention.type === 'app') {
+            contextPrompt += `- Application "${mention.text}" refers to an installed application\n`;
+          } else if (mention.type === 'file') {
+            contextPrompt += `- File "${mention.text}" refers to a file in the system\n`;
+          }
+        }
+        
+        // Try to resolve mentions to actual entities
+        const resolvedMentions = await this._resolveMentions(parsedQuery.mentions);
+        if (resolvedMentions.length > 0) {
+          contextPrompt += "\nResolved entities:\n";
+          for (const resolved of resolvedMentions) {
+            if (resolved.entity) {
+              if (resolved.type === 'app') {
+                contextPrompt += `- App: ${resolved.entity.name} (${resolved.entity.path})\n`;
+              } else if (resolved.type === 'file') {
+                contextPrompt += `- File: ${resolved.entity.path}\n`;
+              }
+            }
+          }
+        }
+      }
+      
       // Use fetch to call the Axum streaming endpoint directly
       // Note: provider needs to be mapped to the actual AI provider type
       const providerMap: Record<string, string> = {
@@ -2135,7 +2199,7 @@ export class ViewSearch extends LitElement {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: this.query,
+          prompt: contextPrompt,
           provider: aiProvider,
           temperature: 0.8,
           max_tokens: 500,
@@ -2229,6 +2293,227 @@ export class ViewSearch extends LitElement {
           </div>
         </div>
       </div>
+    `;
+  }
+  
+  // ===== Mention/Autocomplete Methods =====
+  
+  /**
+   * Resolve mentions to actual entities (apps/files)
+   */
+  private async _resolveMentions(mentions: Mention[]): Promise<Array<Mention & { entity?: any }>> {
+    const resolved: Array<Mention & { entity?: any }> = [];
+    
+    for (const mention of mentions) {
+      try {
+        if (mention.type === 'app') {
+          // Try to find exact match application
+          const apps = await invoke<Application[]>('search_app_suggestions', {
+            query: mention.text,
+            limit: 5,
+          });
+          
+          // Find exact match or best match
+          const exactMatch = apps.find(app => 
+            app.name.toLowerCase() === mention.text.toLowerCase()
+          );
+          
+          resolved.push({
+            ...mention,
+            entity: exactMatch || apps[0],
+          });
+        } else if (mention.type === 'file') {
+          // Try to find exact match file
+          const files = await invoke<FileMatch[]>('search_file_suggestions', {
+            query: mention.text,
+            searchPath: null,
+            limit: 5,
+          });
+          
+          // Find exact match or best match
+          const exactMatch = files.find(file => {
+            const fileName = file.path.split('/').pop() || '';
+            return fileName.toLowerCase() === mention.text.toLowerCase();
+          });
+          
+          resolved.push({
+            ...mention,
+            entity: exactMatch || files[0],
+          });
+        }
+      } catch (error) {
+        console.error('Failed to resolve mention:', mention, error);
+        // Still include the mention without entity
+        resolved.push(mention);
+      }
+    }
+    
+    return resolved;
+  }
+  
+  /**
+   * Fetch suggestions for the current mention being typed
+   */
+  private async _fetchMentionSuggestions(mention: Mention) {
+    if (!mention.text || mention.text.length < 1) {
+      this.mentionSuggestions = [];
+      this.showMentionDropdown = false;
+      return;
+    }
+    
+    try {
+      if (mention.type === 'app') {
+        // Fetch application suggestions
+        const apps = await invoke<Application[]>('search_app_suggestions', {
+          query: mention.text,
+          limit: 10,
+        });
+        
+        this.mentionSuggestions = apps.map(app => ({
+          id: app.path,
+          name: app.name,
+          path: app.path,
+          icon: app.icon_base64,
+          type: 'app' as const,
+        }));
+      } else if (mention.type === 'file') {
+        // Fetch file suggestions
+        const files = await invoke<FileMatch[]>('search_file_suggestions', {
+          query: mention.text,
+          searchPath: null,
+          limit: 10,
+        });
+        
+        this.mentionSuggestions = files.map(file => ({
+          id: file.path,
+          name: this._getFileName(file.path),
+          path: file.path,
+          type: 'file' as const,
+        }));
+      }
+      
+      this.showMentionDropdown = this.mentionSuggestions.length > 0;
+      
+      // Load icons for app suggestions asynchronously
+      if (mention.type === 'app') {
+        this._loadIconsForMentionSuggestions();
+      }
+    } catch (error) {
+      console.error('Failed to fetch mention suggestions:', error);
+      this.mentionSuggestions = [];
+      this.showMentionDropdown = false;
+    }
+  }
+  
+  /**
+   * Load icons for mention suggestions asynchronously
+   */
+  private async _loadIconsForMentionSuggestions() {
+    for (const suggestion of this.mentionSuggestions) {
+      if (suggestion.type === 'app' && !suggestion.icon) {
+        try {
+          const icon = await invoke<string | null>('get_application_icon', {
+            appPath: suggestion.path,
+          });
+          if (icon) {
+            // Update the suggestion with the icon
+            const index = this.mentionSuggestions.findIndex(s => s.id === suggestion.id);
+            if (index !== -1) {
+              this.mentionSuggestions[index] = { ...suggestion, icon };
+              this.requestUpdate();
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load icon for mention:', error);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Handle mention suggestion selection
+   */
+  private _handleMentionSelect(e: CustomEvent) {
+    const suggestion = e.detail;
+    
+    if (!this.currentMention) return;
+    
+    // Save current mention details before clearing
+    const mentionStartIndex = this.currentMention.startIndex;
+    const mentionType = this.currentMention.type;
+    const mentionPrefix = mentionType === 'app' ? '@' : '#';
+    
+    // Replace the partial mention with the selected item
+    const input = this.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    if (!input) return;
+    
+    const beforeMention = this.query.substring(0, mentionStartIndex);
+    const afterMention = this.query.substring(this.currentMention.endIndex);
+    
+    // Insert the selected mention
+    this.query = `${beforeMention}${mentionPrefix}${suggestion.name}${afterMention}`;
+    
+    // Update input value
+    input.value = this.query;
+    
+    // Calculate cursor position after the mention
+    const newCursorPos = mentionStartIndex + mentionPrefix.length + suggestion.name.length;
+    
+    // Close dropdown
+    this.showMentionDropdown = false;
+    this.currentMention = null;
+    this.mentionSuggestions = [];
+    
+    // Set cursor position after the mention
+    input.setSelectionRange(newCursorPos, newCursorPos);
+    input.focus();
+    
+    // Trigger update
+    this.requestUpdate();
+  }
+  
+  /**
+   * Handle mention dropdown close
+   */
+  private _handleMentionClose() {
+    this.showMentionDropdown = false;
+    this.currentMention = null;
+    this.mentionSuggestions = [];
+  }
+  
+  /**
+   * Get dropdown position relative to the input
+   */
+  private _getMentionDropdownPosition(): { top: number; left: number } {
+    const input = this.shadowRoot?.querySelector('.search-input') as HTMLInputElement;
+    if (!input) return { top: 0, left: 0 };
+    
+    const rect = input.getBoundingClientRect();
+    return {
+      top: rect.bottom + 8,
+      left: rect.left,
+    };
+  }
+  
+  /**
+   * Render the mention suggestion dropdown
+   */
+  private _renderMentionDropdown() {
+    if (!this.showMentionDropdown || !this.currentMention) {
+      return null;
+    }
+    
+    const position = this._getMentionDropdownPosition();
+    
+    return html`
+      <suggestion-dropdown
+        .mentionType=${this.currentMention.type}
+        .suggestions=${this.mentionSuggestions}
+        .position=${position}
+        .visible=${this.showMentionDropdown}
+        @suggestion-select=${this._handleMentionSelect}
+        @suggestion-close=${this._handleMentionClose}
+      ></suggestion-dropdown>
     `;
   }
 }

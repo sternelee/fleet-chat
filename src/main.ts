@@ -8,6 +8,7 @@ import './components/lucide-icon'
 import './components/a2ui'
 import './components/plugin-manager-ui'
 import './components/global-drop-handler'
+import './components/suggestion-dropdown'
 
 // Import the pages
 import './views/errors/not-found'
